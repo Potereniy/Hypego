@@ -7,7 +7,25 @@ export default function Home(){const [user,setUser]=useState<User|null>(null),[r
 async function load(){try{const j=await api('me');setUser(j.user);setRoles(j.roles||[]);setDisplay(j.user.display_name||j.user.username);setBio(j.user.bio||'');setColor(j.user.nickname_color||'#a78bfa');}catch{setUser(null);}}
 async function loadProducts(s=store){try{const j=await api('products?store='+s);setProducts(j.products||[])}catch(e:any){setNotice(e.message)}}
 useEffect(()=>{load()},[]);useEffect(()=>{if(user)loadProducts(store)},[user,store]);
-async function auth(e:React.FormEvent)async function resendVerification() {
+async function auth(e:React.FormEvent) {
+  e.preventDefault();
+  setBusy(true);
+  setNotice('');
+  try {
+    await api('auth/' + mode, {
+      method: 'POST',
+      body: JSON.stringify(mode === 'login' ? { login, password } : { username: login, email, password })
+    });
+    await load();
+    setNotice('Вы вошли в Hypego.');
+  } catch (e: any) {
+    setNotice(e.message);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function resendVerification() {
   setBusy(true);
   setNotice('');
   try {
@@ -21,7 +39,8 @@ async function auth(e:React.FormEvent)async function resendVerification() {
   } finally {
     setBusy(false);
   }
-}{e.preventDefault();setBusy(true);setNotice('');try{await api('auth/'+mode,{method:'POST',body:JSON.stringify(mode==='login'?{login,password}:{username:login,email,password})});await load();setNotice('Вы вошли в Hypego.')}catch(e:any){setNotice(e.message)}finally{setBusy(false)}}
+}
+
 async function saveProfile(e:React.FormEvent){e.preventDefault();try{await api('profile',{method:'PATCH',body:JSON.stringify({display_name:display,bio,nickname_color:color})});await load();setNotice('Профиль сохранён.')}catch(e:any){setNotice(e.message)}}
 async function upload(kind:string,file?:File){if(!file)return;const fd=new FormData();fd.set('kind',kind);fd.set('file',file);try{const r=await fetch('/api/profile/upload',{method:'POST',body:fd});const j=await r.json();if(!r.ok)throw new Error(j.error);await load();setNotice('Изображение обновлено.')}catch(e:any){setNotice(e.message)}}
 async function buy(p:Product){const mc=prompt('Minecraft-ник, которому выдать товар:',user?.username||'');if(!mc)return;try{const j=await api('orders',{method:'POST',body:JSON.stringify({product_id:p.id,minecraft_username:mc})});setNotice(j.payment?.message||'Заказ создан.');}catch(e:any){setNotice(e.message)}}
@@ -31,7 +50,7 @@ const [drawerOpen,setDrawerOpen]=useState(false);
 return <main><header className="top"><a className="brand" href="#" onClick={()=>setTab('home')}><span className="brandMark">H</span> HYPEGO</a><nav><button onClick={()=>setTab('home')}>Главная</button><button onClick={()=>{setTab('shop');setStore('main')}}>Магазин</button><button onClick={()=>setTab('rules')}>Правила</button><button onClick={()=>setTab('players')}>Игроки</button>{user&&<button onClick={()=>setTab('profile')}>Профиль</button>}{isStaff&&<button onClick={()=>setTab('admin')}>Управление</button>}</nav><div className="right">{user?<><div className="headerBalance"><small>БАЛАНС</small><strong>{(Number(user.balance_cents||0)/100).toFixed(2)} €</strong></div><button type="button" className="accountTrigger" onClick={()=>setDrawerOpen(true)} aria-label="Открыть меню профиля"><span className="accountAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><span className="accountIdentity"><strong style={{color:user.nickname_color}}>{user.username}</strong><small>Мой аккаунт</small></span><span className="accountChevron">☰</span></button></>:<button className="primary" onClick={()=>setTab('auth')}>Войти</button>}</div></header>
 {drawerOpen&&user&&<div className="drawerLayer"><button type="button" className="drawerScrim" aria-label="Закрыть меню" onClick={()=>setDrawerOpen(false)}></button><aside className="profileDrawer" aria-label="Меню аккаунта"><div className="drawerTop"><span className="eyebrow">HYPEGO / ACCOUNT</span><button type="button" className="drawerClose" onClick={()=>setDrawerOpen(false)}>×</button></div><div className="drawerUser"><div className="drawerAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</div><div><strong style={{color:user.nickname_color}}>{user.display_name||user.username}</strong><small>@{user.username}</small></div></div><div className="drawerBalance"><small>ТВОЙ БАЛАНС</small><strong>{(Number(user.balance_cents||0)/100).toFixed(2)} <span>EUR</span></strong><button type="button" className="outline" onClick={()=>{setTab('billing');setDrawerOpen(false)}}>＋ Пополнить баланс</button></div><div className="drawerLinks"><span className="drawerLabel">АККАУНТ</span><button type="button" onClick={()=>{setTab('profile');setDrawerOpen(false)}}>◈ <span>Профиль и настройки</span><b>›</b></button><button type="button" onClick={()=>{setTab('players');setDrawerOpen(false)}}>♙ <span>Игроки</span><b>›</b></button><button type="button" onClick={()=>{setTab('shop');setStore('main');setDrawerOpen(false)}}>◇ <span>Магазин</span><b>›</b></button><button type="button" onClick={()=>{setTab('rules');setDrawerOpen(false)}}>≡ <span>Правила и справка</span><b>›</b></button>{isStaff&&<><span className="drawerLabel">ПЕРСОНАЛ</span><button type="button" onClick={()=>{setTab('admin');setDrawerOpen(false)}}>⌘ <span>Панель управления</span><b>›</b></button></>}<span className="drawerLabel">СЕАНС</span><button type="button" className="drawerLogout" onClick={()=>{setDrawerOpen(false);logout()}}>↪ <span>Выйти из аккаунта</span></button></div><div className="drawerFooter">HYPEGO · ИГРОВОЙ ПОРТАЛ</div></aside></div>}
 {notice&&<div className="notice" role="status">{notice}<button onClick={()=>setNotice('')}>×</button></div>}
-{tab==='home'&&<><section className="hero"><div className="heroContent"><div className="eyebrow"><span className="pulse"/> MINECRAFT NETWORK · HYPEGO</div><h1>ТВОЯ ИГРА.<br/><em>ТВОИ ПРАВИЛА.</em></h1><p>Залетай в мир Hypego — играй с друзьями, собирай привилегии и создавай собственную историю.</p><div className="heroActions"><button className="primary big" onClick={()=>setTab(user?'shop':'auth')}>{user?'Открыть магазин':'Начать играть'} <b>↗</b></button><button className="outline big" onClick={()=>setTab('rules')}>Правила проекта</button></div><div className="serverAddress"><span className="serverDot"/><div><small>АДРЕС СЕРВЕРА</small><strong>play.hypego.org</strong></div><button onClick={()=>{navigator.clipboard?.writeText('play.hypego.org');setNotice('Адрес скопирован.')}}>Копировать</button></div></div><div className="heroArt"><div className="ring ring1"/><div className="ring ring2"/><div className="cube">H</div><div className="floatTag tagOne">✦ <span>YOUR WORLD</span></div><div className="floatTag tagTwo">⚡ <span>HYPEGO NETWORK</span></div></div></section><section className="stats"><div><strong>01</strong><span>ЕДИНЫЙ ПРОФИЛЬ</span></div><div><strong>∞</strong><span>ВОЗМОЖНОСТЕЙ</span></div><div><strong>24/7</strong><span>ТВОЯ ИСТОРИЯ</span></div><div><strong>H+</strong><span>HYPEGO COMMUNITY</span></div></section><section className="section"><div className="sectionHead"><div><div className="eyebrow">ТВОЯ ПЛАТФОРМА</div><h2>Всё для игры — <em>в одном месте</em></h2></div><p>Управляй профилем, изучай товары и следи за новостями проекта.</p></div><div className="featureGrid"><article className="feature"><span>◈</span><h3>Профиль игрока</h3><p>Аватар, баннер, цвет ника, история и персональная страница.</p><button onClick={()=>setTab(user?'profile':'auth')}>Открыть профиль ↗</button></article><article className="feature"><span>✧</span><h3>Магазин Hypego</h3><p>Привилегии, расходники, услуги и игровые улучшения.</p><button onClick={()=>setTab(user?'shop':'auth')}>Перейти в магазин ↗</button></article><article className="feature"><span>⌘</span><h3>Сообщество</h3><p>Находи игроков, знакомься и оставайся частью проекта.</p><button onClick={()=>setTab('players')}>Найти игроков ↗</button></article></div></section></>}
+{tab==='home'&&<><section className="hero"><div className="heroContent"><div className="eyebrow"><span className="pulse"/> MINECRAFT NETWORK · HYPEGO</div><h1>ТВОЯ ИГРА.<br/><em>ТВОИ ПРАВИЛА.</em></h1><p>Залетай в мир Hypego — играй с друзьями, собирай привилегии и создавай собственную историю.</p><div className="heroActions"><button className="primary big" onClick={()=>setTab(user?'shop':'auth')}>{user?'Открыть магазин':'Начать играть'} <b>↗</b></button><button className="outline big" onClick={()=>setTab('rules')}>Правила проекта</button></div><div className="serverAddress"><span className="serverDot"/><div><small>АДРЕС СЕРВЕРА</small><strong>hypego.org:19132</strong></div><button onClick={()=>{navigator.clipboard?.writeText('hypego.org:19132');setNotice('Адрес скопирован.')}}>Копировать</button></div></div><div className="heroArt"><div className="ring ring1"/><div className="ring ring2"/><div className="cube">H</div><div className="floatTag tagOne">✦ <span>YOUR WORLD</span></div><div className="floatTag tagTwo">⚡ <span>HYPEGO NETWORK</span></div></div></section><ServerStatus/><section className="stats"><div><strong>01</strong><span>ЕДИНЫЙ ПРОФИЛЬ</span></div><div><strong>∞</strong><span>ВОЗМОЖНОСТЕЙ</span></div><div><strong>24/7</strong><span>ТВОЯ ИСТОРИЯ</span></div><div><strong>H+</strong><span>HYPEGO COMMUNITY</span></div></section><section className="section"><div className="sectionHead"><div><div className="eyebrow">ТВОЯ ПЛАТФОРМА</div><h2>Всё для игры — <em>в одном месте</em></h2></div><p>Управляй профилем, изучай товары и следи за новостями проекта.</p></div><div className="featureGrid"><article className="feature"><span>◈</span><h3>Профиль игрока</h3><p>Аватар, баннер, цвет ника, история и персональная страница.</p><button onClick={()=>setTab(user?'profile':'auth')}>Открыть профиль ↗</button></article><article className="feature"><span>✧</span><h3>Магазин Hypego</h3><p>Привилегии, расходники, услуги и игровые улучшения.</p><button onClick={()=>setTab(user?'shop':'auth')}>Перейти в магазин ↗</button></article><article className="feature"><span>⌘</span><h3>Сообщество</h3><p>Находи игроков, знакомься и оставайся частью проекта.</p><button onClick={()=>setTab('players')}>Найти игроков ↗</button></article></div></section></>}
 {tab==='auth'&&<section className="panel authPanel"><div className="eyebrow">HYPEGO ACCOUNT</div><h2>{mode==='login'?'С возвращением':'Создать аккаунт'}</h2><p className="muted">Один аккаунт для профиля и сервисов проекта.</p><form onSubmit={auth} className="form"> <label>{mode==='login'?'Никнейм или email':'Никнейм'}<input value={login} onChange={e=>setLogin(e.target.value)} required autoComplete="username"/></label>{mode==='register'&&<label>Email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label>}<label>Пароль<input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={10} autoComplete={mode==='login'?'current-password':'new-password'}/></label><button className="primary big" disabled={busy}>{busy?'Подождите…':mode==='login'?'Войти':'Зарегистрироваться'}</button></form><button className="textButton" onClick={()=>setMode(mode==='login'?'register':'login')}> {mode === 'login' &&
   notice.includes('Сначала подтвердите email') && (
     <button
@@ -48,6 +67,112 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 {tab==='billing'&&user&&<section className="panel authPanel"><div className="eyebrow">ACCOUNT BALANCE</div><h2>Пополнение баланса</h2><p className="muted">Доступные валюты интерфейса: KZT, RUB и EUR. Платёжная обработка должна быть подключена к реальному провайдеру.</p><form className="form" onSubmit={async e=>{e.preventDefault();try{await api('billing/topup',{method:'POST',body:JSON.stringify({amount_cents:Math.round(Number(amount)*100),currency})});}catch(err:any){setNotice(err.message)}}}><label>Сумма<input type="number" min="1" max="1000000" step="1" value={amount} onChange={e=>setAmount(e.target.value)}/></label><label>Валюта<select value={currency} onChange={e=>setCurrency(e.target.value)}><option>KZT</option><option>RUB</option><option>EUR</option></select></label><button className="primary big">Перейти к оплате</button></form><p className="tiny">Номер карты, CVV и платёжные данные сайт не принимает и не хранит. Пополнение недоступно, пока администратор не подключит провайдера и проверенный webhook.</p></section>}
 {tab==='rules'&&<Rules/>}{tab==='players'&&<Players/>}{tab==='admin'&&user&&isStaff&&<><Admin roles={roles} onNotice={setNotice}/><ProductEditor onNotice={setNotice}/></>}
 <footer><div className="brand"><span className="brandMark">H</span> HYPEGO</div><span>© {new Date().getFullYear()} Hypego Project</span><span>Игра начинается здесь.</span></footer></main>}
+
+function ServerStatus() {
+  const [status, setStatus] = useState<{
+    online: boolean;
+    playersOnline: number;
+    playersMax: number;
+    playerList: { name: string }[];
+  } | null>(null);
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const response = await fetch('/api/server-status', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Status unavailable');
+        const data = await response.json();
+        if (active) setStatus(data);
+      } catch {
+        if (active) setStatus(null);
+      } finally {
+        if (active) setChecked(true);
+      }
+    };
+    refresh();
+    const timer = setInterval(refresh, 60000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
+
+  const copyAddress = () => {
+    navigator.clipboard?.writeText('hypego.org:19132');
+  };
+
+  return (
+    <section className="section serverStatusSection">
+      <div className="sectionHead">
+        <div>
+          <div className="eyebrow">HYPEGO NETWORK</div>
+          <h2>Статус <em>сервера</em></h2>
+        </div>
+        <p>Актуальная информация о доступности игрового мира.</p>
+      </div>
+      <div className="serverStatusCard">
+        <div className="serverStatusTop">
+          <div className="serverStatusIdentity">
+            <div className="serverStatusIcon">H</div>
+            <div>
+              <strong>Hypego Bedrock</strong>
+              <span>МИР MINECRAFT · BEDROCK EDITION</span>
+            </div>
+          </div>
+          <span className={'serverStatusBadge ' + (
+            !checked ? 'statusChecking' :
+            status === null ? 'statusUnknown' :
+            status.online ? 'statusOnline' : 'statusOffline'
+          )}>
+            <i />
+            {!checked ? 'Проверяем…' :
+             status === null ? 'Статус недоступен' :
+             status.online ? 'Онлайн' : 'Офлайн'}
+          </span>
+        </div>
+        <div className="serverStatusMetrics">
+          <div>
+            <span>ИГРОКИ ОНЛАЙН</span>
+            <strong>{status?.online ? status.playersOnline : 0}
+              {status?.online && status.playersMax > 0 ? ` / ${status.playersMax}` : ''}
+            </strong>
+          </div>
+          <div>
+            <span>АДРЕС СЕРВЕРА</span>
+            <strong className="serverStatusAddress">hypego.org:19132</strong>
+          </div>
+        </div>
+        <div className="serverStatusBottom">
+          <div>
+            <strong>Игроки на сервере</strong>
+            <p>
+              {!checked ? 'Получаем данные…' :
+               status === null ? 'Не удалось получить данные. Попробуй позже.' :
+               !status.online ? 'Сервер сейчас недоступен.' :
+               status.playerList.length ? 'Список подключённых игроков:' :
+               'Список ников сервер не предоставляет.'}
+            </p>
+          </div>
+          <button className="primary" onClick={copyAddress}>Копировать IP</button>
+        </div>
+        {status?.online && status.playerList.length > 0 && (
+          <div className="serverPlayerList">
+            {status.playerList.slice(0, 20).map((player, index) => (
+              <span key={player.name + index}><i />{player.name}</span>
+            ))}
+            {status.playerList.length > 20 && (
+              <span>+ ещё {status.playerList.length - 20}</span>
+            )}
+          </div>
+        )}
+        <div className="serverStatusFoot">Данные статуса обновляются автоматически · примерно раз в минуту</div>
+      </div>
+    </section>
+  );
+}
+
 function Rules(){const [rules,setRules]=useState<any[]>([]);useEffect(()=>{api('rules').then(j=>setRules(j.rules||[])).catch(()=>setRules([]))},[]);return <section className="section"><div className="eyebrow">SURVIVE WITH RESPECT</div><h2>Правила <em>проекта</em></h2>{rules.length?rules.map(r=><article className="rule" key={r.id}><h3>{r.title}</h3><p>{r.body}</p></article>):<div className="panel"><p>Правила пока не опубликованы. После первого входа владельца добавьте их через панель управления.</p></div>}</section>}
 function Players(){const [q,setQ]=useState(''),[players,setPlayers]=useState<any[]>([]);async function search(){try{setPlayers((await api('players?q='+encodeURIComponent(q))).players||[])}catch{setPlayers([])}}useEffect(()=>{search()},[]);return <section className="section"><div className="eyebrow">COMMUNITY</div><h2>Игроки <em>Hypego</em></h2><div className="searchLine"><input placeholder="Найти игрока по нику" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==='Enter'&&search()}/><button className="primary" onClick={search}>Поиск</button></div><div className="playerGrid">{players.map(p=><article className={"player "+(p.is_chsp?"chspPlayer":"")} key={p.id}><div className="avatar smallAvatar">{p.avatar_url?<img src={p.avatar_url} alt=""/>:p.username.slice(0,1).toUpperCase()}</div><strong style={{color:p.nickname_color,textDecoration:p.is_chsp?"line-through":undefined}}>{p.display_name||p.username}</strong><span>@{p.username}</span>{p.is_chsp&&<small className="chspBadge">ЧСП</small>}</article>)}</div></section>}
 function Admin({roles,onNotice}:{roles:any[];onNotice:(s:string)=>void}){const [users,setUsers]=useState<any[]>([]),[q,setQ]=useState(''),[target,setTarget]=useState(''),[role,setRole]=useState('trainee'),[salary,setSalary]=useState('1000'),[reason,setReason]=useState('Премия персоналу');const canManage=roles.some(r=>['owner','deputy','management','curator'].includes(r.id));async function search(){try{setUsers((await api('admin/users?q='+encodeURIComponent(q))).users||[])}catch(e:any){onNotice(e.message)}}useEffect(()=>{search()},[]);async function assign(){try{await api('admin/roles',{method:'POST',body:JSON.stringify({user_id:target,role_id:role})});onNotice('Роль назначена.');search()}catch(e:any){onNotice(e.message)}}async function pay(){try{await api('admin/salary',{method:'POST',body:JSON.stringify({user_id:target,amount:Number(salary),reason})});onNotice('Внутренний баланс обновлён.');search()}catch(e:any){onNotice(e.message)}}async function seed(){try{const j=await api('products/seed',{method:'POST'});onNotice('Каталог инициализирован: '+j.count+' товаров.')}catch(e:any){onNotice(e.message)}}return <section className="section"><div className="eyebrow">STAFF CONTROL</div><h2>Панель <em>управления</em></h2><div className="adminGrid"><div className="panel form"><h3>Пользователи и роли</h3><div className="searchLine"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Ник или email"/><button className="outline" onClick={search}>Найти</button></div><div className="userList">{users.map(u=><button className={'userRow '+(target===u.id?'active':'')} key={u.id} onClick={()=>setTarget(u.id)}><strong>{u.username}</strong><span>{u.email}</span><small>{(u.roles||[]).map((r:any)=>r.title).join(', ')}</small></button>)}</div><label>Роль<select value={role} onChange={e=>setRole(e.target.value)}>{[['deputy','Заместитель (ОПКА)'],['management','Руководство'],['curator','Куратор'],['tech_admin','Тех. админ'],['support','Тех. поддержка'],['moderator','Модератор'],['trainee','Стажёр'],['player','Игрок'],...(roles.some(r=>r.id==='owner')?[['chsp','ЧСП']]:[])].map(r=><option value={r[0]} key={r[0]}>{r[1]}</option>)}</select></label><button className="primary" disabled={!target} onClick={assign}>Выдать роль</button></div><div className="panel form"><h3>Внутренняя зарплата</h3><p className="muted">Это непереводимая внутренняя валюта, не деньги и не платёжный баланс.</p><label>Сумма (+ начисление / − списание)<input type="number" value={salary} onChange={e=>setSalary(e.target.value)}/></label><label>Причина<input value={reason} onChange={e=>setReason(e.target.value)}/></label><button className="primary" disabled={!target} onClick={pay}>Изменить зарплату</button><hr/><h3>Каталог магазина</h3><p className="muted">Добавляет список стартовых товаров. После этого задайте цены и скидки через API администрирования.</p><button className="outline" onClick={seed}>Инициализировать каталог</button><hr/><h3>Служебные разделы</h3><p className="tiny">API управления правилами, наказаниями, привилегиями, заказами и журналом действий доступен по защищённым endpoint. Реальная выдача требует Minecraft bridge.</p></div></div></section>}
