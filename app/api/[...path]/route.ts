@@ -89,7 +89,7 @@ if(key==='auth/register'&&method==='POST'){
  const link=appUrl('/verify-email')+'?token='+encodeURIComponent(token);
  try{
   await sendEmail(email,'Подтверждение email — Hypego',`Здравствуйте, ${username}!\nПодтвердите email по ссылке: ${link}\nСсылка действует 60 минут.`,`<p>Здравствуйте, ${username}!</p><p>Подтвердите email для аккаунта Hypego:</p><p><a href="${link}">Подтвердить email</a></p><p>Ссылка действует 60 минут.</p>`);
- }catch(e){console.error('Verification email failed');throw new HttpError(503,'Не удалось отправить письмо. Проверьте настройки SMTP и попробуйте позже.');}
+ }catch(e){console.error('Verification email failed:', { message: (e as any)?.message, code: (e as any)?.code, command: (e as any)?.command, responseCode: (e as any)?.responseCode });throw new HttpError(503,'Не удалось отправить письмо. Проверьте настройки SMTP и попробуйте позже.');}
  await audit(rows[0].id,'auth.register','user',rows[0].id);
  return Response.json({verificationRequired:true,message:'Аккаунт создан. Проверьте почту и подтвердите email.'},{status:201});
 }
@@ -110,7 +110,7 @@ if(key==='auth/login'&&method==='POST'){
  const code=String(randomInt(100000,1000000));
  const challengeId=await createLoginCode(String(rows[0].id),code);
  try{await sendEmail(rows[0].email,'Код входа — Hypego',`Ваш код входа: ${code}\nОн действует 10 минут. Если это были не вы, смените пароль.`,`<p>Ваш код входа в Hypego:</p><h2>${code}</h2><p>Код действует 10 минут.</p><p>Если это были не вы, смените пароль.</p>`);}
- catch(e){console.error('Login code email failed');throw new HttpError(503,'Не удалось отправить код. Проверьте настройки почты.');}
+ catch(e){console.error('Login code email failed:', { message: (e as any)?.message, code: (e as any)?.code, command: (e as any)?.command, responseCode: (e as any)?.responseCode });throw new HttpError(503,'Не удалось отправить код. Проверьте настройки почты.');}
  return Response.json({requiresCode:true,challengeId,message:'Код отправлен на вашу почту.'});
 }
  if(key==='auth/logout'&&method==='POST'){await clearSession();return Response.json({ok:true});}

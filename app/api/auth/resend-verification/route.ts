@@ -79,8 +79,8 @@ export async function POST(req: NextRequest) {
          <p><a href="${link}">Подтвердить email</a></p>
          <p>Ссылка действует 60 минут.</p>`
       );
-    } catch {
-      console.error('Resend verification email failed');
+    } catch (error) {
+      console.error('Resend verification email failed:', { message: (error as any)?.message, code: (error as any)?.code, command: (error as any)?.command, responseCode: (error as any)?.responseCode });
       throw new HttpError(
         503,
         'Не удалось отправить письмо. Проверь настройки SMTP в Vercel.'
