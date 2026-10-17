@@ -352,7 +352,304 @@ function RulesEditor({onNotice}:{onNotice:(s:string)=>void}) {
   </section>;
 }
 
-function Admin({roles,onNotice}:{roles:any[];onNotice:(s:string)=>void}){const [users,setUsers]=useState<any[]>([]),[q,setQ]=useState(''),[target,setTarget]=useState(''),[role,setRole]=useState('trainee'),[salary,setSalary]=useState('1000'),[reason,setReason]=useState('Премия персоналу');const canManage=roles.some(r=>['owner','deputy','management','curator'].includes(r.id));async function search(){try{setUsers((await api('admin/users?q='+encodeURIComponent(q))).users||[])}catch(e:any){onNotice(e.message)}}useEffect(()=>{search()},[]);async function assign(){try{await api('admin/roles',{method:'POST',body:JSON.stringify({user_id:target,role_id:role})});onNotice('Роль назначена.');search()}catch(e:any){onNotice(e.message)}}async function pay(){try{await api('admin/salary',{method:'POST',body:JSON.stringify({user_id:target,amount:Number(salary),reason})});onNotice('Внутренний баланс обновлён.');search()}catch(e:any){onNotice(e.message)}}async function seed(){try{const j=await api('products/seed',{method:'POST'});onNotice('Каталог инициализирован: '+j.count+' товаров.')}catch(e:any){onNotice(e.message)}}return <section className="section"><div className="eyebrow">STAFF CONTROL</div><h2>Панель <em>управления</em></h2><div className="adminGrid"><div className="panel form"><h3>Пользователи и роли</h3><div className="searchLine"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Ник или email"/><button className="outline" onClick={search}>Найти</button></div><div className="userList">{users.map(u=><button className={'userRow '+(target===u.id?'active':'')} key={u.id} onClick={()=>setTarget(u.id)}><strong>{u.username}</strong><span>{u.email}</span><small>{(u.roles||[]).map((r:any)=>r.title).join(', ')}</small></button>)}</div><label>Роль<select value={role} onChange={e=>setRole(e.target.value)}>{[['deputy','Заместитель (ОПКА)'],['management','Руководство'],['curator','Куратор'],['tech_admin','Тех. админ'],['support','Тех. поддержка'],['moderator','Модератор'],['trainee','Стажёр'],['player','Игрок'],...(roles.some(r=>r.id==='owner')?[['chsp','ЧСП']]:[])].map(r=><option value={r[0]} key={r[0]}>{r[1]}</option>)}</select></label><button className="primary" disabled={!target} onClick={assign}>Выдать роль</button></div><div className="panel form"><h3>Внутренняя зарплата</h3><p className="muted">Это непереводимая внутренняя валюта, не деньги и не платёжный баланс.</p><label>Сумма (+ начисление / − списание)<input type="number" value={salary} onChange={e=>setSalary(e.target.value)}/></label><label>Причина<input value={reason} onChange={e=>setReason(e.target.value)}/></label><button className="primary" disabled={!target} onClick={pay}>Изменить зарплату</button><hr/><h3>Каталог магазина</h3><p className="muted">Добавляет список стартовых товаров. После этого задайте цены и скидки через API администрирования.</p><button className="outline" onClick={seed}>Инициализировать каталог</button><hr/><h3>Служебные разделы</h3><p className="tiny">API управления правилами, наказаниями, привилегиями, заказами и журналом действий доступен по защищённым endpoint. Реальная выдача требует Minecraft bridge.</p></div></div></section>}
+function Admin({roles,onNotice}:{roles:any[];onNotice:(s:string)=>void}){
+const [users,setUsers]=useState<any[]>([]);
+const [q,setQ]=useState('');
+const [target,setTarget]=useState('');
+const [role,setRole]=useState('trainee');
+const [removeRole,setRemoveRole]=useState('');
+const [salary,setSalary]=useState('1000');
+const [reason,setReason]=useState('Премия персоналу');
+
+const canManage=roles.some(r=>['owner','deputy','management','curator'].includes(r.id));
+
+const selectedUser=users.find(u=>u.id===target);
+const selectedUserRoles=(selectedUser?.roles||[]).filter((r:any)=>r.id!=='player');
+
+async function search(){
+  try{
+    const j=await api('admin/users?q='+encodeURIComponent(q));
+    const next=j.users||[];
+    setUsers(next);
+
+    if(target&&!next.some((u:any)=>u.id===target)){
+      setTarget('');
+      setRemoveRole('');
+    }
+  }catch(e:any){
+    onNotice(e.message);
+  }
+}
+
+useEffect(()=>{
+  search();
+},[]);
+
+useEffect(()=>{
+  if(selectedUserRoles.length===0){
+    setRemoveRole('');
+  }else if(!selectedUserRoles.some((r:any)=>r.id===removeRole)){
+    setRemoveRole(selectedUserRoles[0].id);
+  }
+},[target,selectedUser?.roles]);
+
+async function assign(){
+  if(!target)return;
+
+  try{
+    await api('admin/roles',{
+      method:'POST',
+      body:JSON.stringify({
+        user_id:target,
+        role_id:role
+      })
+    });
+
+    onNotice('Роль назначена.');
+    await search();
+  }catch(e:any){
+    onNotice(e.message);
+  }
+}
+
+async function remove(){
+  if(!target||!removeRole)return;
+
+  const roleTitle=selectedUserRoles.find((r:any)=>r.id===removeRole)?.title||removeRole;
+
+  if(!confirm(`Снять с пользователя «${roleTitle}»?`))return;
+
+  try{
+    await api('admin/roles',{
+      method:'DELETE',
+      body:JSON.stringify({
+        user_id:target,
+        role_id:removeRole
+      })
+    });
+
+    onNotice('Привилегия снята.');
+    setRemoveRole('');
+    await search();
+  }catch(e:any){
+    onNotice(e.message);
+  }
+}
+
+async function pay(){
+  if(!target)return;
+
+  try{
+    await api('admin/salary',{
+      method:'POST',
+      body:JSON.stringify({
+        user_id:target,
+        amount:Number(salary),
+        reason
+      })
+    });
+
+    onNotice('Внутренний баланс обновлён.');
+    await search();
+  }catch(e:any){
+    onNotice(e.message);
+  }
+}
+
+async function seed(){
+  try{
+    const j=await api('products/seed',{method:'POST'});
+    onNotice('Каталог инициализирован: '+j.count+' товаров.');
+  }catch(e:any){
+    onNotice(e.message);
+  }
+}
+
+return <section className="section">
+  <div className="eyebrow">STAFF CONTROL</div>
+  <h2>Панель <em>управления</em></h2>
+
+  <div className="adminGrid">
+
+    <div className="panel form">
+      <h3>Пользователи и роли</h3>
+
+      <div className="searchLine">
+        <input
+          value={q}
+          onChange={e=>setQ(e.target.value)}
+          placeholder="Ник или email"
+        />
+        <button className="outline" type="button" onClick={search}>
+          Найти
+        </button>
+      </div>
+
+      <div className="userList">
+        {users.map(u=>
+          <button
+            className={'userRow '+(target===u.id?'active':'')}
+            key={u.id}
+            type="button"
+            onClick={()=>{
+              setTarget(u.id);
+              setRemoveRole('');
+            }}
+          >
+            <strong>{u.username}</strong>
+            <span>{u.email}</span>
+            <small>
+              {(u.roles||[]).map((r:any)=>r.title).join(', ')||'Без дополнительных привилегий'}
+            </small>
+          </button>
+        )}
+      </div>
+
+      <label>
+        Выбранный пользователь
+        <input
+          value={selectedUser?.username||''}
+          placeholder="Сначала выберите пользователя"
+          readOnly
+        />
+      </label>
+
+      <label>
+        Выдать привилегию
+        <select
+          value={role}
+          onChange={e=>setRole(e.target.value)}
+          disabled={!target}
+        >
+          {[
+            ['deputy','Заместитель (ОПКА)'],
+            ['management','Руководство'],
+            ['curator','Куратор'],
+            ['tech_admin','Тех. админ'],
+            ['support','Тех. поддержка'],
+            ['moderator','Модератор'],
+            ['trainee','Стажёр'],
+            ['player','Игрок'],
+            ...(roles.some(r=>r.id==='owner')?[['chsp','ЧСП']]:[])
+          ].map(r=>
+            <option value={r[0]} key={r[0]}>
+              {r[1]}
+            </option>
+          )}
+        </select>
+      </label>
+
+      <button
+        className="primary"
+        type="button"
+        disabled={!target}
+        onClick={assign}
+      >
+        Выдать привилегию
+      </button>
+
+      <hr/>
+
+      <h3>Снять привилегию</h3>
+
+      {!target&&
+        <p className="muted">
+          Сначала выберите пользователя из списка выше.
+        </p>
+      }
+
+      {target&&selectedUserRoles.length===0&&
+        <p className="muted">
+          У выбранного пользователя нет привилегий, которые можно снять.
+        </p>
+      }
+
+      {target&&selectedUserRoles.length>0&&<>
+        <label>
+          Привилегия для снятия
+          <select
+            value={removeRole}
+            onChange={e=>setRemoveRole(e.target.value)}
+          >
+            {selectedUserRoles.map((r:any)=>
+              <option value={r.id} key={r.id}>
+                {r.title}
+              </option>
+            )}
+          </select>
+        </label>
+
+        <button
+          className="outline"
+          type="button"
+          disabled={!removeRole}
+          onClick={remove}
+        >
+          Снять выбранную привилегию
+        </button>
+      </>}
+
+      <p className="tiny">
+        Выберите игрока, затем его текущую привилегию и нажмите «Снять выбранную привилегию».
+        Система дополнительно проверит ваши права.
+      </p>
+    </div>
+
+    <div className="panel form">
+      <h3>Внутренняя зарплата</h3>
+      <p className="muted">
+        Это непереводимая внутренняя валюта, не деньги и не платёжный баланс.
+      </p>
+
+      <label>
+        Сумма (+ начисление / − списание)
+        <input
+          type="number"
+          value={salary}
+          onChange={e=>setSalary(e.target.value)}
+        />
+      </label>
+
+      <label>
+        Причина
+        <input
+          value={reason}
+          onChange={e=>setReason(e.target.value)}
+        />
+      </label>
+
+      <button
+        className="primary"
+        type="button"
+        disabled={!target}
+        onClick={pay}
+      >
+        Изменить зарплату
+      </button>
+
+      <hr/>
+
+      <h3>Каталог магазина</h3>
+      <p className="muted">
+        Добавляет список стартовых товаров. После этого задайте цены и скидки через API администрирования.
+      </p>
+
+      <button className="outline" type="button" onClick={seed}>
+        Инициализировать каталог
+      </button>
+
+      <hr/>
+
+      <h3>Служебные разделы</h3>
+      <p className="tiny">
+        API управления правилами, наказаниями, привилегиями, заказами и журналом действий доступен по защищённым endpoint. Реальная выдача требует Minecraft bridge.
+      </p>
+    </div>
+
+  </div>
+</section>
+}
+
 function ProductEditor({onNotice}:{onNotice:(s:string)=>void}){
 const [items,setItems]=useState<any[]>([]);
 const [busy,setBusy]=useState(false);
