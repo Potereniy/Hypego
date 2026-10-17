@@ -107,9 +107,16 @@ if(key==='auth/login'&&method==='POST'){
 }
  if(key==='auth/logout'&&method==='POST'){await clearSession();return Response.json({ok:true});}
  if(key==='me'&&method==='GET'){const u=await requireUser();const roles=await db`SELECT r.id,r.title,r.rank FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=${u.id} ORDER BY r.rank DESC`;return Response.json({user:u,roles});}
- if(key==='profile'&&method==='PATCH'){const u=await requireUser(),b=await bodyJson(req);const display=String(b.display_name??u.display_name??u.username).slice(0,40),bio=String(b.bio??u.bio??'').slice(0,500),color=String(b.nickname_color??u.nickname_color);if(!/^#[0-9a-fA-F]{6}$/.test(color))throw new HttpError(400,'Некорректный цвет ника');const steam=String(b.steam_id??u.steam_id??'').slice(0,80),birth=b.birth_date||null;const rows=await db`UPDATE users SET display_name=${display},bio=${bio},nickname_color=${color},steam_id=${steam||null},birth_date=${birth},updated_at=NOW() WHERE id=${u.id} RETURNING id,username,display_name,bio,nickname_color,steam_id,birth_date,avatar_url,banner_url`;await audit(u.id,'profile.update','user',u.id);return Response.json({user:rows[0]});}
+ if(key==='profile'&&method==='PATCH'){const u=await requireUser(),b=await bodyJson(req);const display=String(b.display_name??u.display_name??u.username).slice(0,40),bio=String(b.bio??u.bio??'').slice(0,500),color=String(b.nickname_color??u.nickname_color);if(!/^#[0-9a-fA-F]{6}$/.test(color))throw new HttpError(400,'Некорректный цвет ника');const steam=String(b.steam_id??u.steam_id??'').slice(0,80),birth=b.birth_date||null,vk=String(b.vk_url??u.vk_url??'').trim().slice(0,300),telegram=String(b.telegram_username??u.telegram_username??'').trim().replace(/^@/,'');if(vk&&!/^https:\/\/(www\.)?vk\.com\/[A-Za-z0-9_.-]+\/?$/.test(vk))throw new HttpError(400,'Укажи ссылку вида https://vk.com/username');if(telegram&&!/^[A-Za-z0-9_]{5,32}$/.test(telegram))throw new HttpError(400,'Имя Telegram должно содержать 5–32 символа: латинские буквы, цифры или _');const rows=await db`UPDATE users SET display_name=${display},bio=${bio},nickname_color=${color},steam_id=${steam||null},birth_date=${birth},vk_url=${vk||null},telegram_username=${telegram||null},updated_at=NOW() WHERE id=${u.id} RETURNING id,username,display_name,bio,nickname_color,steam_id,birth_date,avatar_url,banner_url,vk_url,telegram_username`;await audit(u.id,'profile.update','user',u.id);return Response.json({user:rows[0]});}
  if(key==='profile/upload'&&method==='POST'){const u=await requireUser();if(!process.env.BLOB_READ_WRITE_TOKEN)throw new HttpError(503,'Загрузка изображений недоступна: добавь BLOB_READ_WRITE_TOKEN в Vercel');const form=await req.formData(),file=form.get('file'),kind=String(form.get('kind')||'avatar');if(!(file instanceof File)||!['avatar','banner'].includes(kind))throw new HttpError(400,'Нужен файл и тип avatar/banner');if(!file.type.startsWith('image/')||file.size>5*1024*1024)throw new HttpError(400,'Разрешены изображения до 5 МБ');const blob=await put(`profiles/${u.id}/${kind}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`,file,{access:'public',token:process.env.BLOB_READ_WRITE_TOKEN});if(kind==='avatar')await db`UPDATE users SET avatar_url=${blob.url} WHERE id=${u.id}`;else await db`UPDATE users SET banner_url=${blob.url} WHERE id=${u.id}`;await audit(u.id,'profile.image.update','user',u.id,{kind});return Response.json({url:blob.url});}
  if(key==='players'&&method==='GET'){const q=(req.nextUrl.searchParams.get('q')||'').slice(0,40);const rows=await db`SELECT u.id,u.username,u.display_name,u.avatar_url,u.nickname_color,u.created_at,EXISTS(SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role_id='chsp') AS is_chsp FROM users u WHERE u.username ILIKE ${'%'+q+'%'} ORDER BY u.username LIMIT 50`;return Response.json({players:rows});}
+ if(key==='player'&&method==='GET'){
+  const username=(req.nextUrl.searchParams.get('username')||'').trim().slice(0,24);
+  if(!/^[A-Za-z0-9_]{3,24}$/.test(username))throw new HttpError(400,'Некорректный ник');
+  const rows=await db`SELECT id,username,display_name,bio,nickname_color,avatar_url,banner_url,vk_url,telegram_username,created_at FROM users WHERE username ILIKE ${username} LIMIT 1`;
+  if(!rows.length)throw new HttpError(404,'Игрок не найден');
+  return Response.json({player:rows[0]});
+ }
  if(key==='roles'&&method==='GET'){const u=await requireUser();const rows=await db`SELECT r.id,r.title,r.rank,EXISTS(SELECT 1 FROM user_roles ur WHERE ur.user_id=${u.id} AND ur.role_id=r.id) AS assigned FROM roles r ORDER BY r.rank DESC`;return Response.json({roles:rows});}
  if(key==='admin/users'&&method==='GET'){const actor=await requireUser();if(!await hasPermission(actor.id,'admin.users')&&!await hasPermission(actor.id,'staff.roles.assign_limited')&&!await hasPermission(actor.id,'staff.salary.manage'))throw new HttpError(403,'Недостаточно прав');const q=(req.nextUrl.searchParams.get('q')||'').slice(0,50);const rows=await db`SELECT u.id,u.username,u.email,u.is_banned,u.donation_balance_rub_kopecks,u.hp_balance,u.created_at,COALESCE(json_agg(json_build_object('id',r.id,'title',r.title)) FILTER(WHERE r.id IS NOT NULL),'[]') roles FROM users u LEFT JOIN user_roles ur ON ur.user_id=u.id LEFT JOIN roles r ON r.id=ur.role_id WHERE u.username ILIKE ${'%'+q+'%'} OR u.email ILIKE ${'%'+q+'%'} GROUP BY u.id ORDER BY u.created_at DESC LIMIT 100`;return Response.json({users:rows});}
  if(key==='admin/roles'&&method==='POST'){const actor=await requireUser(),b=await bodyJson(req),target=String(b.user_id||''),role=String(b.role_id||'');if(!staffRoleIds.includes(role)&&role!=='player'&&role!=='chsp')throw new HttpError(400,'Неизвестная роль');if(role==='chsp'&&!await hasPermission(actor.id,'site.settings'))throw new HttpError(403,'Назначать ЧСП может только владелец проекта');if(role==='owner'&&!(await hasPermission(actor.id,'site.settings')))throw new HttpError(403,'Роль владельца проекта назначается только текущим владельцем');const canAny=await hasPermission(actor.id,'staff.roles.assign_any'),canLimited=await hasPermission(actor.id,'staff.roles.assign_limited');if(!canAny&&!canLimited)throw new HttpError(403,'Нет права выдавать роли');if(role==='owner'&&!canAny)throw new HttpError(403,'Нельзя выдать владельца проекта');if(!canAny&&!allowedByCurator.includes(role))throw new HttpError(403,'Куратор может выдавать только стажёра, модератора и техподдержку');const t=await db`SELECT id FROM users WHERE id=${target} LIMIT 1`;if(!t.length)throw new HttpError(404,'Пользователь не найден');if(role==='owner'){const existing=await db`SELECT 1 FROM user_roles WHERE user_id=${target} AND role_id='owner'`;if(!existing.length){await db`DELETE FROM user_roles WHERE role_id='owner'`;}}await db`INSERT INTO user_roles(user_id,role_id,assigned_by) VALUES(${target},${role},${actor.id}) ON CONFLICT DO NOTHING`;await audit(actor.id,'staff.role.assign','user',target,{role});return Response.json({ok:true});}
@@ -129,7 +136,7 @@ if(key==='auth/login'&&method==='POST'){
   return Response.json({ok:true,balance:result[0].hp_balance});
 }
  if(key==='admin/rules'&&method==='GET'){const rows=await db`SELECT id,title,body,sort_order,updated_at FROM rules ORDER BY sort_order,id`;return Response.json({rules:rows});}
- if(key==='admin/rules'&&method==='PUT'){const actor=await requirePermission('rules.edit'),b=await bodyJson(req),rules=Array.isArray(b.rules)?b.rules:[];if(rules.length>100)throw new HttpError(400,'Слишком много правил');for(let i=0;i<rules.length;i++){const r=rules[i],title=String(r.title||'').trim().slice(0,150),body=String(r.body||'').trim().slice(0,5000);if(!title||!body)continue;if(r.id)await db`UPDATE rules SET title=${title},body=${body},sort_order=${i},updated_by=${actor.id},updated_at=NOW() WHERE id=${r.id}`;else await db`INSERT INTO rules(title,body,sort_order,updated_by) VALUES(${title},${body},${i},${actor.id})`;}await audit(actor.id,'rules.update','rules',undefined,{count:rules.length});return Response.json({ok:true});}
+ if(key==='admin/rules'&&method==='PUT'){const actor=await requireUser();if(!await hasPermission(actor.id,'rules.edit')||!(await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} AND role_id='curator' LIMIT 1`).length)throw new HttpError(403,'Изменять правила может только куратор');const b=await bodyJson(req),rules=Array.isArray(b.rules)?b.rules:[];if(rules.length>100)throw new HttpError(400,'Слишком много правил');for(let i=0;i<rules.length;i++){const r=rules[i],title=String(r.title||'').trim().slice(0,150),body=String(r.body||'').trim().slice(0,5000);if(!title||!body)continue;if(r.id)await db`UPDATE rules SET title=${title},body=${body},sort_order=${i},updated_by=${actor.id},updated_at=NOW() WHERE id=${r.id}`;else await db`INSERT INTO rules(title,body,sort_order,updated_by) VALUES(${title},${body},${i},${actor.id})`;}await audit(actor.id,'rules.update','rules',undefined,{count:rules.length});return Response.json({ok:true});}
  if(key==='rules'&&method==='GET'){const rows=await db`SELECT id,title,body,sort_order,updated_at FROM rules ORDER BY sort_order,id`;return Response.json({rules:rows});}
  if(key==='products/seed'&&method==='POST'){
     const actor=await requirePermission('products.manage');
@@ -212,6 +219,54 @@ if(key==='billing/topup'&&method==='POST'){await requireUser();throw new HttpErr
  if(key==='tickets'&&method==='GET'){const u=await requireUser();const staff=await hasPermission(u.id,'tickets.manage');const rows=staff?await db`SELECT t.*,u.username FROM tickets t JOIN users u ON u.id=t.user_id ORDER BY t.created_at DESC LIMIT 200`:await db`SELECT * FROM tickets WHERE user_id=${u.id} ORDER BY created_at DESC LIMIT 100`;return Response.json({tickets:rows});}
  if(key==='admin/privileges'&&method==='POST'){const actor=await requirePermission('admin.users'),b=await bodyJson(req),target=String(b.user_id||''),username=String(b.minecraft_username||''),productName=String(b.product_name||''),server=String(b.server_name||'Hypego'),expires=b.expires_at||null;if(!/^[A-Za-z0-9_]{3,24}$/.test(username)||productName.length<2)throw new HttpError(400,'Проверь ник и привилегию');const rows=await db`INSERT INTO privileges(user_id,server_name,minecraft_username,product_name,expires_at,status) VALUES(${target},${server},${username},${productName},${expires},'pending') RETURNING *`;await audit(actor.id,'privilege.issue.request','privilege',rows[0].id,{username,productName});return Response.json({privilege:rows[0],delivery:'pending',message:'Запись создана в Neon. Фактическая выдача на сервере требует настроенного Minecraft bridge.'},{status:201});}
  if(key==='admin/privileges'&&method==='GET'){await requirePermission('admin.users');const rows=await db`SELECT p.*,u.username account_username FROM privileges p JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 200`;return Response.json({privileges:rows});}
+
+ if(key==='trainee-applications'&&method==='GET'){
+   const rows=await db`SELECT id,minecraft_username,status,created_at,reviewed_at FROM trainee_applications ORDER BY created_at DESC LIMIT 200`;
+   return Response.json({applications:rows});
+ }
+ if(key==='trainee-applications/mine'&&method==='GET'){
+   const actor=await requireUser();
+   const rows=await db`SELECT id,minecraft_username,age,experience,hours_per_day,days_per_week,motivation,additional_info,status,curator_comment,reviewed_at,created_at,updated_at FROM trainee_applications WHERE user_id=${actor.id} ORDER BY created_at DESC LIMIT 50`;
+   return Response.json({applications:rows});
+ }
+ if(key==='trainee-applications'&&method==='POST'){
+   const actor=await requireUser(),b=await bodyJson(req);
+   const nick=String(b.minecraft_username||'').trim();
+   const age=Number(b.age),hours=Number(b.hours_per_day),days=Number(b.days_per_week);
+   const experience=String(b.experience||'').trim();
+   const motivation=String(b.motivation||'').trim();
+   const additional=String(b.additional_info||'').trim();
+   if(!/^[A-Za-z0-9_]{3,24}$/.test(nick))throw new HttpError(400,'Ник Minecraft должен содержать 3–24 латинских буквы, цифры или подчёркивания');
+   if(!Number.isInteger(age)||age<13||age>100)throw new HttpError(400,'Возраст должен быть от 13 до 100 лет');
+   if(experience.length<10||experience.length>2000)throw new HttpError(400,'Опыт должен содержать от 10 до 2000 символов');
+   if(!Number.isFinite(hours)||hours<0.5||hours>24)throw new HttpError(400,'Укажи от 0,5 до 24 часов в день');
+   if(!Number.isInteger(days)||days<1||days>7)throw new HttpError(400,'Дни в неделю: от 1 до 7');
+   if(motivation.length<10||motivation.length>2000)throw new HttpError(400,'Мотивация должна содержать от 10 до 2000 символов');
+   if(additional.length>2000)throw new HttpError(400,'Дополнительная информация слишком длинная');
+   const existing=await db`SELECT id FROM trainee_applications WHERE user_id=${actor.id} AND status='pending' LIMIT 1`;
+   if(existing.length)throw new HttpError(409,'У тебя уже есть заявка на рассмотрении');
+   const rows=await db`INSERT INTO trainee_applications(user_id,minecraft_username,age,experience,hours_per_day,days_per_week,motivation,additional_info) VALUES(${actor.id},${nick},${age},${experience},${hours},${days},${motivation},${additional||null}) RETURNING id,minecraft_username,status,created_at`;
+   await audit(actor.id,'trainee_application.create','trainee_application',rows[0].id,{minecraft_username:nick});
+   return Response.json({application:rows[0]}, {status:201});
+ }
+ if(key==='admin/trainee-applications'&&(method==='GET'||method==='PATCH')){
+   const actor=await requireUser();
+   const curator=await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} AND role_id='curator' LIMIT 1`;
+   if(!curator.length)throw new HttpError(403,'Заявки доступны только куратору');
+   if(method==='GET'){
+     const rows=await db`SELECT a.*,u.username AS account_username,u.display_name FROM trainee_applications a JOIN users u ON u.id=a.user_id ORDER BY a.created_at DESC LIMIT 200`;
+     return Response.json({applications:rows});
+   }
+   const b=await bodyJson(req),id=String(b.id||''),status=String(b.status||''),comment=String(b.curator_comment||'').trim();
+   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))throw new HttpError(400,'Некорректный ID заявки');
+   if(!['approved','rejected'].includes(status))throw new HttpError(400,'Выбери решение: принять или отклонить');
+   if(comment.length>1000)throw new HttpError(400,'Комментарий не должен превышать 1000 символов');
+   const rows=await db`UPDATE trainee_applications SET status=${status},curator_comment=${comment||null},reviewed_by=${actor.id},reviewed_at=NOW(),updated_at=NOW() WHERE id=${id} AND status='pending' RETURNING id,user_id,minecraft_username,status,curator_comment,reviewed_at`;
+   if(!rows.length)throw new HttpError(409,'Заявка не найдена или уже рассмотрена');
+   await audit(actor.id,'trainee_application.review','trainee_application',id,{status});
+   return Response.json({application:rows[0]});
+ }
+
  throw new HttpError(404,'API endpoint не найден');
 }
 export async function GET(req:NextRequest,ctx:any){try{return await route(req,ctx)}catch(e){return jsonError(e)}}

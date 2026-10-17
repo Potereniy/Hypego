@@ -1,7 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE IF NOT EXISTS users (
  id UUID PRIMARY KEY DEFAULT gen_random_uuid(), username VARCHAR(24) NOT NULL UNIQUE, email VARCHAR(254) NOT NULL UNIQUE,
- password_hash TEXT NOT NULL, display_name VARCHAR(40), avatar_url TEXT, banner_url TEXT,
+ password_hash TEXT NOT NULL, display_name VARCHAR(40), avatar_url TEXT, banner_url TEXT, vk_url TEXT, telegram_username VARCHAR(64),
  nickname_color VARCHAR(7) NOT NULL DEFAULT '#a78bfa' CHECK (nickname_color ~ '^#[0-9A-Fa-f]{6}$'),
  bio VARCHAR(500) NOT NULL DEFAULT '', steam_id VARCHAR(80), birth_date DATE, balance_cents BIGINT NOT NULL DEFAULT 0 CHECK(balance_cents>=0),
  staff_salary BIGINT NOT NULL DEFAULT 0 CHECK(staff_salary>=0), is_banned BOOLEAN NOT NULL DEFAULT FALSE,
@@ -33,9 +33,9 @@ INSERT INTO roles(id,title,rank,is_project_owner) VALUES
 INSERT INTO permissions(id,description) VALUES
  ('admin.users','Просмотр и управление пользователями'),('staff.roles.assign_limited','Выдача разрешённых ролей персонала'),('staff.roles.assign_any','Выдача любых ролей кроме owner'),('staff.salary.manage','Управление внутренней зарплатой'),('rules.edit','Редактирование правил'),('shop.staff','Доступ к магазину персонала'),('shop.main','Доступ к основному магазину'),('punishments.manage','Наказания игроков'),('tickets.manage','Обработка обращений'),('products.manage','Управление товарами'),('payments.manage','Просмотр платежей'),('audit.view','Просмотр журнала действий'),('site.settings','Настройки проекта') ON CONFLICT(id) DO NOTHING;
 INSERT INTO role_permissions(role_id,permission_id) VALUES
- ('owner','admin.users'),('owner','staff.roles.assign_limited'),('owner','staff.roles.assign_any'),('owner','staff.salary.manage'),('owner','rules.edit'),('owner','shop.staff'),('owner','shop.main'),('owner','punishments.manage'),('owner','tickets.manage'),('owner','products.manage'),('owner','payments.manage'),('owner','audit.view'),('owner','site.settings'),
- ('deputy','admin.users'),('deputy','staff.roles.assign_any'),('deputy','staff.salary.manage'),('deputy','rules.edit'),('deputy','shop.staff'),('deputy','shop.main'),('deputy','punishments.manage'),('deputy','tickets.manage'),('deputy','products.manage'),('deputy','payments.manage'),('deputy','audit.view'),
- ('management','admin.users'),('management','staff.roles.assign_any'),('management','staff.salary.manage'),('management','rules.edit'),('management','shop.staff'),('management','shop.main'),('management','punishments.manage'),('management','tickets.manage'),('management','products.manage'),('management','payments.manage'),('management','audit.view'),
+ ('owner','admin.users'),('owner','staff.roles.assign_limited'),('owner','staff.roles.assign_any'),('owner','staff.salary.manage'),('owner','shop.staff'),('owner','shop.main'),('owner','punishments.manage'),('owner','tickets.manage'),('owner','products.manage'),('owner','payments.manage'),('owner','audit.view'),('owner','site.settings'),
+ ('deputy','admin.users'),('deputy','staff.roles.assign_any'),('deputy','staff.salary.manage'),('deputy','shop.staff'),('deputy','shop.main'),('deputy','punishments.manage'),('deputy','tickets.manage'),('deputy','products.manage'),('deputy','payments.manage'),('deputy','audit.view'),
+ ('management','admin.users'),('management','staff.roles.assign_any'),('management','staff.salary.manage'),('management','shop.staff'),('management','shop.main'),('management','punishments.manage'),('management','tickets.manage'),('management','products.manage'),('management','payments.manage'),('management','audit.view'),
  ('curator','staff.roles.assign_limited'),('curator','staff.salary.manage'),('curator','rules.edit'),('curator','tickets.manage'),('curator','shop.main'),('curator','punishments.manage'),
- ('tech_admin','admin.users'),('tech_admin','staff.roles.assign_limited'),('tech_admin','rules.edit'),('tech_admin','tickets.manage'),('tech_admin','shop.main'),('tech_admin','punishments.manage'),
+ ('tech_admin','admin.users'),('tech_admin','staff.roles.assign_limited'),('tech_admin','tickets.manage'),('tech_admin','shop.main'),('tech_admin','punishments.manage'),
  ('support','tickets.manage'),('support','shop.main'),('support','shop.staff'),('moderator','punishments.manage'),('moderator','tickets.manage'),('moderator','shop.main'),('moderator','shop.staff'),('trainee','tickets.manage'),('trainee','shop.main'),('player','shop.main') ON CONFLICT DO NOTHING;
