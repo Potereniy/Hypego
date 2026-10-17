@@ -122,16 +122,95 @@ if(key==='auth/login'&&method==='POST'){
  if(key==='admin/users'&&method==='GET'){const actor=await requireUser();if(!await hasPermission(actor.id,'admin.users')&&!await hasPermission(actor.id,'staff.roles.assign_limited')&&!await hasPermission(actor.id,'staff.salary.manage'))throw new HttpError(403,'Недостаточно прав');const q=(req.nextUrl.searchParams.get('q')||'').slice(0,50);const rows=await db`SELECT u.id,u.username,u.email,u.is_banned,u.balance_cents,u.staff_salary,u.created_at,COALESCE(json_agg(json_build_object('id',r.id,'title',r.title)) FILTER(WHERE r.id IS NOT NULL),'[]') roles FROM users u LEFT JOIN user_roles ur ON ur.user_id=u.id LEFT JOIN roles r ON r.id=ur.role_id WHERE u.username ILIKE ${'%'+q+'%'} OR u.email ILIKE ${'%'+q+'%'} GROUP BY u.id ORDER BY u.created_at DESC LIMIT 100`;return Response.json({users:rows});}
  if(key==='admin/roles'&&method==='POST'){const actor=await requireUser(),b=await bodyJson(req),target=String(b.user_id||''),role=String(b.role_id||'');if(!staffRoleIds.includes(role)&&role!=='player'&&role!=='chsp')throw new HttpError(400,'Неизвестная роль');if(role==='chsp'&&!await hasPermission(actor.id,'site.settings'))throw new HttpError(403,'Назначать ЧСП может только владелец проекта');if(role==='owner'&&!(await hasPermission(actor.id,'site.settings')))throw new HttpError(403,'Роль владельца проекта назначается только текущим владельцем');const canAny=await hasPermission(actor.id,'staff.roles.assign_any'),canLimited=await hasPermission(actor.id,'staff.roles.assign_limited');if(!canAny&&!canLimited)throw new HttpError(403,'Нет права выдавать роли');if(role==='owner'&&!canAny)throw new HttpError(403,'Нельзя выдать владельца проекта');if(!canAny&&!allowedByCurator.includes(role))throw new HttpError(403,'Куратор может выдавать только стажёра, модератора и техподдержку');const t=await db`SELECT id FROM users WHERE id=${target} LIMIT 1`;if(!t.length)throw new HttpError(404,'Пользователь не найден');if(role==='owner'){const existing=await db`SELECT 1 FROM user_roles WHERE user_id=${target} AND role_id='owner'`;if(!existing.length){await db`DELETE FROM user_roles WHERE role_id='owner'`;}}await db`INSERT INTO user_roles(user_id,role_id,assigned_by) VALUES(${target},${role},${actor.id}) ON CONFLICT DO NOTHING`;await audit(actor.id,'staff.role.assign','user',target,{role});return Response.json({ok:true});}
  if(key==='admin/roles'&&method==='DELETE'){const actor=await requireUser(),b=await bodyJson(req),target=String(b.user_id||''),role=String(b.role_id||'');if(role==='owner')throw new HttpError(403,'Роль владельца нельзя снять через этот endpoint');if(!await hasPermission(actor.id,'staff.roles.assign_any')&&!await hasPermission(actor.id,'staff.roles.assign_limited'))throw new HttpError(403,'Нет права снимать роли');if(!await hasPermission(actor.id,'staff.roles.assign_any')&&!allowedByCurator.includes(role))throw new HttpError(403,'Недостаточно прав');await db`DELETE FROM user_roles WHERE user_id=${target} AND role_id=${role}`;await audit(actor.id,'staff.role.remove','user',target,{role});return Response.json({ok:true});}
- if(key==='admin/salary'&&method==='POST'){const actor=await requirePermission('staff.salary.manage'),b=await bodyJson(req),target=String(b.user_id||''),amount=Number(b.amount),reason=String(b.reason||'').trim().slice(0,200);if(!Number.isSafeInteger(amount)||amount===0||Math.abs(amount)>1000000000)throw new HttpError(400,'Укажи корректную сумму');if(reason.length<3)throw new HttpError(400,'Укажи причину начисления/списания');if(amount<0){const rows=await db`SELECT staff_salary FROM users WHERE id=${target}`;if(!rows.length||Number(rows[0].staff_salary)<Math.abs(amount))throw new HttpError(400,'Недостаточно внутренней валюты');}const result=await db`UPDATE users SET staff_salary=staff_salary+${amount} WHERE id=${target} AND staff_salary+${amount}>=0 RETURNING staff_salary`;if(!result.length)throw new HttpError(400,'Не удалось изменить баланс');await db`INSERT INTO salary_transactions(user_id,actor_id,amount,reason) VALUES(${target},${actor.id},${amount},${reason})`;await audit(actor.id,'staff.salary.change','user',target,{amount,reason});return Response.json({ok:true,balance:result[0].staff_salary});}
+ if(key==='admin/salary'&&method==='POST'){
+  const actor=await requirePermission('staff.salary.manage'),b=await bodyJson(req),target=String(b.user_id||''),amount=Number(b.amount),reason=String(b.reason||'').trim().slice(0,200);
+  if(!Number.isSafeInteger(amount)||amount===0||Math.abs(amount)>1000000000)throw new HttpError(400,'Укажи корректную сумму HP');
+  if(reason.length<3)throw new HttpError(400,'Укажи причину начисления/списания HP');
+  if(amount<0){
+    const rows=await db`SELECT hp_balance FROM users WHERE id=${target}`;
+    if(!rows.length||Number(rows[0].hp_balance)<Math.abs(amount))throw new HttpError(400,'Недостаточно HP у сотрудника');
+  }
+  const result=await db`UPDATE users SET hp_balance=hp_balance+${amount} WHERE id=${target} AND hp_balance+${amount}>=0 RETURNING hp_balance`;
+  if(!result.length)throw new HttpError(400,'Не удалось изменить баланс HP');
+  await db`INSERT INTO hp_transactions(user_id, actor_id, amount_hp, balance_after_hp, kind, reason) VALUES(${target}, ${actor.id}, ${amount}, ${result[0].hp_balance}, ${amount > 0 ? 'salary' : 'adjustment'}, ${reason})`;
+  await audit(actor.id,'staff.salary.change','user',target,{amount,reason});
+  return Response.json({ok:true,balance:result[0].hp_balance});
+}
  if(key==='admin/rules'&&method==='GET'){const rows=await db`SELECT id,title,body,sort_order,updated_at FROM rules ORDER BY sort_order,id`;return Response.json({rules:rows});}
  if(key==='admin/rules'&&method==='PUT'){const actor=await requirePermission('rules.edit'),b=await bodyJson(req),rules=Array.isArray(b.rules)?b.rules:[];if(rules.length>100)throw new HttpError(400,'Слишком много правил');for(let i=0;i<rules.length;i++){const r=rules[i],title=String(r.title||'').trim().slice(0,150),body=String(r.body||'').trim().slice(0,5000);if(!title||!body)continue;if(r.id)await db`UPDATE rules SET title=${title},body=${body},sort_order=${i},updated_by=${actor.id},updated_at=NOW() WHERE id=${r.id}`;else await db`INSERT INTO rules(title,body,sort_order,updated_by) VALUES(${title},${body},${i},${actor.id})`;}await audit(actor.id,'rules.update','rules',undefined,{count:rules.length});return Response.json({ok:true});}
  if(key==='rules'&&method==='GET'){const rows=await db`SELECT id,title,body,sort_order,updated_at FROM rules ORDER BY sort_order,id`;return Response.json({rules:rows});}
- if(key==='products/seed'&&method==='POST'){const actor=await requirePermission('products.manage');for(const p of seedProducts){const [slug,name,category,store,discount,description,requiresStaff]=p as any;await db`INSERT INTO products(slug,name,category,store,discount_percent,description,requires_staff,active,price_cents,currency) VALUES(${slug},${name},${category},${store},${discount},${description},${!!requiresStaff},TRUE,0,'EUR') ON CONFLICT(slug) DO NOTHING`;}await audit(actor.id,'products.seed','products');return Response.json({ok:true,count:seedProducts.length});}
- if(key==='products'&&method==='GET'){const u=await requireUser(),store=req.nextUrl.searchParams.get('store')==='staff'?'staff':'main';if(store==='staff'&&!await hasPermission(u.id,'shop.staff'))throw new HttpError(403,'Магазин персонала недоступен для вашей роли');const rows=await db`SELECT id,slug,name,description,category,store,price_cents,currency,discount_percent,stock,active,requires_staff FROM products WHERE active=TRUE AND store=${store} ORDER BY category,name`;return Response.json({products:rows});}
-if(key==='admin/products'&&method==='GET'){await requirePermission('products.manage');const rows=await db`SELECT id,slug,name,description,category,store,price_cents,currency,discount_percent,stock,active,requires_staff FROM products ORDER BY store,category,name`;return Response.json({products:rows});} if(key==='admin/products'&&method==='PATCH'){const actor=await requirePermission('products.manage'),b=await bodyJson(req),id=String(b.id||''),price=Number(b.price_cents),discount=Number(b.discount_percent),stock=b.stock===null?null:Number(b.stock);if(!Number.isSafeInteger(price)||price<0||!Number.isInteger(discount)||discount<0||discount>100)throw new HttpError(400,'Некорректная цена или скидка');const active=b.active===undefined?null:Boolean(b.active);const rows=active===null?await db`UPDATE products SET price_cents=${price},discount_percent=${discount},stock=${stock} WHERE id=${id} RETURNING id,name,price_cents,discount_percent,stock,active`:await db`UPDATE products SET price_cents=${price},discount_percent=${discount},stock=${stock},active=${active} WHERE id=${id} RETURNING id,name,price_cents,discount_percent,stock,active`;if(!rows.length)throw new HttpError(404,'Товар не найден');await audit(actor.id,'product.update','product',id,{price,discount,stock});return Response.json({product:rows[0]});}
- if(key==='orders'&&method==='POST'){const u=await requireUser(),b=await bodyJson(req),productId=String(b.product_id||''),target=String(b.minecraft_username||u.username).trim();if(!/^[A-Za-z0-9_]{3,24}$/.test(target))throw new HttpError(400,'Некорректный Minecraft-ник');const rows=await db`SELECT * FROM products WHERE id=${productId} AND active=TRUE LIMIT 1`;if(!rows.length)throw new HttpError(404,'Товар не найден');const p=rows[0];if(Number(p.price_cents)<=0)throw new HttpError(400,'У товара ещё не установлена цена. Покупка недоступна.');if(p.store==='staff'&&!await hasPermission(u.id,'shop.staff'))throw new HttpError(403,'Магазин персонала недоступен');if(p.slug==='owner-project'||p.name==='Владелец проекта')throw new HttpError(403,'Роль владельца проекта не продаётся');const amount=Math.round(Number(p.price_cents)*(100-Number(p.discount_percent))/100);const order=await db`INSERT INTO orders(user_id,product_id,username_target,amount_cents,currency,status) VALUES(${u.id},${p.id},${target},${amount},${p.currency},'pending') RETURNING id,status,amount_cents,currency`;return Response.json({order,payment:{enabled:false,message:'Платёжный провайдер не настроен. Заказ создан, списание и выдача не выполнялись.'}},{status:201});}
+ if(key==='products/seed'&&method==='POST'){
+    const actor=await requirePermission('products.manage');
+    for(const p of seedProducts){
+      const [slug,name,category,store,discount,description,requiresStaff]=p as any;
+      await db`INSERT INTO products(slug, name, category, store, discount_percent, description, requires_staff, active, price_rub_kopecks, price_hp) VALUES(${slug}, ${name}, ${category}, ${store}, ${discount}, ${description}, ${!!requiresStaff}, TRUE, 0, 0) ON CONFLICT(slug) DO NOTHING`;
+    }
+    await audit(actor.id,'products.seed','products');
+    return Response.json({ok:true,count:seedProducts.length});
+  }
+ if(key==='products'&&method==='GET'){
+    const u=await requireUser(),store=req.nextUrl.searchParams.get('store')==='staff'?'staff':'main';
+    if(store==='staff'&&!await hasPermission(u.id,'shop.staff'))throw new HttpError(403,'Магазин персонала недоступен для вашей роли');
+    const rows=await db`SELECT id,slug,name,description,category,store,price_rub_kopecks,price_hp,discount_percent,stock,active,requires_staff FROM products WHERE active=TRUE AND store=${store} ORDER BY category,name`;
+    return Response.json({products:rows});
+  }
+
+  if(key==='admin/products'&&method==='GET'){
+    await requirePermission('products.manage');
+    const rows=await db`SELECT id,slug,name,description,category,store,price_rub_kopecks,price_hp,discount_percent,stock,active,requires_staff FROM products ORDER BY store,category,name`;
+    return Response.json({products:rows});
+  }
+
+  if(key==='admin/products'&&method==='PATCH'){
+    const actor=await requirePermission('products.manage'),b=await bodyJson(req),id=String(b.id||'');
+    const priceRub = b.price_rub_kopecks !== undefined ? Number(b.price_rub_kopecks) : null;
+    const priceHp = b.price_hp !== undefined ? Number(b.price_hp) : null;
+    const discount=Number(b.discount_percent),stock=b.stock===null?null:Number(b.stock);
+    if((priceRub !== null && (!Number.isSafeInteger(priceRub) || priceRub < 0)) ||
+       (priceHp !== null && (!Number.isSafeInteger(priceHp) || priceHp < 0)) ||
+       !Number.isInteger(discount) || discount < 0 || discount > 100) {
+      throw new HttpError(400,'Некорректная цена или скидка');
+    }
+    const active=b.active===undefined?null:Boolean(b.active);
+    const rows = active === null 
+      ? await db`UPDATE products SET price_rub_kopecks=COALESCE(${priceRub}, price_rub_kopecks), price_hp=COALESCE(${priceHp}, price_hp), discount_percent=${discount}, stock=${stock} WHERE id=${id} RETURNING id,name,price_rub_kopecks,price_hp,discount_percent,stock,active,store`
+      : await db`UPDATE products SET price_rub_kopecks=COALESCE(${priceRub}, price_rub_kopecks), price_hp=COALESCE(${priceHp}, price_hp), discount_percent=${discount}, stock=${stock}, active=${active} WHERE id=${id} RETURNING id,name,price_rub_kopecks,price_hp,discount_percent,stock,active,store`;
+    if(!rows.length)throw new HttpError(404,'Товар не найден');
+    await audit(actor.id,'product.update','product',id,{priceRub, priceHp, discount, stock});
+    return Response.json({product:rows[0]});
+  }
+ if(key==='orders'&&method==='POST'){
+    const u=await requireUser(),b=await bodyJson(req),productId=String(b.product_id||''),target=String(b.minecraft_username||u.username).trim();
+    if(!/^[A-Za-z0-9_]{3,24}$/.test(target))throw new HttpError(400,'Некорректный Minecraft-ник');
+    const rows=await db`SELECT * FROM products WHERE id=${productId} AND active=TRUE LIMIT 1`;
+    if(!rows.length)throw new HttpError(404,'Товар не найден');
+    const p=rows[0];
+    const isStaffStore = p.store === 'staff';
+    if(isStaffStore && !await hasPermission(u.id,'shop.staff'))throw new HttpError(403,'Магазин персонала недоступен');
+    if(p.slug==='owner-project'||p.name==='Владелец проекта')throw new HttpError(403,'Роль владельца проекта не продаётся');
+    const rawPrice = isStaffStore ? Number(p.price_hp || 0) : Number(p.price_rub_kopecks || 0);
+    if(rawPrice <= 0)throw new HttpError(400,'У товара ещё не установлена цена. Покупка недоступна.');
+    const finalAmount = Math.round(rawPrice * (100 - Number(p.discount_percent)) / 100);
+    if(isStaffStore) {
+      const userRows = await db`SELECT hp_balance FROM users WHERE id=${u.id}`;
+      if(!userRows.length || Number(userRows[0].hp_balance) < finalAmount) {
+        throw new HttpError(400, 'Недостаточно HP для покупки');
+      }
+      await db`UPDATE users SET hp_balance = hp_balance - ${finalAmount} WHERE id=${u.id} AND hp_balance >= ${finalAmount}`;
+      await db`INSERT INTO hp_transactions(user_id, amount_hp, balance_after_hp, kind, reason) VALUES(${u.id}, ${-finalAmount}, (SELECT hp_balance FROM users WHERE id=${u.id}), 'purchase', ${'Покупка товара: ' + p.name})`;
+    } else {
+      const userRows = await db`SELECT donation_balance_rub_kopecks FROM users WHERE id=${u.id}`;
+      if(!userRows.length || Number(userRows[0].donation_balance_rub_kopecks) < finalAmount) {
+        throw new HttpError(400, 'Недостаточно средств на рублевом балансе');
+      }
+      await db`UPDATE users SET donation_balance_rub_kopecks = donation_balance_rub_kopecks - ${finalAmount} WHERE id=${u.id} AND donation_balance_rub_kopecks >= ${finalAmount}`;
+      await db`INSERT INTO wallet_transactions(user_id, amount_rub_kopecks, balance_after_rub_kopecks, kind, reason) VALUES(${u.id}, ${-finalAmount}, (SELECT donation_balance_rub_kopecks FROM users WHERE id=${u.id}), 'purchase', ${'Покупка товара: ' + p.name})`;
+    }
+    const order=await db`INSERT INTO orders(user_id,product_id,username_target,amount_cents,currency,status) VALUES(${u.id},${p.id},${target},${finalAmount},${isStaffStore ? 'HP' : 'RUB'},'paid') RETURNING id,status,amount_cents,currency`;
+    return Response.json({ok:true,order},{status:201});
+  }
  if(key==='orders'&&method==='GET'){const u=await requireUser(),rows=await db`SELECT o.id,o.username_target,o.status,o.amount_cents,o.currency,o.created_at,o.paid_at,p.name AS product_name FROM orders o JOIN products p ON p.id=o.product_id WHERE o.user_id=${u.id} ORDER BY o.created_at DESC LIMIT 100`;return Response.json({orders:rows});}
- if(key==='billing/topup'&&method==='POST'){const u=await requireUser(),b=await bodyJson(req),amount=Number(b.amount_cents),currency=String(b.currency||'EUR').toUpperCase();if(!Number.isSafeInteger(amount)||amount<100||amount>100000000)throw new HttpError(400,'Пополнение должно быть от 1 до 1 000 000 в минимальных единицах валюты');if(!['KZT','RUB','EUR'].includes(currency))throw new HttpError(400,'Поддерживаются KZT, RUB и EUR');if(!process.env.PAYMENT_PROVIDER||process.env.PAYMENT_PROVIDER==='disabled')throw new HttpError(503,'Приём карт ещё не включён: подключите платёжного провайдера и webhook. Баланс не изменён.');throw new HttpError(503,'Провайдер задан, но адаптер этого провайдера не установлен. Не отправляйте деньги до настройки интеграции.');}
+if(key==='billing/topup'&&method==='POST'){await requireUser();throw new HttpError(503,'Пополнение временно отключено. Платёжный провайдер и источник курса не настроены. Баланс не изменён.');}
  if(key==='admin/orders'&&method==='GET'){await requirePermission('payments.manage');const rows=await db`SELECT o.*,u.username,p.name product_name FROM orders o JOIN users u ON u.id=o.user_id JOIN products p ON p.id=o.product_id ORDER BY o.created_at DESC LIMIT 200`;return Response.json({orders:rows});}
  if(key==='admin/punishments'&&method==='POST'){const actor=await requirePermission('punishments.manage'),b=await bodyJson(req),username=String(b.username||'').trim(),kind=String(b.kind||''),reason=String(b.reason||'').trim().slice(0,500),expires=b.expires_at||null;if(!/^[A-Za-z0-9_]{3,24}$/.test(username)||!['warn','mute','ban','unban','unmute'].includes(kind)||reason.length<3)throw new HttpError(400,'Проверь ник, тип наказания и причину');const rows=await db`INSERT INTO punishments(target_username,kind,reason,actor_id,expires_at) VALUES(${username},${kind},${reason},${actor.id},${expires}) RETURNING *`;await audit(actor.id,'punishment.create','punishment',rows[0].id,{username,kind});return Response.json({punishment:rows[0]},{status:201});}
  if(key==='admin/audit'&&method==='GET'){await requirePermission('audit.view');const rows=await db`SELECT a.id,a.action,a.target_type,a.target_id,a.details,a.created_at,u.username actor_username FROM audit_logs a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.created_at DESC LIMIT 200`;return Response.json({logs:rows});}
