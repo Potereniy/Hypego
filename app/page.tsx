@@ -1,6 +1,17 @@
 'use client';
 import {useEffect,useState} from 'react';
-type User={id:string;username:string;email:string;display_name:string;avatar_url:string|null;banner_url:string|null;nickname_color:string;bio:string;balance_cents:string|number;donation_balance_rub_kopecks:string|number;hp_balance:string|number;staff_salary:string|number};
+type User={
+  id:string;
+  username:string;
+  email:string;
+  display_name:string;
+  avatar_url:string|null;
+  banner_url:string|null;
+  nickname_color:string;
+  bio:string;
+  donation_balance_rub_kopecks:string|number;
+  hp_balance:string|number;
+};
 type Product={id:string;name:string;description:string;category:string;store:string;price_cents:number;currency:string;discount_percent:number;requires_staff:boolean};
 async function api(url:string,init?:RequestInit){const r=await fetch('/api/'+url,{...init,headers:{'Content-Type':'application/json',...(init?.headers||{})}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Ошибка запроса');return j;}
 export default function Home(){const [user,setUser]=useState<User|null>(null),[roles,setRoles]=useState<any[]>([]),[products,setProducts]=useState<Product[]>([]),[tab,setTab]=useState('home'),[store,setStore]=useState('main'),[login,setLogin]=useState(''),[password,setPassword]=useState(''),[email,setEmail]=useState(''),[mode,setMode]=useState('login'),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[display,setDisplay]=useState(''),[bio,setBio]=useState(''),[color,setColor]=useState('#a78bfa'),[target,setTarget]=useState(''),[currency,setCurrency]=useState('KZT'),[amount,setAmount]=useState('1000'),[challengeId,setChallengeId]=useState(''),[loginCode,setLoginCode]=useState('');
@@ -19,13 +30,6 @@ async function auth(e:React.FormEvent) {
 
     if (mode === 'register') {
       setNotice(result.message || 'Аккаунт создан. Проверьте почту и подтвердите email.');
-      return;
-    }
-
-    if (result.requiresCode) {
-      setChallengeId(result.challengeId);
-      setLoginCode('');
-      setNotice(result.message || 'Введите шестизначный код из письма.');
       return;
     }
 
@@ -121,7 +125,10 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 <div className="profileWalletAmount">{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} <span>₽</span></div>
 <p className="profileWalletHint">Баланс аккаунта Hypego</p>
 <button type="button" className="primary" onClick={()=>setTab('billing')}>＋ Пополнить баланс</button>
-<div className="profileMeta profileSalary"><span>ВНУТРЕННЯЯ ЗАРПЛАТА</span><strong>{user.staff_salary||0} <small>ед.</small></strong></div>
+<div className="profileMeta profileSalary">
+  <span>БАЛАНС ПЕРСОНАЛА</span>
+  <strong>{Number(user.hp_balance||0).toLocaleString('ru-RU')} <small>HP</small></strong>
+</div>
 </article>
 <article className="panel profileRoles"><div className="profileCardHeading"><div><div className="eyebrow">ACCOUNT STATUS</div><h3>Мои роли</h3></div><span className="profileCardIcon">✧</span></div>
 <div className="profileRoleList">{roles.length?roles.map(r=><span key={r.id}>{r.title}</span>):<p className="profileBio">Стандартный игрок Hypego</p>}</div>
