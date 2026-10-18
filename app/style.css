@@ -359,3 +359,155 @@
 .profileMusicExternal{margin-top:22px;padding:18px;border:1px solid #a78bfa35;border-radius:14px;background:#ffffff05}
 .profileMusicExternal p{font-size:12px;line-height:1.7;color:var(--muted)}
 .profileMusicExternal a,.profileMusicError a{color:#c4b5fd;text-decoration:underline}
+/* HYPEGO MUSIC PLAYER — обновлённый интерфейс */
+.profileMusic {
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
+  border: 1px solid #a78bfa45;
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse at 15% 10%, #8b5cf626, transparent 45%),
+    linear-gradient(145deg, #171a2b, #090c14 80%);
+  box-shadow: 0 18px 55px #0005;
+}
+
+.profileMusicBody {
+  grid-template-columns: minmax(130px, 190px) minmax(0, 1fr);
+  gap: 32px;
+}
+
+.profileVinyl {
+  width: 100%;
+  max-width: 190px;
+  justify-self: center;
+  background:
+    repeating-radial-gradient(
+      circle,
+      #292a35 0 2px,
+      #11121a 3px 5px,
+      #20212c 6px 7px
+    );
+  box-shadow:
+    0 0 0 7px #080a10,
+    0 0 0 8px #a78bfa70,
+    0 0 35px #8b5cf625,
+    0 15px 35px #0008;
+}
+
+.profileVinylGrooves {
+  width: 54%;
+  border: 4px solid #101117;
+  box-shadow: 0 0 0 2px #c4b5fd55;
+}
+
+.profileMusicDetails h3 {
+  font-size: clamp(20px, 3vw, 29px);
+  line-height: 1.25;
+  letter-spacing: -0.6px;
+}
+
+.profileMusicControls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 22px 0 17px;
+}
+
+.profileMusicControls button {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #ffffff20;
+  border-radius: 50%;
+  background: #ffffff08;
+  color: #f1eaff;
+  transition: transform .18s, background .18s;
+}
+
+.profileMusicControls button:hover {
+  transform: scale(1.07);
+  background: #a78bfa20;
+}
+
+.profileMusicControls .profileMusicPlay {
+  width: 54px;
+  height: 54px;
+  background: #c4b5fd;
+  color: #100b1c;
+  font-size: 20px;
+  box-shadow: 0 0 25px #8b5cf655;
+}
+
+.profileMusicTimeline {
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  gap: 10px;
+}
+
+.profileMusic input[type="range"] {
+  accent-color: #c4b5fd;
+  cursor: pointer;
+}
+
+.profileMusicPlaylist {
+  gap: 9px;
+  margin-top: 28px;
+}
+
+.profileMusicTrack {
+  min-height: 60px;
+  border-color: #ffffff12;
+  background: #ffffff05;
+  transition: border-color .18s, background .18s;
+}
+
+.profileMusicTrack:hover,
+.profileMusicTrack.active {
+  border-color: #a78bfa85;
+  background: #a78bfa12;
+}
+
+.profileMusicEmbed {
+  aspect-ratio: auto;
+  min-height: 80px;
+  margin-top: 20px;
+  border-radius: 13px;
+}
+
+.profileMusicSpotify {
+  height: 152px;
+  min-height: 152px;
+}
+
+.profileMusicSpotify iframe {
+  min-height: 152px;
+}
+
+@media (max-width: 560px) {
+  .profileMusic {
+    padding: 18px;
+  }
+
+  .profileMusicBody {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 25px;
+  }
+
+  .profileVinyl {
+    width: 155px;
+  }
+
+  .profileMusicDetails {
+    width: 100%;
+  }
+
+  .profileMusicControls {
+    justify-content: center;
+  }
+
+  .profileMusicPlaylist {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

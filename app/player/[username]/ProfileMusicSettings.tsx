@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { upload } from "@vercel/blob/client";
 
 type Track = {
   id: string;
@@ -95,15 +96,23 @@ export default function ProfileMusicSettings({ username }: { username: string })
           throw new Error("Максимальный размер файла — 20 МБ");
         }
 
-        const fd = new FormData();
-        fd.set("file", file);
-        const response = await fetch("/api/profile/music-upload", {
-          method: "POST",
-          body: fd,
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Не удалось загрузить файл");
-        audioUrl = result.url;
+        const safeName = file.name.replace(
+         /[^a-zA-Z0-9._-]/g,
+         "_"
+       );
+
+       const blob = await upload(
+  `music-${Date.now()}-${safeName}`,
+  file,
+  {
+    access: "public",
+    handleUploadUrl: "/api/profile/music-upload",
+    contentType: file.type,
+    multipart: true,
+  }
+);
+
+audioUrl = blob.url;
       } else {
         audioUrl = validateSource(url);
       }

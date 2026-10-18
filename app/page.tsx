@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import ProfileMusicSettings from "./player/[username]/ProfileMusicSettings";
+import MusicPlayer from "./player/[username]/MusicPlayer";
 import TraineeApplications from './trainee-applications';
 type User={
   id:string;
@@ -275,6 +276,9 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
     }
   </div>
 </div>
+<div className="profileMusicSection">
+  <MusicPlayer username={user.username} />
+</div>
 
 <div className="profileTabs">
   <button className="selected">Общая информация</button>
@@ -460,6 +464,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 <p className="tiny">Выбери изображения с устройства. После загрузки данные профиля обновятся.</p>
 </div>
 <ProfileMusicSettings username={user.username} />
+<MusicPlayer username={user.username} />
 <div className="profileSettingsTip"><span>ⓘ</span><p>Имя, описание и цвет ника сохраняются кнопкой «Сохранить изменения». Аватар и баннер загружаются отдельно.</p></div>
 </div>
 </div>
