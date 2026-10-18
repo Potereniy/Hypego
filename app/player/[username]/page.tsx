@@ -1,78 +1,332 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
+
+type WallPost = {
+  id: string;
+  body: string;
+  created_at: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  nickname_color: string | null;
+};
 
 export default function PlayerProfilePage() {
   const params = useParams<{ username: string }>();
   const username = decodeURIComponent(String(params.username || ""));
+
   const [player, setPlayer] = useState<any>(null);
+  const [viewer, setViewer] = useState<any>(null);
+  const [posts, setPosts] = useState<WallPost[]>([]);
+  const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
+  const [wallLoading, setWallLoading] = useState(false);
+  const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
+  const [wallError, setWallError] = useState("");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     let active = true;
+
     setLoading(true);
+    setError("");
+    setPlayer(null);
+    setPosts([]);
+
     fetch("/api/player?username=" + encodeURIComponent(username))
-      .then(async r => {
+      .then(async (r) => {
         const data = await r.json();
         if (!r.ok) throw new Error(data.error || "Игрок не найден");
         return data.player;
       })
-      .then(p => { if (active) setPlayer(p); })
-      .catch(e => { if (active) setError(e.message || "Не удалось загрузить профиль"); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+      .then((p) => {
+        if (active) setPlayer(p);
+      })
+      .catch((e) => {
+        if (active) setError(e.message || "Не удалось загрузить профиль");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    fetch("/api/me")
+      .then(async (r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (active) setViewer(data?.user || null);
+      })
+      .catch(() => {
+        if (active) setViewer(null);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [username]);
 
-  const panel: React.CSSProperties = {
-    width: "min(760px, 100%)", margin: "32px auto", padding: "24px",
-    border: "1px solid var(--border, #333)", borderRadius: "20px",
-    background: "var(--panel, #15151b)", color: "var(--foreground, #f5f5f5)",
-    boxSizing: "border-box"
-  };
+  const loadWall = useCallback(async () => {
+    if (!player?.id) return;
 
-  if (loading) return <main style={panel}>Загружаем профиль игрока…</main>;
-  if (error || !player) return <main style={panel}>
-    <h2>Игрок не найден</h2><p>{error || "Профиль недоступен."}</p>
-    <a href="/" style={{ color: "#a78bfa" }}>← Вернуться на Hypego</a>
-  </main>;
+    setWallLoading(true);
+    setWallError("");
 
-  return <main style={panel}>
-    <a href="/" style={{ color: "#a78bfa", textDecoration: "none" }}>← Hypego</a>
-    {player.banner_url && <img src={player.banner_url} alt="Обложка профиля"
-      style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 14, marginTop: 20 }} />}
-    <div style={{ display: "flex", gap: 18, alignItems: "center", marginTop: 24, flexWrap: "wrap" }}>
-      <div style={{ width: 88, height: 88, borderRadius: "50%", overflow: "hidden",
-        display: "grid", placeItems: "center", background: "#292532", fontSize: 34, flexShrink: 0 }}>
-        {player.avatar_url
-          ? <img src={player.avatar_url} alt="Аватар" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          : String(player.username || "?").slice(0, 1).toUpperCase()}
+    try {
+      const r = await fetch("/api/wall?user_id=" + encodeURIComponent(player.id));
+      const data = await r.json();
+
+      if (!r.ok) throw new Error(data.error || "Не удалось загрузить стену");
+      setPosts(Array.isArray(data.posts) ? data.posts : []);
+    } catch (e: any) {
+      setWallError(e.message || "Ошибка загрузки стены");
+    } finally {
+      setWallLoading(false);
+    }
+  }, [player?.id]);
+
+  useEffect(() => {
+    loadWall();
+  }, [loadWall]);
+
+  async function submitPost(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setNotice("");
+    setWallError("");
+
+    const body = draft.trim();
+
+    if (!viewer) {
+      setNotice("Войди в аккаунт, чтобы оставить сообщение на стене.");
+      return;
+    }
+
+    if (!body) {
+      setWallError("Напиши сообщение перед публикацией.");
+      return;
+    }
+
+    if (body.length > 500) {
+      setWallError("Сообщение не должно превышать 500 символов.");
+      return;
+    }
+
+    setPosting(true);
+
+    try {
+      const r = await fetch("/api/wall", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: player.id, body }),
+      });
+
+      const data = await r.json();
+
+      if (!r.ok) throw new Error(data.error || "Не удалось опубликовать сообщение");
+
+      setDraft("");
+      setNotice("Сообщение опубликовано.");
+      await loadWall();
+    } catch (e: any) {
+      setWallError(e.message || "Ошибка публикации");
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  if (loading) {
+    return <main className="publicProfilePage"><div className="publicProfileState">Загружаем профиль игрока…</div></main>;
+  }
+
+  if (error || !player) {
+    return (
+      <main className="publicProfilePage">
+        <div className="publicProfileState">
+          <span className="eyebrow">HYPEGO / PLAYER</span>
+          <h1>Игрок не найден</h1>
+          <p>{error || "Профиль недоступен."}</p>
+          <a className="primary publicProfileBack" href="/">← Вернуться на Hypego</a>
+        </div>
+      </main>
+    );
+  }
+
+  const displayName = player.display_name || player.username;
+  const avatarLetter = String(displayName || "?").slice(0, 1).toUpperCase();
+
+  return (
+    <main className="publicProfilePage">
+      <a className="publicProfileHome" href="/">← HYPEGO</a>
+
+      <section
+        className="publicProfileBanner"
+        style={player.banner_url ? {
+          backgroundImage:
+            "linear-gradient(90deg,rgba(9,11,18,.94),rgba(12,14,25,.55)),url(" +
+            JSON.stringify(player.banner_url) + ")",
+        } : undefined}
+      >
+        <div className="publicProfileIdentity">
+          <div className="publicProfileAvatar">
+            {player.avatar_url
+              ? <img src={player.avatar_url} alt={"Аватар " + displayName} />
+              : avatarLetter}
+          </div>
+
+          <div className="publicProfileName">
+            <span className="eyebrow">PLAYER PROFILE</span>
+            <h1 style={{ color: player.nickname_color || "#c4b5fd" }}>
+              {displayName}
+            </h1>
+            <p>@{player.username}</p>
+            <div className="publicProfileBadges">
+              <span>✦ Игрок Hypego</span>
+              <span>◷ С нами с {player.created_at
+                ? new Date(player.created_at).toLocaleDateString("ru-RU")
+                : "—"}</span>
+            </div>
+          </div>
+        </div>
+        <div className="publicProfileWatermark">H+</div>
+      </section>
+
+      <div className="publicProfileGrid">
+        <section className="publicProfileCard publicProfileAbout">
+          <div className="publicProfileSectionTitle">
+            <div>
+              <span className="eyebrow">ABOUT PLAYER</span>
+              <h2>Об игроке</h2>
+            </div>
+            <span className="publicProfileIcon">◇</span>
+          </div>
+          <p className="publicProfileBio">
+            {player.bio || "Этот игрок пока ничего не рассказал о себе."}
+          </p>
+
+          <div className="publicProfileMeta">
+            <span>ИГРОК</span>
+            <strong style={{ color: player.nickname_color || "#c4b5fd" }}>
+              {displayName}
+            </strong>
+          </div>
+          <div className="publicProfileMeta">
+            <span>ДАТА РЕГИСТРАЦИИ</span>
+            <strong>{player.created_at
+              ? new Date(player.created_at).toLocaleDateString("ru-RU")
+              : "Не указана"}</strong>
+          </div>
+        </section>
+
+        <section className="publicProfileCard">
+          <div className="publicProfileSectionTitle">
+            <div>
+              <span className="eyebrow">CONTACTS</span>
+              <h2>Ссылки</h2>
+            </div>
+            <span className="publicProfileIcon">↗</span>
+          </div>
+
+          <div className="publicProfileLinks">
+            {player.vk_url && (
+              <a href={player.vk_url} target="_blank" rel="noopener noreferrer">
+                <span>ВКонтакте</span><b>↗</b>
+              </a>
+            )}
+            {player.telegram_username && (
+              <a
+                href={"https://t.me/" + encodeURIComponent(String(player.telegram_username).replace(/^@/, ""))}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span>Telegram · @{String(player.telegram_username).replace(/^@/, "")}</span>
+                <b>↗</b>
+              </a>
+            )}
+            {!player.vk_url && !player.telegram_username && (
+              <p className="publicProfileMuted">Игрок пока не добавил ссылки.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="publicProfileCard publicProfileWall">
+          <div className="publicProfileSectionTitle">
+            <div>
+              <span className="eyebrow">COMMUNITY</span>
+              <h2>Стена профиля</h2>
+            </div>
+            <span className="publicProfilePostCount">{posts.length}</span>
+          </div>
+
+          <p className="publicProfileMuted">
+            Оставляй сообщения и общайся с игроком.
+          </p>
+
+          {viewer ? (
+            <form className="publicProfilePostForm" onSubmit={submitPost}>
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value.slice(0, 500))}
+                placeholder="Напиши сообщение игроку…"
+                maxLength={500}
+                rows={3}
+              />
+              <div className="publicProfileFormBottom">
+                <span>{draft.length}/500</span>
+                <button className="primary" type="submit" disabled={posting || !draft.trim()}>
+                  {posting ? "Публикуем…" : "Опубликовать"}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="publicProfileLoginHint">
+              <span>◈</span>
+              <p>Войди в аккаунт Hypego, чтобы оставить сообщение.</p>
+              <a href="/?tab=auth">Войти в аккаунт ↗</a>
+            </div>
+          )}
+
+          {notice && <p className="publicProfileNotice">{notice}</p>}
+          {wallError && <p className="publicProfileError">{wallError}</p>}
+
+          <div className="publicProfilePosts">
+            {wallLoading && <p className="publicProfileMuted">Загружаем сообщения…</p>}
+
+            {!wallLoading && posts.length === 0 && (
+              <div className="publicProfileEmptyWall">
+                <span>◇</span>
+                <strong>Пока здесь тихо</strong>
+                <p>Стань первым, кто оставит сообщение!</p>
+              </div>
+            )}
+
+            {posts.map((post) => (
+              <article className="publicProfilePost" key={post.id}>
+                <div className="publicProfilePostAvatar">
+                  {post.avatar_url
+                    ? <img src={post.avatar_url} alt="" />
+                    : String(post.display_name || post.username || "?").slice(0, 1).toUpperCase()}
+                </div>
+                <div className="publicProfilePostContent">
+                  <div className="publicProfilePostHeader">
+                    <strong style={{ color: post.nickname_color || "#c4b5fd" }}>
+                      {post.display_name || post.username}
+                    </strong>
+                    <span>
+                      {post.created_at
+                        ? new Date(post.created_at).toLocaleString("ru-RU", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })
+                        : ""}
+                    </span>
+                  </div>
+                  <p>{post.body}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
       </div>
-      <div>
-        <h1 style={{ margin: 0, color: player.nickname_color || "#a78bfa", overflowWrap: "anywhere" }}>
-          {player.display_name || player.username}
-        </h1>
-        <div style={{ opacity: .7, marginTop: 6 }}>@{player.username}</div>
-      </div>
-    </div>
-    <section style={{ marginTop: 28 }}>
-      <h3>Об игроке</h3>
-      <p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
-        {player.bio || "Игрок пока ничего не рассказал о себе."}
-      </p>
-      <p style={{ opacity: .7, fontSize: 14 }}>
-        В Hypego с {player.created_at ? new Date(player.created_at).toLocaleDateString("ru-RU") : "—"}
-      </p>
-    </section>
-    {(player.vk_url || player.telegram_username) && <section style={{ marginTop: 24 }}>
-      <h3>Ссылки</h3>
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-        {player.vk_url && <a href={player.vk_url} target="_blank" rel="noopener noreferrer"
-          style={{ color: "#a78bfa" }}>ВКонтакте ↗</a>}
-        {player.telegram_username && <a href={"https://t.me/" + encodeURIComponent(player.telegram_username)}
-          target="_blank" rel="noopener noreferrer" style={{ color: "#a78bfa" }}>Telegram ↗</a>}
-      </div>
-    </section>}
-  </main>;
+    </main>
+  );
 }
