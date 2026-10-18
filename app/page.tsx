@@ -4,7 +4,6 @@ import TraineeApplications from './trainee-applications';
 type User={
   id:string;
   username:string;
-  email:string;
   display_name:string;
   avatar_url:string|null;
   banner_url:string|null;
@@ -94,11 +93,121 @@ async function saveProfile(e:React.FormEvent){e.preventDefault();try{await api('
 async function upload(kind:string,file?:File){if(!file)return;const fd=new FormData();fd.set('kind',kind);fd.set('file',file);try{const r=await fetch('/api/profile/upload',{method:'POST',body:fd});const j=await r.json();if(!r.ok)throw new Error(j.error);await load();setNotice('Изображение обновлено.')}catch(e:any){setNotice(e.message)}}
 async function buy(p:Product){const mc=prompt('Minecraft-ник, которому выдать товар:',user?.username||'');if(!mc)return;try{const j=await api('orders',{method:'POST',body:JSON.stringify({product_id:p.id,minecraft_username:mc})});setNotice(j.payment?.message||'Заказ создан.');}catch(e:any){setNotice(e.message)}}
 async function logout(){await api('auth/logout',{method:'POST'});setUser(null);setRoles([]);setNotice('Вы вышли из аккаунта.');}
+async function loadFriends(){
+  try {
+    const j=await api('friends');
+    setFriendData({friends:j.friends||[],incoming:j.incoming||[],outgoing:j.outgoing||[]});
+  } catch(e:any) { setNotice(e.message); }
+}
+async function searchFriends(e:React.FormEvent){
+  e.preventDefault();
+  const q=friendQuery.trim();
+  if(q.length<2){setNotice('Введи минимум 2 символа ника');return;}
+  setFriendLoading(true);
+  try {
+    const j=await api('friends/search?q='+encodeURIComponent(q));
+    setFriendResults(j.players||[]);
+  } catch(e:any) {setNotice(e.message);}
+  finally {setFriendLoading(false);}
+}
+async function sendFriendRequest(id:string){
+  try {
+    const j=await api('friends/request',{method:'POST',body:JSON.stringify({user_id:id})});
+    setNotice(j.message||'Заявка отправлена');
+    await loadFriends();
+    if(friendQuery.trim().length>=2){
+      const r=await api('friends/search?q='+encodeURIComponent(friendQuery.trim()));
+      setFriendResults(r.players||[]);
+    }
+  } catch(e:any){setNotice(e.message);}
+}
+async function respondFriend(id:string,action:'accept'|'reject'){
+  try {
+    await api('friends/respond',{method:'POST',body:JSON.stringify({user_id:id,action})});
+    setNotice(action==='accept'?'Заявка принята':'Заявка отклонена');
+    await loadFriends();
+  } catch(e:any){setNotice(e.message);}
+}
+async function removeFriend(id:string){
+  if(!confirm('Удалить этого игрока из друзей?'))return;
+  try {
+    await api('friends',{method:'DELETE',body:JSON.stringify({user_id:id})});
+    setNotice('Игрок удалён из друзей');
+    await loadFriends();
+  } catch(e:any){setNotice(e.message);}
+}
+useEffect(()=>{if(user&&tab==='friends')loadFriends()},[user,tab]);
+
 const isStaff=roles.some(r=>['owner','deputy','management','curator','tech_admin'].includes(r.id));
 const canAccessStaffShop=roles.some(r=>['trainee','moderator','support','tech_admin','curator','management','deputy','owner'].includes(r.id));
 const [drawerOpen,setDrawerOpen]=useState(false);
+const [friendData,setFriendData]=useState<any>({friends:[],incoming:[],outgoing:[]});
+const [friendQuery,setFriendQuery]=useState('');
+const [friendResults,setFriendResults]=useState<any[]>([]);
+const [friendLoading,setFriendLoading]=useState(false);
+const [chatMode,setChatMode]=useState(false);
+const [selectedChat,setSelectedChat]=useState<any>(null);
+const [chatMessages,setChatMessages]=useState<any[]>([]);
+const [chatDraft,setChatDraft]=useState('');
+const [chatLoading,setChatLoading]=useState(false);
+const [chatSending,setChatSending]=useState(false);
+
+async function openDirectChat(p:any){
+ setSelectedChat(p);
+ setChatMode(true);
+ setChatMessages([]);
+ setChatDraft('');
+ setChatLoading(true);
+ try{
+  const j=await api('messages?user_id='+encodeURIComponent(p.id));
+  setChatMessages(j.messages||[]);
+ }catch(e:any){setNotice(e.message);}
+ finally{setChatLoading(false);}
+}
+async function sendDirectMessage(e:any){
+ e.preventDefault();
+ if(!selectedChat||!chatDraft.trim()||chatSending)return;
+ setChatSending(true);
+ try{
+  await api('messages',{method:'POST',body:JSON.stringify({user_id:selectedChat.id,body:chatDraft.trim()})});
+  setChatDraft('');
+  const j=await api('messages?user_id='+encodeURIComponent(selectedChat.id));
+  setChatMessages(j.messages||[]);
+ }catch(e:any){setNotice(e.message);}
+ finally{setChatSending(false);}
+}
+
+
 return <main><header className="top"><a className="brand" href="#" onClick={()=>setTab('home')}><span className="brandMark">H</span> HYPEGO</a><nav><button onClick={()=>setTab('home')}>Главная</button><button onClick={()=>{setTab('shop');setStore('main')}}>Магазин</button><button onClick={()=>setTab('rules')}>Правила</button><button onClick={()=>setTab('players')}>Игроки</button><button onClick={()=>setTab('trainee')}>Стажировка</button>{user&&<button onClick={()=>setTab('profile')}>Профиль</button>}{isStaff&&<button onClick={()=>setTab('admin')}>Управление</button>}</nav><div className="right">{user?<><div className="headerBalance"><small>БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} ₽</strong></div><button type="button" className="accountTrigger" onClick={()=>setDrawerOpen(true)} aria-label="Открыть меню профиля"><span className="accountAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><span className="accountIdentity"><strong style={{color:user.nickname_color}}>{user.username}</strong><small>Мой аккаунт</small></span><span className="accountChevron">☰</span></button></>:<button className="primary" onClick={()=>setTab('auth')}>Войти</button>}</div></header>
-{drawerOpen&&user&&<div className="drawerLayer"><button type="button" className="drawerScrim" aria-label="Закрыть меню" onClick={()=>setDrawerOpen(false)}></button><aside className="profileDrawer" aria-label="Меню аккаунта"><div className="drawerTop"><span className="eyebrow">HYPEGO / ACCOUNT</span><button type="button" className="drawerClose" onClick={()=>setDrawerOpen(false)}>×</button></div><div className="drawerUser"><div className="drawerAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</div><div><strong style={{color:user.nickname_color}}>{user.display_name||user.username}</strong><small>@{user.username}</small></div></div><div className="drawerBalance"><small>ТВОЙ БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} <span>₽</span></strong><button type="button" className="outline" onClick={()=>{setTab('billing');setDrawerOpen(false)}}>＋ Пополнить баланс</button></div><div className="drawerLinks"><span className="drawerLabel">АККАУНТ</span><button type="button" onClick={()=>{setTab('profile');setDrawerOpen(false)}}>◈ <span>Профиль и настройки</span><b>›</b></button><button type="button" onClick={()=>{setTab('players');setDrawerOpen(false)}}>♙ <span>Игроки</span><b>›</b></button><button type="button" onClick={()=>{setTab('trainee');setDrawerOpen(false)}}>✧ <span>Стажировка</span><b>›</b></button><button type="button" onClick={()=>{setTab('shop');setStore('main');setDrawerOpen(false)}}>◇ <span>Магазин</span><b>›</b></button><button type="button" onClick={()=>{setTab('rules');setDrawerOpen(false)}}>≡ <span>Правила и справка</span><b>›</b></button>{isStaff&&<><span className="drawerLabel">ПЕРСОНАЛ</span><button type="button" onClick={()=>{setTab('admin');setDrawerOpen(false)}}>⌘ <span>Панель управления</span><b>›</b></button></>}<span className="drawerLabel">СЕАНС</span><button type="button" className="drawerLogout" onClick={()=>{setDrawerOpen(false);logout()}}>↪ <span>Выйти из аккаунта</span></button></div><div className="drawerFooter">HYPEGO · ИГРОВОЙ ПОРТАЛ</div></aside></div>}
+{drawerOpen&&user&&<div className="drawerLayer"><button type="button" className="drawerScrim" aria-label="Закрыть меню" onClick={()=>setDrawerOpen(false)}></button><aside className="profileDrawer" aria-label="Меню аккаунта"><div className="drawerTop"><span className="eyebrow">HYPEGO / ACCOUNT</span><button type="button" className="drawerClose" onClick={()=>setDrawerOpen(false)}>×</button></div><div className="drawerUser"><div className="drawerAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</div><div><strong style={{color:user.nickname_color}}>{user.display_name||user.username}</strong><small>@{user.username}</small></div></div><div className="drawerBalance"><small>ТВОЙ БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} <span>₽</span></strong><button type="button" className="outline" onClick={()=>{setTab('billing');setDrawerOpen(false)}}>＋ Пополнить баланс</button></div><div className="drawerLinks"><span className="drawerLabel">АККАУНТ</span><button type="button" onClick={()=>{setTab('profile');setDrawerOpen(false)}}>◈ <span>Профиль и настройки</span><b>›</b></button><button type="button" onClick={()=>{setTab('players');setDrawerOpen(false)}}>♙ <span>Игроки</span><b>›</b></button>
+<button type="button" onClick={()=>{setTab('friends');setDrawerOpen(false)}}>♧ <span>Друзья</span><b>›</b></button>
+<button type="button" onClick={()=>{setChatMode(true);setSelectedChat(null);setDrawerOpen(true);loadFriends()}}>✉ <span>Сообщения</span><b>›</b></button>
+<button type="button" onClick={()=>{setTab('trainee');setDrawerOpen(false)}}>✧ <span>Стажировка</span><b>›</b></button><button type="button" onClick={()=>{setTab('shop');setStore('main');setDrawerOpen(false)}}>◇ <span>Магазин</span><b>›</b></button><button type="button" onClick={()=>{setTab('rules');setDrawerOpen(false)}}>≡ <span>Правила и справка</span><b>›</b></button>{isStaff&&<><span className="drawerLabel">ПЕРСОНАЛ</span><button type="button" onClick={()=>{setTab('admin');setDrawerOpen(false)}}>⌘ <span>Панель управления</span><b>›</b></button></>}<span className="drawerLabel">СЕАНС</span><button type="button" className="drawerLogout" onClick={()=>{setDrawerOpen(false);logout()}}>↪ <span>Выйти из аккаунта</span></button></div>{chatMode&&<section className="drawerChat">
+<div className="profileCardHeading">
+<div><div className="eyebrow">HYPEGO MESSAGES</div><h3>{selectedChat?'Переписка':'Твои диалоги'}</h3></div>
+<button type="button" className="outline" onClick={()=>{setChatMode(false);setSelectedChat(null)}}>Закрыть</button>
+</div>
+{!selectedChat?<div className="drawerChatContacts">
+<p className="muted">Личные сообщения доступны друзьям.</p>
+{friendData.friends.length===0?<p>Пока нет друзей для переписки.</p>:friendData.friends.map((p:any)=><button type="button" className="feature" key={p.id} onClick={()=>openDirectChat(p)}>
+<strong>{p.display_name||p.username}</strong><span>@{p.username}</span><span>Открыть переписку →</span>
+</button>)}
+</div>:<>
+<button type="button" className="textButton" onClick={()=>setSelectedChat(null)}>← Все диалоги</button>
+<div className="drawerChatHistory" aria-live="polite">
+{chatLoading?<p>Загружаем сообщения…</p>:chatMessages.length===0?<p>Начни переписку первым!</p>:chatMessages.map((m:any)=><article key={m.id} className="feature" style={{marginBottom:8,overflowWrap:'anywhere'}}>
+<strong>{m.sender_id===user.id?'Ты':m.sender_display_name||m.sender_username||selectedChat.username}</strong>
+<p style={{whiteSpace:'pre-wrap'}}>{m.body}</p>
+<small>{m.created_at?new Date(m.created_at).toLocaleString('ru-RU'):''}</small>
+</article>)}
+</div>
+<form className="form" onSubmit={sendDirectMessage}>
+<textarea value={chatDraft} onChange={e=>setChatDraft(e.target.value)} maxLength={2000} placeholder="Напиши сообщение…" required/>
+<button className="primary" disabled={chatSending||!chatDraft.trim()||chatLoading}>{chatSending?'Отправляем…':'Отправить'}</button>
+</form>
+</>}
+</section>}
+<div className="drawerFooter">HYPEGO · ИГРОВОЙ ПОРТАЛ</div></aside></div>}
 {notice&&<div className="notice" role="status">{notice}<button onClick={()=>setNotice('')}>×</button></div>}
 {tab==='home'&&<><section className="hero"><div className="heroContent"><div className="eyebrow"><span className="pulse"/> MINECRAFT NETWORK · HYPEGO</div><h1>ТВОЯ ИГРА.<br/><em>ТВОИ ПРАВИЛА.</em></h1><p>Залетай в мир Hypego — играй с друзьями, собирай привилегии и создавай собственную историю.</p><div className="heroActions"><button className="primary big" onClick={()=>setTab(user?'shop':'auth')}>{user?'Открыть магазин':'Начать играть'} <b>↗</b></button><button className="outline big" onClick={()=>setTab('rules')}>Правила проекта</button></div><div className="serverAddress"><span className="serverDot"/><div><small>АДРЕС СЕРВЕРА</small><strong>hypego.org:19132</strong></div><button onClick={()=>{navigator.clipboard?.writeText('hypego.org:19132');setNotice('Адрес скопирован.')}}>Копировать</button></div></div><div className="heroArt"><div className="ring ring1"/><div className="ring ring2"/><div className="cube">H</div><div className="floatTag tagOne">✦ <span>YOUR WORLD</span></div><div className="floatTag tagTwo">⚡ <span>HYPEGO NETWORK</span></div></div></section><ServerStatus/><section className="stats"><div><strong>01</strong><span>ЕДИНЫЙ ПРОФИЛЬ</span></div><div><strong>∞</strong><span>ВОЗМОЖНОСТЕЙ</span></div><div><strong>24/7</strong><span>ТВОЯ ИСТОРИЯ</span></div><div><strong>H+</strong><span>HYPEGO COMMUNITY</span></div></section><section className="section"><div className="sectionHead"><div><div className="eyebrow">ТВОЯ ПЛАТФОРМА</div><h2>Всё для игры — <em>в одном месте</em></h2></div><p>Управляй профилем, изучай товары и следи за новостями проекта.</p></div><div className="featureGrid"><article className="feature"><span>◈</span><h3>Профиль игрока</h3><p>Аватар, баннер, цвет ника, история и персональная страница.</p><button onClick={()=>setTab(user?'profile':'auth')}>Открыть профиль ↗</button></article><article className="feature"><span>✧</span><h3>Магазин Hypego</h3><p>Привилегии, расходники, услуги и игровые улучшения.</p><button onClick={()=>setTab(user?'shop':'auth')}>Перейти в магазин ↗</button></article><article className="feature"><span>⌘</span><h3>Сообщество</h3><p>Находи игроков, знакомься и оставайся частью проекта.</p><button onClick={()=>setTab('players')}>Найти игроков ↗</button></article></div></section></>}
 {tab==='auth'&&<section className="panel authPanel"><div className="eyebrow">HYPEGO ACCOUNT</div><h2>{mode==='login'?'С возвращением':'Создать аккаунт'}</h2><p className="muted">Один аккаунт для профиля и сервисов проекта.</p>{!challengeId&&<form onSubmit={auth} className="form"> <label>{mode==='login'?'Никнейм или email':'Никнейм'}<input value={login} onChange={e=>setLogin(e.target.value)} required autoComplete="username"/></label>{mode==='register'&&<label>Email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label>}<label>Пароль<input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={10} autoComplete={mode==='login'?'current-password':'new-password'}/></label><button className="primary big" disabled={busy}>{busy?'Подождите…':mode==='login'?'Войти':'Зарегистрироваться'}</button></form>}
@@ -113,31 +222,205 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 </button></section>}
 {tab==='profile'&&user&&<section className="section profilePage">
 <div className="profileBanner profileBannerModern" style={{backgroundImage:user.banner_url?`linear-gradient(90deg,#090b12ee,#11152166),url(${user.banner_url})`:undefined}}>
-<div className="avatar">{user.avatar_url?<img src={user.avatar_url} alt="Аватар"/>:user.username.slice(0,1).toUpperCase()}</div>
-<div className="profileBannerIdentity"><div className="eyebrow"><span className="pulse"/> PLAYER PROFILE</div><h2 style={{color:user.nickname_color}}>{user.display_name||user.username}</h2><p>@{user.username}</p><span className="profileOnlineLabel"><i/> АККАУНТ HYPEGO</span></div>
-<button type="button" className="profileEditButton" onClick={()=>{setDisplay(user.display_name||user.username);setBio(user.bio||'');setColor(user.nickname_color||'#a78bfa');setVkUrl(user.vk_url||'');setTelegramUsername(user.telegram_username||'');setTab('profile-settings')}} aria-label="Настройки профиля" title="Настройки профиля">⚙ <span>Настроить профиль</span></button>
-<div className="profileBadges">{roles.map(r=><span key={r.id}>{r.title}</span>)}</div>
+  <div className="avatar">
+    {user.avatar_url?<img src={user.avatar_url} alt="Аватар"/>:user.username.slice(0,1).toUpperCase()}
+  </div>
+
+  <div className="profileBannerIdentity">
+    <div className="eyebrow"><span className="pulse"/> HYPEGO / PROFILE</div>
+    <h2 style={{color:user.nickname_color}}>{user.display_name||user.username}</h2>
+    <p>@{user.username}</p>
+    <span className="profileOnlineLabel"><i/> АККАУНТ HYPEGO</span>
+  </div>
+
+  <button
+    type="button"
+    className="profileEditButton"
+    onClick={()=>{
+      setDisplay(user.display_name||user.username);
+      setBio(user.bio||'');
+      setColor(user.nickname_color||'#a78bfa');
+      setVkUrl(user.vk_url||'');
+      setTelegramUsername(user.telegram_username||'');
+      setTab('profile-settings');
+    }}
+    aria-label="Настройки профиля"
+    title="Настройки профиля"
+  >
+    ⚙ <span>Настроить профиль</span>
+  </button>
+
+  <div className="profileBadges">
+    {roles.length
+      ? roles.map(r=><span key={r.id}>{r.title}</span>)
+      : <span>Игрок</span>
+    }
+  </div>
 </div>
+
+<div className="profileTabs">
+  <button className="selected">Общая информация</button>
+  <button type="button" onClick={()=>setTab('profile-settings')}>Личные данные</button>
+  <button type="button" onClick={()=>setTab('shop')}>Привилегии</button>
+  <button type="button" onClick={()=>setNotice('Стена профиля будет доступна после подключения системы сообщений.')}>Стена</button>
+</div>
+
 <div className="profileContentGrid">
-<article className="panel profileAbout"><div className="profileCardHeading"><div><div className="eyebrow">PLAYER DATA</div><h3>О себе</h3></div><span className="profileCardIcon">◈</span></div>
-<p className="profileBio">{user.bio?.trim()||'Этот игрок пока ничего не рассказал о себе.'}</p>
-<div className="profileMeta"><span>ИГРОВОЙ НИК</span><strong>{user.username}</strong></div>
-<div className="profileMeta"><span>ОТОБРАЖАЕМОЕ ИМЯ</span><strong style={{color:user.nickname_color}}>{user.display_name||user.username}</strong></div>
-{user.vk_url&&<div className="profileMeta"><span>VK</span><a href={user.vk_url} target="_blank" rel="noreferrer">Открыть страницу VK ↗</a></div>}
-{user.telegram_username&&<div className="profileMeta"><span>TELEGRAM</span><a href={'https://t.me/'+user.telegram_username} target="_blank" rel="noreferrer">@{user.telegram_username}</a></div>}
-</article>
-<article className="panel profileWallet"><div className="profileCardHeading"><div><div className="eyebrow">HYPEGO WALLET</div><h3>Мой баланс</h3></div><span className="profileCardIcon">◉</span></div>
-<div className="profileWalletAmount">{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} <span>₽</span></div>
-<p className="profileWalletHint">Баланс аккаунта Hypego</p>
-<button type="button" className="primary" onClick={()=>setTab('billing')}>＋ Пополнить баланс</button>
-<div className="profileMeta profileSalary">
-  <span>БАЛАНС ПЕРСОНАЛА</span>
-  <strong>{Number(user.hp_balance||0).toLocaleString('ru-RU')} <small>HP</small></strong>
-</div>
-</article>
-<article className="panel profileRoles"><div className="profileCardHeading"><div><div className="eyebrow">ACCOUNT STATUS</div><h3>Мои роли</h3></div><span className="profileCardIcon">✧</span></div>
-<div className="profileRoleList">{roles.length?roles.map(r=><span key={r.id}>{r.title}</span>):<p className="profileBio">Стандартный игрок Hypego</p>}</div>
-</article>
+
+  <article className="panel profileAbout">
+    <div className="profileCardHeading">
+      <div>
+        <div className="eyebrow">GENERAL INFORMATION</div>
+        <h3>Общая информация</h3>
+      </div>
+      <span className="profileCardIcon">◈</span>
+    </div>
+
+    <div className="profileInfoList">
+      <div className="profileMeta">
+        <span>ID</span>
+        <strong>{user.id}</strong>
+      </div>
+
+      <div className="profileMeta">
+        <span>ГРУППА</span>
+        <strong>{roles.length?roles.map(r=>r.title).join(', '):'Игрок'}</strong>
+      </div>
+
+      <div className="profileMeta">
+        <span>НИК</span>
+        <strong style={{color:user.nickname_color}}>{user.username}</strong>
+      </div>
+
+      <div className="profileMeta">
+        <span>ОТОБРАЖАЕМОЕ ИМЯ</span>
+        <strong>{user.display_name||user.username}</strong>
+      </div>
+
+      <div className="profileMeta">
+        <span>ПРЕФИКС</span>
+        <strong>HYPEGO</strong>
+      </div>
+    </div>
+  </article>
+
+  <article className="panel profileWallet">
+    <div className="profileCardHeading">
+      <div>
+        <div className="eyebrow">HYPEGO WALLET</div>
+        <h3>Баланс</h3>
+      </div>
+      <span className="profileCardIcon">◉</span>
+    </div>
+
+    <div className="profileWalletAmount">
+      {(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)}
+      <span> ₽</span>
+    </div>
+
+    <p className="profileWalletHint">Баланс аккаунта Hypego</p>
+
+    <button
+      type="button"
+      className="primary"
+      onClick={()=>setTab('billing')}
+    >
+      ＋ Пополнить баланс
+    </button>
+
+    <div className="profileMeta profileSalary">
+      <span>БАЛАНС ПЕРСОНАЛА</span>
+      <strong>
+        {Number(user.hp_balance||0).toLocaleString('ru-RU')}
+        <small> HP</small>
+      </strong>
+    </div>
+  </article>
+
+  <article className="panel profileRoles">
+    <div className="profileCardHeading">
+      <div>
+        <div className="eyebrow">PRIVILEGES</div>
+        <h3>Мои привилегии</h3>
+      </div>
+      <span className="profileCardIcon">✧</span>
+    </div>
+
+    {roles.length
+      ? <div className="profileRoleList">
+          {roles.map(r=>
+            <span key={r.id}>{r.title}</span>
+          )}
+        </div>
+      : <p className="profileBio">Привилегий нет</p>
+    }
+  </article>
+
+  <article className="panel profileAbout">
+    <div className="profileCardHeading">
+      <div>
+        <div className="eyebrow">PERSONAL DATA</div>
+        <h3>Личные данные</h3>
+      </div>
+      <span className="profileCardIcon">◎</span>
+    </div>
+
+    <p className="profileBio">
+      {user.bio?.trim()||'Пользователь пока ничего не рассказал о себе.'}
+    </p>
+
+    {user.vk_url&&
+      <div className="profileMeta">
+        <span>VK</span>
+        <a href={user.vk_url} target="_blank" rel="noreferrer">
+          Открыть страницу VK ↗
+        </a>
+      </div>
+    }
+
+    {user.telegram_username&&
+      <div className="profileMeta">
+        <span>TELEGRAM</span>
+        <a href={'https://t.me/'+user.telegram_username} target="_blank" rel="noreferrer">
+          @{user.telegram_username}
+        </a>
+      </div>
+    }
+
+    <button
+      type="button"
+      className="outline"
+      onClick={()=>setTab('profile-settings')}
+    >
+      Редактировать личные данные
+    </button>
+  </article>
+
+  <article className="panel profileWall">
+    <div className="profileCardHeading">
+      <div>
+        <div className="eyebrow">PROFILE WALL</div>
+        <h3>Стена</h3>
+      </div>
+      <span className="profileCardIcon">▱</span>
+    </div>
+
+    <div className="profileWallEmpty">
+      <span>◇</span>
+      <strong>Стена профиля</strong>
+      <p>
+        Здесь будут сообщения, комментарии и записи игроков.
+      </p>
+      <button
+        type="button"
+        className="outline"
+        onClick={()=>setNotice('Система стены пока не подключена к API.')}
+      >
+        Написать сообщение
+      </button>
+    </div>
+  </article>
+
 </div>
 </section>}
 {tab==='profile-settings'&&user&&<section className="section profileSettingsPage">
@@ -164,6 +447,68 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 </section>}
 {tab==='shop'&&user&&(store!=='staff'||canAccessStaffShop)&&<section className="section"><div className="sectionHead"><div><div className="eyebrow">HYPEGO STORE</div><h2>Магазин <em>{store==='staff'?'персонала':'проекта'}</em></h2></div><div className="switch"><button className={store==='main'?'selected':''} onClick={()=>setStore('main')}>Основной</button>{canAccessStaffShop&&<button className={store==='staff'?'selected':''} onClick={()=>setStore('staff')}>Персонал</button>}</div></div><div className="notice subtle">Цены и наличие задаются владельцем в админ-панели. Пока не подключён платёжный провайдер, оформление заказа не списывает деньги и не выдаёт предметы на сервере.</div><div className="productGrid">{products.map(p=><article className="product" key={p.id}><div className="productIcon">{p.category==='rank'?'♛':p.category==='consumable'?'▣':p.category==='service'?'✚':p.category==='economy'?'◉':'✧'}</div><span className="category">{p.category.toUpperCase()}</span><h3>{p.name}</h3><p>{p.description}</p><div className="priceLine"><strong>{p.price_cents>0?(p.price_cents/100*(100-p.discount_percent)/100).toFixed(2)+' '+p.currency:'Цена не установлена'}</strong>{p.discount_percent>0&&<span>-{p.discount_percent}%</span>}</div><button className="primary" onClick={()=>buy(p)}>Выбрать товар</button></article>)}</div></section>}
 {tab==='billing'&&user&&<section className="panel authPanel"><div className="eyebrow">ACCOUNT BALANCE</div><h2>Пополнение баланса</h2><p className="muted">Доступные валюты интерфейса: KZT, RUB и EUR. Платёжная обработка должна быть подключена к реальному провайдеру.</p><form className="form" onSubmit={async e=>{e.preventDefault();try{await api('billing/topup',{method:'POST',body:JSON.stringify({amount_cents:Math.round(Number(amount)*100),currency})});}catch(err:any){setNotice(err.message)}}}><label>Сумма<input type="number" min="1" max="1000000" step="1" value={amount} onChange={e=>setAmount(e.target.value)}/></label><label>Валюта<select value={currency} onChange={e=>setCurrency(e.target.value)}><option>KZT</option><option>RUB</option><option>EUR</option></select></label><button className="primary big">Перейти к оплате</button></form><p className="tiny">Номер карты, CVV и платёжные данные сайт не принимает и не хранит. Пополнение недоступно, пока администратор не подключит провайдера и проверенный webhook.</p></section>}
+
+{tab==='friends'&&user&&<section className="section">
+  <div className="sectionHead">
+    <div><div className="eyebrow">HYPEGO COMMUNITY</div><h2>Мои <em>друзья</em></h2></div>
+    <button className="outline" onClick={loadFriends}>↻ Обновить</button>
+  </div>
+
+  <article className="panel form">
+    <h3>Найти игрока</h3>
+    <form onSubmit={searchFriends} className="form">
+      <label>Никнейм игрока
+        <input value={friendQuery} onChange={e=>setFriendQuery(e.target.value)} maxLength={24} minLength={2} placeholder="Например, Marfeiy" />
+      </label>
+      <button className="primary" disabled={friendLoading}>{friendLoading?'Ищем…':'Поиск игроков'}</button>
+    </form>
+    {friendResults.length>0&&<div className="featureGrid">
+      {friendResults.map((p:any)=><article className="feature" key={p.id}>
+        <div className="accountAvatar">{p.avatar_url?<img src={p.avatar_url} alt=""/>:(p.username||'?').slice(0,1).toUpperCase()}</div>
+        <h3 style={{color:p.nickname_color||'inherit'}}>{p.display_name||p.username}</h3>
+        <p>@{p.username}</p>
+        {p.friendship_status==='accepted'?<span>✓ Уже в друзьях</span>:
+         p.friendship_status==='outgoing'?<span>Заявка отправлена</span>:
+         p.friendship_status==='incoming'?<button className="primary" onClick={()=>respondFriend(p.id,'accept')}>Принять заявку</button>:
+         <button className="primary" onClick={()=>sendFriendRequest(p.id)}>＋ Добавить в друзья</button>}
+      </article>)}
+    </div>}
+    {friendQuery.trim().length>=2&&friendResults.length===0&&!friendLoading&&<p className="muted">Результатов пока нет. Выполни поиск.</p>}
+  </article>
+
+  <div className="featureGrid">
+    <article className="panel">
+      <div className="eyebrow">INCOMING</div><h3>Входящие заявки ({friendData.incoming.length})</h3>
+      {friendData.incoming.length===0?<p className="muted">Новых заявок нет.</p>:friendData.incoming.map((p:any)=><div className="profilePreview" key={p.id}>
+        <div className="accountAvatar">{p.avatar_url?<img src={p.avatar_url} alt=""/>:(p.username||'?').slice(0,1).toUpperCase()}</div>
+        <div><strong>{p.display_name||p.username}</strong><span>@{p.username}</span></div>
+        <button className="primary" onClick={()=>respondFriend(p.id,'accept')}>Принять</button>
+        <button className="outline" onClick={()=>respondFriend(p.id,'reject')}>Отклонить</button>
+      </div>)}
+    </article>
+    <article className="panel">
+      <div className="eyebrow">OUTGOING</div><h3>Исходящие заявки ({friendData.outgoing.length})</h3>
+      {friendData.outgoing.length===0?<p className="muted">Отправленных заявок нет.</p>:friendData.outgoing.map((p:any)=><div className="profilePreview" key={p.id}>
+        <div className="accountAvatar">{p.avatar_url?<img src={p.avatar_url} alt=""/>:(p.username||'?').slice(0,1).toUpperCase()}</div>
+        <div><strong>{p.display_name||p.username}</strong><span>@{p.username}</span></div>
+        <span className="muted">Ожидает ответа</span>
+      </div>)}
+    </article>
+  </div>
+
+  <article className="panel">
+    <div className="eyebrow">FRIENDS LIST</div><h3>Мои друзья ({friendData.friends.length})</h3>
+    {friendData.friends.length===0?<p className="muted">Пока нет друзей. Найди игроков и отправь им заявку.</p>:<div className="featureGrid">
+      {friendData.friends.map((p:any)=><article className="feature" key={p.id}>
+        <div className="accountAvatar">{p.avatar_url?<img src={p.avatar_url} alt=""/>:(p.username||'?').slice(0,1).toUpperCase()}</div>
+        <h3 style={{color:p.nickname_color||'inherit'}}>{p.display_name||p.username}</h3>
+        <p>@{p.username}</p>
+        <button className="outline" onClick={()=>removeFriend(p.id)}>Удалить из друзей</button>
+      </article>)}
+    </div>}
+  </article>
+</section>}
+
 {tab==='rules'&&<Rules/>}{tab==='players'&&<Players/>}{tab==='trainee'&&<TraineeApplications user={user} roles={roles} onNotice={setNotice}/ >}{tab==='admin'&&user&&isStaff&&<><Admin roles={roles} onNotice={setNotice}/>{roles.some(r=>r.id==='curator')&&<RulesEditor onNotice={setNotice}/>}<ProductEditor onNotice={setNotice}/></>}
 <footer><div className="brand"><span className="brandMark">H</span> HYPEGO</div><span>© {new Date().getFullYear()} Hypego Project</span><span>Игра начинается здесь.</span></footer></main>}
 
@@ -497,7 +842,6 @@ return <section className="section">
             }}
           >
             <strong>{u.username}</strong>
-            <span>{u.email}</span>
             <small>
               {(u.roles||[]).map((r:any)=>r.title).join(', ')||'Без дополнительных привилегий'}
             </small>

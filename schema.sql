@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
  id UUID PRIMARY KEY DEFAULT gen_random_uuid(), username VARCHAR(24) NOT NULL UNIQUE, email VARCHAR(254) NOT NULL UNIQUE,
  password_hash TEXT NOT NULL, display_name VARCHAR(40), avatar_url TEXT, banner_url TEXT, vk_url TEXT, telegram_username VARCHAR(64),
  nickname_color VARCHAR(7) NOT NULL DEFAULT '#a78bfa' CHECK (nickname_color ~ '^#[0-9A-Fa-f]{6}$'),
- bio VARCHAR(500) NOT NULL DEFAULT '', steam_id VARCHAR(80), birth_date DATE, balance_cents BIGINT NOT NULL DEFAULT 0 CHECK(balance_cents>=0),
+ bio VARCHAR(500) NOT NULL DEFAULT '', birth_date DATE, balance_cents BIGINT NOT NULL DEFAULT 0 CHECK(balance_cents>=0),
  staff_salary BIGINT NOT NULL DEFAULT 0 CHECK(staff_salary>=0), is_banned BOOLEAN NOT NULL DEFAULT FALSE,
  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -24,6 +24,22 @@ CREATE TABLE IF NOT EXISTS wall_posts (id UUID PRIMARY KEY DEFAULT gen_random_uu
 CREATE TABLE IF NOT EXISTS friendships (user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, friend_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','rejected')), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY(user_id,friend_id), CHECK(user_id<>friend_id));
 CREATE TABLE IF NOT EXISTS unban_appeals (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL REFERENCES users(id), reason TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')), reviewed_by UUID REFERENCES users(id), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS audit_logs (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), actor_id UUID REFERENCES users(id), action TEXT NOT NULL, target_type TEXT, target_id TEXT, details JSONB NOT NULL DEFAULT '{}'::jsonb, ip_hash TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+
+CREATE TABLE IF NOT EXISTS direct_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body VARCHAR(2000) NOT NULL CHECK (length(trim(body)) > 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  read_at TIMESTAMPTZ,
+  CHECK (sender_id <> recipient_id)
+);
+CREATE INDEX IF NOT EXISTS direct_messages_thread_idx
+  ON direct_messages(sender_id, recipient_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS direct_messages_unread_idx
+  ON direct_messages(recipient_id, created_at DESC)
+  WHERE read_at IS NULL;
+
 CREATE INDEX IF NOT EXISTS orders_user_idx ON orders(user_id,created_at DESC);
 CREATE INDEX IF NOT EXISTS privileges_user_idx ON privileges(user_id,status);
 CREATE INDEX IF NOT EXISTS audit_logs_created_idx ON audit_logs(created_at DESC);

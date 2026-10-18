@@ -107,9 +107,68 @@ if(key==='auth/login'&&method==='POST'){
 }
  if(key==='auth/logout'&&method==='POST'){await clearSession();return Response.json({ok:true});}
  if(key==='me'&&method==='GET'){const u=await requireUser();const roles=await db`SELECT r.id,r.title,r.rank FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=${u.id} ORDER BY r.rank DESC`;return Response.json({user:u,roles});}
- if(key==='profile'&&method==='PATCH'){const u=await requireUser(),b=await bodyJson(req);const display=String(b.display_name??u.display_name??u.username).slice(0,40),bio=String(b.bio??u.bio??'').slice(0,500),color=String(b.nickname_color??u.nickname_color);if(!/^#[0-9a-fA-F]{6}$/.test(color))throw new HttpError(400,'Некорректный цвет ника');const steam=String(b.steam_id??u.steam_id??'').slice(0,80),birth=b.birth_date||null,vk=String(b.vk_url??u.vk_url??'').trim().slice(0,300),telegram=String(b.telegram_username??u.telegram_username??'').trim().replace(/^@/,'');if(vk&&!/^https:\/\/(www\.)?vk\.com\/[A-Za-z0-9_.-]+\/?$/.test(vk))throw new HttpError(400,'Укажи ссылку вида https://vk.com/username');if(telegram&&!/^[A-Za-z0-9_]{5,32}$/.test(telegram))throw new HttpError(400,'Имя Telegram должно содержать 5–32 символа: латинские буквы, цифры или _');const rows=await db`UPDATE users SET display_name=${display},bio=${bio},nickname_color=${color},steam_id=${steam||null},birth_date=${birth},vk_url=${vk||null},telegram_username=${telegram||null},updated_at=NOW() WHERE id=${u.id} RETURNING id,username,display_name,bio,nickname_color,steam_id,birth_date,avatar_url,banner_url,vk_url,telegram_username`;await audit(u.id,'profile.update','user',u.id);return Response.json({user:rows[0]});}
+ if(key==='profile'&&method==='PATCH'){const u=await requireUser(),b=await bodyJson(req);const display=String(b.display_name??u.display_name??u.username).slice(0,40),bio=String(b.bio??u.bio??'').slice(0,500),color=String(b.nickname_color??u.nickname_color);if(!/^#[0-9a-fA-F]{6}$/.test(color))throw new HttpError(400,'Некорректный цвет ника');const birth=b.birth_date||null,vk=String(b.vk_url??u.vk_url??'').trim().slice(0,300),telegram=String(b.telegram_username??u.telegram_username??'').trim().replace(/^@/,'');if(vk&&!/^https:\/\/(www\.)?vk\.com\/[A-Za-z0-9_.-]+\/?$/.test(vk))throw new HttpError(400,'Укажи ссылку вида https://vk.com/username');if(telegram&&!/^[A-Za-z0-9_]{5,32}$/.test(telegram))throw new HttpError(400,'Имя Telegram должно содержать 5–32 символа: латинские буквы, цифры или _');const rows=await db`UPDATE users SET display_name=${display},bio=${bio},nickname_color=${color},birth_date=${birth},vk_url=${vk||null},telegram_username=${telegram||null},updated_at=NOW() WHERE id=${u.id} RETURNING id,username,display_name,bio,nickname_color,birth_date,avatar_url,banner_url,vk_url,telegram_username`;await audit(u.id,'profile.update','user',u.id);return Response.json({user:rows[0]});}
  if(key==='profile/upload'&&method==='POST'){const u=await requireUser();if(!process.env.BLOB_READ_WRITE_TOKEN)throw new HttpError(503,'Загрузка изображений недоступна: добавь BLOB_READ_WRITE_TOKEN в Vercel');const form=await req.formData(),file=form.get('file'),kind=String(form.get('kind')||'avatar');if(!(file instanceof File)||!['avatar','banner'].includes(kind))throw new HttpError(400,'Нужен файл и тип avatar/banner');if(!file.type.startsWith('image/')||file.size>5*1024*1024)throw new HttpError(400,'Разрешены изображения до 5 МБ');const blob=await put(`profiles/${u.id}/${kind}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`,file,{access:'public',token:process.env.BLOB_READ_WRITE_TOKEN});if(kind==='avatar')await db`UPDATE users SET avatar_url=${blob.url} WHERE id=${u.id}`;else await db`UPDATE users SET banner_url=${blob.url} WHERE id=${u.id}`;await audit(u.id,'profile.image.update','user',u.id,{kind});return Response.json({url:blob.url});}
- if(key==='players'&&method==='GET'){const q=(req.nextUrl.searchParams.get('q')||'').slice(0,40);const rows=await db`SELECT u.id,u.username,u.display_name,u.avatar_url,u.nickname_color,u.created_at,EXISTS(SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role_id='chsp') AS is_chsp FROM users u WHERE u.username ILIKE ${'%'+q+'%'} ORDER BY u.username LIMIT 50`;return Response.json({players:rows});}
+
+if(key==='friends'&&method==='GET'){
+ const actor=await requireUser();
+ const friends=await db`SELECT u.id,u.username,u.display_name,u.avatar_url,u.nickname_color FROM friendships f JOIN users u ON u.id=CASE WHEN f.user_id=${actor.id} THEN f.friend_id ELSE f.user_id END WHERE (f.user_id=${actor.id} OR f.friend_id=${actor.id}) AND f.status='accepted' ORDER BY u.username`;
+ const incoming=await db`SELECT u.id,u.username,u.display_name,u.avatar_url,u.nickname_color,f.created_at FROM friendships f JOIN users u ON u.id=f.user_id WHERE f.friend_id=${actor.id} AND f.status='pending' ORDER BY f.created_at DESC`;
+ const outgoing=await db`SELECT u.id,u.username,u.display_name,u.avatar_url,u.nickname_color,f.created_at FROM friendships f JOIN users u ON u.id=f.friend_id WHERE f.user_id=${actor.id} AND f.status='pending' ORDER BY f.created_at DESC`;
+ return Response.json({friends,incoming,outgoing});
+}
+if(key==='friends/search'&&method==='GET'){
+ const actor=await requireUser();
+ const q=(req.nextUrl.searchParams.get('q')||'').trim().slice(0,24);
+ if(q.length<2)throw new HttpError(400,'Введи минимум 2 символа ника');
+ const rows=await db`SELECT u.id,u.username,u.display_name,u.avatar_url,u.nickname_color,CASE WHEN EXISTS(SELECT 1 FROM friendships f WHERE f.status='accepted' AND ((f.user_id=${actor.id} AND f.friend_id=u.id) OR (f.friend_id=${actor.id} AND f.user_id=u.id))) THEN 'accepted' WHEN EXISTS(SELECT 1 FROM friendships f WHERE f.user_id=${actor.id} AND f.friend_id=u.id AND f.status='pending') THEN 'outgoing' WHEN EXISTS(SELECT 1 FROM friendships f WHERE f.user_id=u.id AND f.friend_id=${actor.id} AND f.status='pending') THEN 'incoming' ELSE 'none' END AS friendship_status FROM users u WHERE u.id<>${actor.id} AND u.username ILIKE ${'%'+q+'%'} ORDER BY u.username LIMIT 30`;
+ return Response.json({players:rows});
+}
+if(key==='friends/request'&&method==='POST'){
+ const actor=await requireUser(),b=await bodyJson(req),target=String(b.user_id||'');
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(target))throw new HttpError(400,'Некорректный ID игрока');
+ if(target===actor.id)throw new HttpError(400,'Нельзя добавить самого себя');
+ const user=await db`SELECT id FROM users WHERE id=${target} LIMIT 1`;
+ if(!user.length)throw new HttpError(404,'Игрок не найден');
+ const forward=await db`SELECT status FROM friendships WHERE user_id=${actor.id} AND friend_id=${target} LIMIT 1`;
+ const reverse=await db`SELECT status FROM friendships WHERE user_id=${target} AND friend_id=${actor.id} LIMIT 1`;
+ if(forward.some((r:any)=>r.status==='accepted')||reverse.some((r:any)=>r.status==='accepted'))throw new HttpError(409,'Вы уже друзья');
+ if(forward.some((r:any)=>r.status==='pending'))throw new HttpError(409,'Заявка уже отправлена');
+ if(reverse.some((r:any)=>r.status==='pending'))throw new HttpError(409,'У тебя уже есть входящая заявка от этого игрока — прими её');
+ try{
+  if(forward.length){
+   await db`UPDATE friendships SET status='pending',created_at=NOW() WHERE user_id=${actor.id} AND friend_id=${target} AND status='rejected'`;
+  }else{
+   if(reverse.some((r:any)=>r.status==='rejected'))await db`DELETE FROM friendships WHERE user_id=${target} AND friend_id=${actor.id} AND status='rejected'`;
+   await db`INSERT INTO friendships(user_id,friend_id,status) VALUES(${actor.id},${target},'pending')`;
+  }
+ }catch(e){
+  if((e as any)?.code==='23505')throw new HttpError(409,'Заявка уже существует');
+  throw e;
+ }
+ await audit(actor.id,'friend.request','user',target);
+ return Response.json({ok:true,message:'Заявка в друзья отправлена'},{status:201});
+}
+if(key==='friends/respond'&&method==='POST'){
+ const actor=await requireUser(),b=await bodyJson(req),sender=String(b.user_id||''),action=String(b.action||'');
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sender))throw new HttpError(400,'Некорректный ID игрока');
+ if(!['accept','reject'].includes(action))throw new HttpError(400,'Неизвестное действие');
+ const rows=await db`UPDATE friendships SET status=${action==='accept'?'accepted':'rejected'} WHERE user_id=${sender} AND friend_id=${actor.id} AND status='pending' RETURNING user_id,friend_id,status`;
+ if(!rows.length)throw new HttpError(404,'Входящая заявка не найдена или уже обработана');
+ await audit(actor.id,action==='accept'?'friend.accept':'friend.reject','user',sender);
+ return Response.json({ok:true,status:rows[0].status});
+}
+if(key==='friends'&&method==='DELETE'){
+ const actor=await requireUser(),b=await bodyJson(req),target=String(b.user_id||'');
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(target))throw new HttpError(400,'Некорректный ID игрока');
+ if(target===actor.id)throw new HttpError(400,'Некорректный запрос');
+ const rows=await db`DELETE FROM friendships WHERE (user_id=${actor.id} AND friend_id=${target}) OR (user_id=${target} AND friend_id=${actor.id}) RETURNING user_id`;
+ if(!rows.length)throw new HttpError(404,'Связь или заявка не найдена');
+ await audit(actor.id,'friend.remove','user',target);
+ return Response.json({ok:true});
+}
+
+if(key==='players'&&method==='GET'){const q=(req.nextUrl.searchParams.get('q')||'').slice(0,40);const rows=await db`SELECT u.id,u.username,u.display_name,u.avatar_url,u.nickname_color,u.created_at,EXISTS(SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role_id='chsp') AS is_chsp FROM users u WHERE u.username ILIKE ${'%'+q+'%'} ORDER BY u.username LIMIT 50`;return Response.json({players:rows});}
  if(key==='player'&&method==='GET'){
   const username=(req.nextUrl.searchParams.get('username')||'').trim().slice(0,24);
   if(!/^[A-Za-z0-9_]{3,24}$/.test(username))throw new HttpError(400,'Некорректный ник');
@@ -118,7 +177,7 @@ if(key==='auth/login'&&method==='POST'){
   return Response.json({player:rows[0]});
  }
  if(key==='roles'&&method==='GET'){const u=await requireUser();const rows=await db`SELECT r.id,r.title,r.rank,EXISTS(SELECT 1 FROM user_roles ur WHERE ur.user_id=${u.id} AND ur.role_id=r.id) AS assigned FROM roles r ORDER BY r.rank DESC`;return Response.json({roles:rows});}
- if(key==='admin/users'&&method==='GET'){const actor=await requireUser();if(!await hasPermission(actor.id,'admin.users')&&!await hasPermission(actor.id,'staff.roles.assign_limited')&&!await hasPermission(actor.id,'staff.salary.manage'))throw new HttpError(403,'Недостаточно прав');const q=(req.nextUrl.searchParams.get('q')||'').slice(0,50);const rows=await db`SELECT u.id,u.username,u.email,u.is_banned,u.donation_balance_rub_kopecks,u.hp_balance,u.created_at,COALESCE(json_agg(json_build_object('id',r.id,'title',r.title)) FILTER(WHERE r.id IS NOT NULL),'[]') roles FROM users u LEFT JOIN user_roles ur ON ur.user_id=u.id LEFT JOIN roles r ON r.id=ur.role_id WHERE u.username ILIKE ${'%'+q+'%'} OR u.email ILIKE ${'%'+q+'%'} GROUP BY u.id ORDER BY u.created_at DESC LIMIT 100`;return Response.json({users:rows});}
+ if(key==='admin/users'&&method==='GET'){const actor=await requireUser();if(!await hasPermission(actor.id,'admin.users')&&!await hasPermission(actor.id,'staff.roles.assign_limited')&&!await hasPermission(actor.id,'staff.salary.manage'))throw new HttpError(403,'Недостаточно прав');const q=(req.nextUrl.searchParams.get('q')||'').slice(0,50);const rows=await db`SELECT u.id,u.username,u.is_banned,u.donation_balance_rub_kopecks,u.hp_balance,u.created_at,COALESCE(json_agg(json_build_object('id',r.id,'title',r.title)) FILTER(WHERE r.id IS NOT NULL),'[]') roles FROM users u LEFT JOIN user_roles ur ON ur.user_id=u.id LEFT JOIN roles r ON r.id=ur.role_id WHERE u.username ILIKE ${'%'+q+'%'} GROUP BY u.id ORDER BY u.created_at DESC LIMIT 100`;return Response.json({users:rows});}
  if(key==='admin/roles'&&method==='POST'){const actor=await requireUser(),b=await bodyJson(req),target=String(b.user_id||''),role=String(b.role_id||'');if(!staffRoleIds.includes(role)&&role!=='player'&&role!=='chsp')throw new HttpError(400,'Неизвестная роль');if(role==='chsp'&&!await hasPermission(actor.id,'site.settings'))throw new HttpError(403,'Назначать ЧСП может только владелец проекта');if(role==='owner'&&!(await hasPermission(actor.id,'site.settings')))throw new HttpError(403,'Роль владельца проекта назначается только текущим владельцем');const canAny=await hasPermission(actor.id,'staff.roles.assign_any'),canLimited=await hasPermission(actor.id,'staff.roles.assign_limited');if(!canAny&&!canLimited)throw new HttpError(403,'Нет права выдавать роли');if(role==='owner'&&!canAny)throw new HttpError(403,'Нельзя выдать владельца проекта');if(!canAny&&!allowedByCurator.includes(role))throw new HttpError(403,'Куратор может выдавать только стажёра, модератора и техподдержку');const t=await db`SELECT id FROM users WHERE id=${target} LIMIT 1`;if(!t.length)throw new HttpError(404,'Пользователь не найден');if(role==='owner'){const existing=await db`SELECT 1 FROM user_roles WHERE user_id=${target} AND role_id='owner'`;if(!existing.length){await db`DELETE FROM user_roles WHERE role_id='owner'`;}}await db`INSERT INTO user_roles(user_id,role_id,assigned_by) VALUES(${target},${role},${actor.id}) ON CONFLICT DO NOTHING`;await audit(actor.id,'staff.role.assign','user',target,{role});return Response.json({ok:true});}
  if(key==='admin/roles'&&method==='DELETE'){const actor=await requireUser(),b=await bodyJson(req),target=String(b.user_id||''),role=String(b.role_id||'');if(role==='owner')throw new HttpError(403,'Роль владельца нельзя снять через этот endpoint');if(!await hasPermission(actor.id,'staff.roles.assign_any')&&!await hasPermission(actor.id,'staff.roles.assign_limited'))throw new HttpError(403,'Нет права снимать роли');if(!await hasPermission(actor.id,'staff.roles.assign_any')&&!allowedByCurator.includes(role))throw new HttpError(403,'Недостаточно прав');await db`DELETE FROM user_roles WHERE user_id=${target} AND role_id=${role}`;await audit(actor.id,'staff.role.remove','user',target,{role});return Response.json({ok:true});}
  if(key==='admin/salary'&&method==='POST'){
@@ -213,7 +272,34 @@ if(key==='billing/topup'&&method==='POST'){await requireUser();throw new HttpErr
  if(key==='admin/orders'&&method==='GET'){await requirePermission('payments.manage');const rows=await db`SELECT o.*,u.username,p.name product_name FROM orders o JOIN users u ON u.id=o.user_id JOIN products p ON p.id=o.product_id ORDER BY o.created_at DESC LIMIT 200`;return Response.json({orders:rows});}
  if(key==='admin/punishments'&&method==='POST'){const actor=await requirePermission('punishments.manage'),b=await bodyJson(req),username=String(b.username||'').trim(),kind=String(b.kind||''),reason=String(b.reason||'').trim().slice(0,500),expires=b.expires_at||null;if(!/^[A-Za-z0-9_]{3,24}$/.test(username)||!['warn','mute','ban','unban','unmute'].includes(kind)||reason.length<3)throw new HttpError(400,'Проверь ник, тип наказания и причину');const rows=await db`INSERT INTO punishments(target_username,kind,reason,actor_id,expires_at) VALUES(${username},${kind},${reason},${actor.id},${expires}) RETURNING *`;await audit(actor.id,'punishment.create','punishment',rows[0].id,{username,kind});return Response.json({punishment:rows[0]},{status:201});}
  if(key==='admin/audit'&&method==='GET'){await requirePermission('audit.view');const rows=await db`SELECT a.id,a.action,a.target_type,a.target_id,a.details,a.created_at,u.username actor_username FROM audit_logs a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.created_at DESC LIMIT 200`;return Response.json({logs:rows});}
- if(key==='wall'&&method==='GET'){const profileId=req.nextUrl.searchParams.get('user_id');if(!profileId)throw new HttpError(400,'Нужен user_id');const rows=await db`SELECT w.id,w.body,w.created_at,u.username,u.display_name,u.avatar_url,u.nickname_color FROM wall_posts w JOIN users u ON u.id=w.author_id WHERE w.profile_user_id=${profileId} ORDER BY w.created_at DESC LIMIT 100`;return Response.json({posts:rows});}
+
+if(key==='messages'&&method==='GET'){
+  const u=await requireUser();
+  const otherId=String(req.nextUrl.searchParams.get('user_id')||'');
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(otherId))
+    throw new HttpError(400,'Некорректный ID собеседника');
+  if(otherId===u.id) throw new HttpError(400,'Нельзя открыть переписку с самим собой');
+  const friendship=await db`SELECT 1 FROM friendships WHERE status='accepted' AND ((user_id=${u.id} AND friend_id=${otherId}) OR (user_id=${otherId} AND friend_id=${u.id})) LIMIT 1`;
+  if(!friendship.length) throw new HttpError(403,'Личные сообщения доступны только друзьям');
+  await db`UPDATE direct_messages SET read_at=NOW() WHERE sender_id=${otherId} AND recipient_id=${u.id} AND read_at IS NULL`;
+  const rows=await db`SELECT m.id,m.sender_id,m.recipient_id,m.body,m.created_at,m.read_at,s.username AS sender_username,s.display_name AS sender_display_name,s.avatar_url AS sender_avatar_url FROM direct_messages m JOIN users s ON s.id=m.sender_id WHERE (m.sender_id=${u.id} AND m.recipient_id=${otherId}) OR (m.sender_id=${otherId} AND m.recipient_id=${u.id}) ORDER BY m.created_at DESC LIMIT 200`;
+  return Response.json({messages:rows.reverse()});
+}
+if(key==='messages'&&method==='POST'){
+  const u=await requireUser(),b=await bodyJson(req);
+  const otherId=String(b.user_id||''),body=String(b.body||'').trim();
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(otherId))
+    throw new HttpError(400,'Некорректный ID собеседника');
+  if(otherId===u.id) throw new HttpError(400,'Нельзя отправить сообщение самому себе');
+  if(!body||body.length>2000) throw new HttpError(400,'Сообщение должно содержать от 1 до 2000 символов');
+  const friendship=await db`SELECT 1 FROM friendships WHERE status='accepted' AND ((user_id=${u.id} AND friend_id=${otherId}) OR (user_id=${otherId} AND friend_id=${u.id})) LIMIT 1`;
+  if(!friendship.length) throw new HttpError(403,'Отправлять сообщения можно только друзьям');
+  const rows=await db`INSERT INTO direct_messages(sender_id,recipient_id,body) VALUES(${u.id},${otherId},${body}) RETURNING id,sender_id,recipient_id,body,created_at,read_at`;
+  await audit(u.id,'message.send','user',otherId);
+  return Response.json({message:rows[0]},{status:201});
+}
+
+if(key==='wall'&&method==='GET'){const profileId=req.nextUrl.searchParams.get('user_id');if(!profileId)throw new HttpError(400,'Нужен user_id');const rows=await db`SELECT w.id,w.body,w.created_at,u.username,u.display_name,u.avatar_url,u.nickname_color FROM wall_posts w JOIN users u ON u.id=w.author_id WHERE w.profile_user_id=${profileId} ORDER BY w.created_at DESC LIMIT 100`;return Response.json({posts:rows});}
  if(key==='wall'&&method==='POST'){const u=await requireUser(),b=await bodyJson(req),profileId=String(b.user_id||''),body=String(b.body||'').trim().slice(0,500);if(body.length<1)throw new HttpError(400,'Сообщение пустое');const rows=await db`INSERT INTO wall_posts(profile_user_id,author_id,body) VALUES(${profileId},${u.id},${body}) RETURNING *`;await audit(u.id,'wall.post','user',profileId);return Response.json({post:rows[0]},{status:201});}
  if(key==='tickets'&&method==='POST'){const u=await requireUser(),b=await bodyJson(req),subject=String(b.subject||'').trim().slice(0,120),body=String(b.body||'').trim().slice(0,4000);if(subject.length<3||body.length<5)throw new HttpError(400,'Заполни тему и сообщение');const rows=await db`INSERT INTO tickets(user_id,subject,body) VALUES(${u.id},${subject},${body}) RETURNING *`;return Response.json({ticket:rows[0]},{status:201});}
  if(key==='tickets'&&method==='GET'){const u=await requireUser();const staff=await hasPermission(u.id,'tickets.manage');const rows=staff?await db`SELECT t.*,u.username FROM tickets t JOIN users u ON u.id=t.user_id ORDER BY t.created_at DESC LIMIT 200`:await db`SELECT * FROM tickets WHERE user_id=${u.id} ORDER BY created_at DESC LIMIT 100`;return Response.json({tickets:rows});}
