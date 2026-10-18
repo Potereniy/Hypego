@@ -108,6 +108,52 @@ if(key==='auth/login'&&method==='POST'){
  if(key==='auth/logout'&&method==='POST'){await clearSession();return Response.json({ok:true});}
  if(key==='me'&&method==='GET'){const u=await requireUser();const roles=await db`SELECT r.id,r.title,r.rank FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=${u.id} ORDER BY r.rank DESC`;return Response.json({user:u,roles});}
  if(key==='profile'&&method==='PATCH'){const u=await requireUser(),b=await bodyJson(req);const display=String(b.display_name??u.display_name??u.username).slice(0,40),bio=String(b.bio??u.bio??'').slice(0,500),color=String(b.nickname_color??u.nickname_color);if(!/^#[0-9a-fA-F]{6}$/.test(color))throw new HttpError(400,'Некорректный цвет ника');const birth=b.birth_date||null,vk=String(b.vk_url??u.vk_url??'').trim().slice(0,300),telegram=String(b.telegram_username??u.telegram_username??'').trim().replace(/^@/,'');if(vk&&!/^https:\/\/(www\.)?vk\.com\/[A-Za-z0-9_.-]+\/?$/.test(vk))throw new HttpError(400,'Укажи ссылку вида https://vk.com/username');if(telegram&&!/^[A-Za-z0-9_]{5,32}$/.test(telegram))throw new HttpError(400,'Имя Telegram должно содержать 5–32 символа: латинские буквы, цифры или _');const rows=await db`UPDATE users SET display_name=${display},bio=${bio},nickname_color=${color},birth_date=${birth},vk_url=${vk||null},telegram_username=${telegram||null},updated_at=NOW() WHERE id=${u.id} RETURNING id,username,display_name,bio,nickname_color,birth_date,avatar_url,banner_url,vk_url,telegram_username`;await audit(u.id,'profile.update','user',u.id);return Response.json({user:rows[0]});}
+
+ if(key==='profile/tracks'&&method==='GET'){
+  const username=(req.nextUrl.searchParams.get('username')||'').trim().slice(0,24);
+  if(!/^[A-Za-z0-9_]{3,24}$/.test(username))throw new HttpError(400,'Некорректный ник');
+  const owners=await db`SELECT id FROM users WHERE username ILIKE ${username} LIMIT 1`;
+  if(!owners.length)throw new HttpError(404,'Игрок не найден');
+  const tracks=await db`SELECT id,title,artist,audio_url,cover_url,sort_order,created_at FROM profile_tracks WHERE user_id=${owners[0].id} ORDER BY sort_order,created_at LIMIT 20`;
+  return Response.json({tracks});
+ }
+ if(key==='profile/tracks'&&method==='POST'){
+  const u=await requireUser(),b=await bodyJson(req);
+  const title=String(b.title||'').trim().slice(0,120);
+  const artist=String(b.artist||'').trim().slice(0,120);
+  const audioUrl=String(b.audio_url||'').trim().slice(0,2000);
+  const coverUrl=String(b.cover_url||'').trim().slice(0,2000);
+  const isHttps=(value:string)=>{try{return new URL(value).protocol==='https:';}catch{return false;}};
+  if(title.length<1)throw new HttpError(400,'Укажи название трека');
+  if(!isHttps(audioUrl))throw new HttpError(400,'Ссылка на аудио должна начинаться с https://');
+  if(coverUrl&&!isHttps(coverUrl))throw new HttpError(400,'Ссылка на обложку должна начинаться с https://');
+  const count=await db`SELECT COUNT(*)::int AS count FROM profile_tracks WHERE user_id=${u.id}`;
+  if(Number(count[0]?.count||0)>=20)throw new HttpError(400,'В плейлисте может быть не больше 20 треков');
+  const rows=await db`INSERT INTO profile_tracks(user_id,title,artist,audio_url,cover_url,sort_order) VALUES(${u.id},${title},${artist},${audioUrl},${coverUrl||null},(SELECT COALESCE(MAX(sort_order),-1)+1 FROM profile_tracks WHERE user_id=${u.id})) RETURNING id,title,artist,audio_url,cover_url,sort_order,created_at`;
+  await audit(u.id,'profile.track.add','profile_track',rows[0].id);
+  return Response.json({track:rows[0]}, {status:201});
+ }
+ if(key==='profile/tracks'&&method==='DELETE'){
+  const u=await requireUser(),b=await bodyJson(req),id=String(b.id||'');
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))throw new HttpError(400,'Некорректный ID трека');
+  const rows=await db`DELETE FROM profile_tracks WHERE id=${id} AND user_id=${u.id} RETURNING id`;
+  if(!rows.length)throw new HttpError(404,'Трек не найден в твоём плейлисте');
+  await audit(u.id,'profile.track.delete','profile_track',id);
+  return Response.json({ok:true});
+ }
+ if(key==='profile/music-upload'&&method==='POST'){
+  const u=await requireUser();
+  if(!process.env.BLOB_READ_WRITE_TOKEN)throw new HttpError(503,'Загрузка недоступна: настрой BLOB_READ_WRITE_TOKEN в Vercel');
+  const form=await req.formData(),file=form.get('file');
+  if(!(file instanceof File))throw new HttpError(400,'Выбери аудиофайл');
+  const allowed=['audio/mpeg','audio/mp3','audio/mp4','audio/x-m4a','audio/aac','audio/wav','audio/x-wav','audio/ogg','audio/webm','audio/flac'];
+  if(!allowed.includes(file.type.toLowerCase()))throw new HttpError(400,'Поддерживаются MP3, M4A, AAC, WAV, OGG, WEBM и FLAC');
+  if(file.size<1||file.size>20*1024*1024)throw new HttpError(400,'Размер аудиофайла должен быть не больше 20 МБ');
+  const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(-100);
+  const blob=await put(`profiles/${u.id}/music-${Date.now()}-${safeName}`,file,{access:'public',token:process.env.BLOB_READ_WRITE_TOKEN,contentType:file.type});
+  await audit(u.id,'profile.music.upload','profile_track',u.id);
+  return Response.json({url:blob.url});
+ }
  if(key==='profile/upload'&&method==='POST'){const u=await requireUser();if(!process.env.BLOB_READ_WRITE_TOKEN)throw new HttpError(503,'Загрузка изображений недоступна: добавь BLOB_READ_WRITE_TOKEN в Vercel');const form=await req.formData(),file=form.get('file'),kind=String(form.get('kind')||'avatar');if(!(file instanceof File)||!['avatar','banner'].includes(kind))throw new HttpError(400,'Нужен файл и тип avatar/banner');if(!file.type.startsWith('image/')||file.size>5*1024*1024)throw new HttpError(400,'Разрешены изображения до 5 МБ');const blob=await put(`profiles/${u.id}/${kind}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`,file,{access:'public',token:process.env.BLOB_READ_WRITE_TOKEN});if(kind==='avatar')await db`UPDATE users SET avatar_url=${blob.url} WHERE id=${u.id}`;else await db`UPDATE users SET banner_url=${blob.url} WHERE id=${u.id}`;await audit(u.id,'profile.image.update','user',u.id,{kind});return Response.json({url:blob.url});}
 
 if(key==='friends'&&method==='GET'){

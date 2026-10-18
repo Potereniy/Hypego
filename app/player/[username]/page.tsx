@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
+import MusicPlayer from "./MusicPlayer";
 
 type WallPost = {
   id: string;
@@ -189,6 +190,8 @@ export default function PlayerProfilePage() {
         </div>
         <div className="publicProfileWatermark">H+</div>
       </section>
+
+      <MusicPlayer username={username} />
 
       <div className="publicProfileGrid">
         <section className="publicProfileCard publicProfileAbout">
