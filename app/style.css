@@ -261,3 +261,41 @@
 .publicProfileBack{display:inline-block;margin-top:10px;text-decoration:none}
 @media(max-width:720px){.publicProfilePage{padding:20px 14px 45px}.publicProfileBanner{min-height:0;padding:23px}.publicProfileIdentity{align-items:flex-start;gap:16px}.publicProfileAvatar{width:78px;height:78px;border-radius:20px;font-size:29px}.publicProfileGrid{grid-template-columns:1fr}.publicProfileAbout{grid-row:auto}.publicProfileCard{padding:19px}.publicProfileWatermark{font-size:170px;top:-15px}}
 @media(max-width:420px){.publicProfileBanner{padding:17px}.publicProfileIdentity{gap:12px}.publicProfileAvatar{width:61px;height:61px;border-radius:16px;font-size:24px}.publicProfileName h1{font-size:25px}.publicProfileBadges span{font-size:9px;padding:7px}.publicProfileSectionTitle h2{font-size:20px}.publicProfileCard{padding:16px}.publicProfilePostHeader{display:grid;gap:4px}}
+
+/* Восстановление пароля */
+.authPanel .textButton {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 5px 2px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.resetNotice {
+  margin: 0;
+  color: #ddd5ff;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.resetLink {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--accent2);
+  text-decoration: none;
+}
+
+.resetLink:hover {
+  text-decoration: underline;
+}
+
+.headerHpBalance strong {
+  color: #c4b5fd;
+}
+
+@media (max-width: 760px) {
+  .headerHpBalance {
+    display: none;
+  }
+}
