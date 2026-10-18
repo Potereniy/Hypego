@@ -226,9 +226,16 @@ export default function MusicPlayer({ username }: { username: string }) {
 
       {source === "youtube" && (
         youtubeEmbed
-          ? <div className="profileMusicEmbed"><iframe src={youtubeEmbed} title={"YouTube: " + track.title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin" allowFullScreen /></div>
+          ? <div className="profileMusicYouTubeCard">
+              <span className="profileMusicYouTubeIcon" aria-hidden="true">▶</span>
+              <div className="profileMusicYouTubeText">
+                <strong>YouTube</strong>
+                <small>Оригинальный источник трека</small>
+              </div>
+              <a href={track.audio_url} target="_blank" rel="noopener noreferrer">
+                Открыть ↗
+              </a>
+            </div>
           : <p className="profileMusicError">Не удалось распознать ссылку YouTube. <a href={track.audio_url} target="_blank" rel="noreferrer">Открыть оригинал</a></p>
       )}
 
