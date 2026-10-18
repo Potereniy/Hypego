@@ -420,30 +420,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
     </button>
   </article>
 
-  <article className="panel profileWall">
-    <div className="profileCardHeading">
-      <div>
-        <div className="eyebrow">PROFILE WALL</div>
-        <h3>Стена</h3>
-      </div>
-      <span className="profileCardIcon">▱</span>
-    </div>
-
-    <div className="profileWallEmpty">
-      <span>◇</span>
-      <strong>Стена профиля</strong>
-      <p>
-        Здесь будут сообщения, комментарии и записи игроков.
-      </p>
-      <button
-        type="button"
-        className="outline"
-        onClick={()=>setNotice('Система стены пока не подключена к API.')}
-      >
-        Написать сообщение
-      </button>
-    </div>
-  </article>
+  <ProfileWall userId={user.id} />
 
 </div>
 </section>}
@@ -457,7 +434,15 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 <label>Имя в Telegram<input value={telegramUsername} onChange={e=>setTelegramUsername(e.target.value.replace(/^@/,''))} maxLength={32} placeholder="username без @"/></label>
 <label>Цвет ника<div className="colorInput"><input type="color" value={color} onChange={e=>setColor(e.target.value)}/><code>{color.toUpperCase()}</code></div></label>
 <label>Эффект ника<select value={nicknameEffect} onChange={e=>setNicknameEffect(e.target.value)}><option value="none">Обычный</option><option value="gradient">Градиент</option><option value="neon">Неон</option><option value="rgb">RGB</option></select></label>
-<label>Рамка аватара<select value={avatarFrame} onChange={e=>setAvatarFrame(e.target.value)}><option value="none">Без рамки</option><option value="purple">Фиолетовая</option><option value="neon">Неоновая</option><option value="fire">Огненная</option><option value="electric">Электрическая</option></select></label>
+<label>Рамка аватара<select value={avatarFrame} onChange={e=>setAvatarFrame(e.target.value)}><option value="none">Без рамки</option><option value="purple">Фиолетовая</option><option value="neon">Неоновая</option><option value="fire">Огненная</option><option value="electric">Электрическая</option>
+<option value="gold">Золотая</option>
+<option value="red">Красная</option>
+<option value="blue">Синяя</option>
+<option value="emerald">Изумрудная</option>
+<option value="rgb">RGB — переливы</option>
+<option value="pulse">Пульсирующий неон</option>
+<option value="cosmic">Космическая энергия</option>
+</select></label>
 <div className="profilePreview"><span className={`accountAvatar avatar-frame-${avatarFrame}`}>{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><div><small>ПРЕДПРОСМОТР НИКА</small><strong className={`nickname-effect-${nicknameEffect}`} style={{color}}>{display||user.username}</strong><span>@{user.username}</span></div></div>
 <button className="primary big" disabled={busy}>{busy?'Сохраняем…':'Сохранить изменения'}</button>
 </form>
@@ -646,7 +631,90 @@ function ServerStatus() {
 }
 
 function Rules(){const [rules,setRules]=useState<any[]>([]);useEffect(()=>{api('rules').then(j=>setRules(j.rules||[])).catch(()=>setRules([]))},[]);return <section className="section"><div className="eyebrow">SURVIVE WITH RESPECT</div><h2>Правила <em>проекта</em></h2>{rules.length?rules.map(r=><article className="rule" key={r.id}><h3>{r.title}</h3><p>{r.body}</p></article>):<div className="panel"><p>Правила пока не опубликованы. После первого входа владельца добавьте их через панель управления.</p></div>}</section>}
-function Players(){const [q,setQ]=useState(''),[players,setPlayers]=useState<any[]>([]);async function search(){try{setPlayers((await api('players?q='+encodeURIComponent(q))).players||[])}catch{setPlayers([])}}useEffect(()=>{search()},[]);return <section className="section"><div className="eyebrow">COMMUNITY</div><h2>Игроки <em>Hypego</em></h2><div className="searchLine"><input placeholder="Найти игрока по нику" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==='Enter'&&search()}/><button className="primary" onClick={search}>Поиск</button></div><div className="playerGrid">{players.map(p=><article className={"player "+(p.is_chsp?"chspPlayer":"")} key={p.id} role="link" tabIndex={0} style={{cursor:"pointer"}} onClick={()=>window.location.href="/player/"+encodeURIComponent(p.username)} onKeyDown={e=>{if(e.key==="Enter")window.location.href="/player/"+encodeURIComponent(p.username)}}><div className="avatar smallAvatar">{p.avatar_url?<img src={p.avatar_url} alt=""/>:p.username.slice(0,1).toUpperCase()}</div><strong style={{color:p.nickname_color,textDecoration:p.is_chsp?"line-through":undefined}}>{p.display_name||p.username}</strong><span>@{p.username}</span>{p.is_chsp&&<small className="chspBadge">ЧСП</small>}</article>)}</div></section>}
+
+function ProfileWall({userId}:{userId:string}) {
+  const [posts,setPosts] = useState<any[]>([]);
+  const [message,setMessage] = useState('');
+  const [loading,setLoading] = useState(true);
+  const [sending,setSending] = useState(false);
+  const [error,setError] = useState('');
+
+  async function loadWall() {
+    try {
+      const r = await fetch('/api/wall?user_id='+encodeURIComponent(userId), {credentials:'same-origin'});
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Не удалось загрузить стену');
+      setPosts(j.posts || []);
+      setError('');
+    } catch(e:any) {
+      setError(e.message || 'Ошибка загрузки стены');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(()=>{loadWall()},[userId]);
+
+  async function sendMessage(e:any) {
+    e.preventDefault();
+    const body = message.trim();
+    if (!body || sending) return;
+    setSending(true);
+    setError('');
+    try {
+      const r = await fetch('/api/wall', {
+        method:'POST',
+        credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({user_id:userId,body})
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Не удалось отправить сообщение');
+      setMessage('');
+      await loadWall();
+    } catch(e:any) {
+      setError(e.message || 'Ошибка отправки');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return <article className="panel profileWall">
+    <div className="eyebrow">COMMUNITY</div>
+    <h2>Стена <em>профиля</em></h2>
+    <form onSubmit={sendMessage} className="profileWallForm">
+      <textarea value={message} onChange={e=>setMessage(e.target.value)}
+        maxLength={500} rows={3} placeholder="Оставить сообщение на своей стене..." />
+      <div className="profileWallFormBottom">
+        <small>{message.length}/500</small>
+        <button type="submit" className="primary" disabled={!message.trim()||sending}>
+          {sending?'Отправка...':'Опубликовать'}
+        </button>
+      </div>
+    </form>
+    {error && <p role="alert">{error}</p>}
+    {loading ? <p>Загрузка сообщений...</p> :
+      posts.length===0 ? <p className="profileWallEmpty">Пока сообщений нет. Здесь появятся записи на стене.</p> :
+      <div className="profileWallPosts">{posts.map((post:any)=>
+        <div className="profileWallPost" key={post.id}>
+          <div className={'avatar smallAvatar avatar-frame-'+(post.avatar_frame||'none')}>
+            {post.avatar_url ? <img src={post.avatar_url} alt="" /> : (post.display_name||post.username||'?').slice(0,1).toUpperCase()}
+          </div>
+          <div className="profileWallPostContent">
+            <strong className={'nickname-effect-'+(post.nickname_effect||'none')}
+              style={{color:post.nickname_color||undefined}}>
+              {post.display_name||post.username}
+            </strong>
+            <p>{post.body}</p>
+            <small>{post.created_at ? new Date(post.created_at).toLocaleString() : ''}</small>
+          </div>
+        </div>
+      )}</div>
+    }
+  </article>;
+}
+
+function Players(){const [q,setQ]=useState(''),[players,setPlayers]=useState<any[]>([]);async function search(){try{setPlayers((await api('players?q='+encodeURIComponent(q))).players||[])}catch{setPlayers([])}}useEffect(()=>{search()},[]);return <section className="section"><div className="eyebrow">COMMUNITY</div><h2>Игроки <em>Hypego</em></h2><div className="searchLine"><input placeholder="Найти игрока по нику" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==='Enter'&&search()}/><button className="primary" onClick={search}>Поиск</button></div><div className="playerGrid">{players.map(p=><article className={"player "+(p.is_chsp?"chspPlayer":"")} key={p.id} role="link" tabIndex={0} style={{cursor:"pointer"}} onClick={()=>window.location.href="/player/"+encodeURIComponent(p.username)} onKeyDown={e=>{if(e.key==="Enter")window.location.href="/player/"+encodeURIComponent(p.username)}}><div className={`avatar smallAvatar avatar-frame-${p.avatar_frame||"none"}`}>{p.avatar_url?<img src={p.avatar_url} alt=""/>:p.username.slice(0,1).toUpperCase()}</div><strong className={`nickname-effect-${p.nickname_effect||"none"}`} style={{color:p.nickname_color,textDecoration:p.is_chsp?"line-through":undefined}}>{p.display_name||p.username}</strong><span>@{p.username}</span>{p.is_chsp&&<small className="chspBadge">ЧСП</small>}</article>)}</div></section>}
 
 function RulesEditor({onNotice}:{onNotice:(s:string)=>void}) {
   const [rules,setRules]=useState<any[]>([]);
