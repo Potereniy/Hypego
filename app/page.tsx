@@ -12,14 +12,16 @@ type User={
  vk_url:string|null;
  telegram_username:string|null;
   nickname_color:string;
+  nickname_effect:string;
+  avatar_frame:string;
   bio:string;
   donation_balance_rub_kopecks:string|number;
   hp_balance:string|number;
 };
 type Product={id:string;name:string;description:string;category:string;store:string;price_cents:number;currency:string;discount_percent:number;requires_staff:boolean};
 async function api(url:string,init?:RequestInit){const r=await fetch('/api/'+url,{...init,headers:{'Content-Type':'application/json',...(init?.headers||{})}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Ошибка запроса');return j;}
-export default function Home(){const [user,setUser]=useState<User|null>(null),[roles,setRoles]=useState<any[]>([]),[products,setProducts]=useState<Product[]>([]),[tab,setTab]=useState('home'),[store,setStore]=useState('main'),[login,setLogin]=useState(''),[password,setPassword]=useState(''),[email,setEmail]=useState(''),[mode,setMode]=useState('login'),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[display,setDisplay]=useState(''),[bio,setBio]=useState(''),[color,setColor]=useState('#a78bfa'),[vkUrl,setVkUrl]=useState(''),[telegramUsername,setTelegramUsername]=useState(''),[target,setTarget]=useState(''),[currency,setCurrency]=useState('KZT'),[amount,setAmount]=useState('1000'),[challengeId,setChallengeId]=useState(''),[loginCode,setLoginCode]=useState(''),[forgotMode,setForgotMode]=useState(false),[forgotEmail,setForgotEmail]=useState('');
-async function load(){try{const j=await api('me');setUser(j.user);setRoles(j.roles||[]);setDisplay(j.user.display_name||j.user.username);setBio(j.user.bio||'');setColor(j.user.nickname_color||'#a78bfa');setVkUrl(j.user.vk_url||'');setTelegramUsername(j.user.telegram_username||'');return j.user as User;}catch{setUser(null);setRoles([]);return null;}}
+export default function Home(){const [user,setUser]=useState<User|null>(null),[roles,setRoles]=useState<any[]>([]),[products,setProducts]=useState<Product[]>([]),[tab,setTab]=useState('home'),[store,setStore]=useState('main'),[login,setLogin]=useState(''),[password,setPassword]=useState(''),[email,setEmail]=useState(''),[mode,setMode]=useState('login'),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[display,setDisplay]=useState(''),[bio,setBio]=useState(''),[color,setColor]=useState('#a78bfa'),[nicknameEffect,setNicknameEffect]=useState('none'),[avatarFrame,setAvatarFrame]=useState('none'),[vkUrl,setVkUrl]=useState(''),[telegramUsername,setTelegramUsername]=useState(''),[target,setTarget]=useState(''),[currency,setCurrency]=useState('KZT'),[amount,setAmount]=useState('1000'),[challengeId,setChallengeId]=useState(''),[loginCode,setLoginCode]=useState(''),[forgotMode,setForgotMode]=useState(false),[forgotEmail,setForgotEmail]=useState('');
+async function load(){try{const j=await api('me');setUser(j.user);setRoles(j.roles||[]);setDisplay(j.user.display_name||j.user.username);setBio(j.user.bio||'');setColor(j.user.nickname_color||'#a78bfa');setNicknameEffect(j.user.nickname_effect||'none');setAvatarFrame(j.user.avatar_frame||'none');setVkUrl(j.user.vk_url||'');setTelegramUsername(j.user.telegram_username||'');return j.user as User;}catch{setUser(null);setRoles([]);return null;}}
 async function loadProducts(s=store){try{const j=await api('products?store='+s);setProducts(j.products||[])}catch(e:any){setNotice(e.message)}}
 useEffect(()=>{load()},[]);useEffect(()=>{if(user)loadProducts(store)},[user,store]);
 async function auth(e:React.FormEvent) {
@@ -107,7 +109,7 @@ async function resendVerification() {
   }
 }
 
-async function saveProfile(e:React.FormEvent){e.preventDefault();try{await api('profile',{method:'PATCH',body:JSON.stringify({display_name:display,bio,nickname_color:color,vk_url:vkUrl,telegram_username:telegramUsername})});await load();setNotice('Профиль сохранён.')}catch(e:any){setNotice(e.message)}}
+async function saveProfile(e:React.FormEvent){e.preventDefault();try{await api('profile',{method:'PATCH',body:JSON.stringify({display_name:display,bio,nickname_color:color,nickname_effect:nicknameEffect,avatar_frame:avatarFrame,vk_url:vkUrl,telegram_username:telegramUsername})});await load();setNotice('Профиль сохранён.')}catch(e:any){setNotice(e.message)}}
 async function upload(kind:string,file?:File){if(!file)return;const fd=new FormData();fd.set('kind',kind);fd.set('file',file);try{const r=await fetch('/api/profile/upload',{method:'POST',body:fd});const j=await r.json();if(!r.ok)throw new Error(j.error);await load();setNotice('Изображение обновлено.')}catch(e:any){setNotice(e.message)}}
 async function buy(p:Product){const mc=prompt('Minecraft-ник, которому выдать товар:',user?.username||'');if(!mc)return;try{const j=await api('orders',{method:'POST',body:JSON.stringify({product_id:p.id,minecraft_username:mc})});setNotice(j.payment?.message||'Заказ создан.');}catch(e:any){setNotice(e.message)}}
 async function logout(){await api('auth/logout',{method:'POST'});setUser(null);setRoles([]);setNotice('Вы вышли из аккаунта.');}
@@ -241,13 +243,13 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 </button></section>}
 {tab==='profile'&&user&&<section className="section profilePage">
 <div className="profileBanner profileBannerModern" style={{backgroundImage:user.banner_url?`linear-gradient(90deg,#090b12ee,#11152166),url(${user.banner_url})`:undefined}}>
-  <div className="avatar">
+  <div className={`avatar avatar-frame-${user.avatar_frame||"none"}`}>
     {user.avatar_url?<img src={user.avatar_url} alt="Аватар"/>:user.username.slice(0,1).toUpperCase()}
   </div>
 
   <div className="profileBannerIdentity">
     <div className="eyebrow"><span className="pulse"/> HYPEGO / PROFILE</div>
-    <h2 style={{color:user.nickname_color}}>{user.display_name||user.username}</h2>
+    <h2 className={`nickname-effect-${user.nickname_effect||"none"}`} style={{color:user.nickname_color}}>{user.display_name||user.username}</h2>
     <p>@{user.username}</p>
     <span className="profileOnlineLabel"><i/> АККАУНТ HYPEGO</span>
   </div>
@@ -258,7 +260,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
     onClick={()=>{
       setDisplay(user.display_name||user.username);
       setBio(user.bio||'');
-      setColor(user.nickname_color||'#a78bfa');
+      setColor(user.nickname_color||'#a78bfa');setNicknameEffect(user.nickname_effect||'none');setAvatarFrame(user.avatar_frame||'none');
       setVkUrl(user.vk_url||'');
       setTelegramUsername(user.telegram_username||'');
       setTab('profile-settings');
@@ -454,7 +456,9 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 <label>Ссылка на VK<input type="url" value={vkUrl} onChange={e=>setVkUrl(e.target.value)} maxLength={300} placeholder="https://vk.com/your_page"/></label>
 <label>Имя в Telegram<input value={telegramUsername} onChange={e=>setTelegramUsername(e.target.value.replace(/^@/,''))} maxLength={32} placeholder="username без @"/></label>
 <label>Цвет ника<div className="colorInput"><input type="color" value={color} onChange={e=>setColor(e.target.value)}/><code>{color.toUpperCase()}</code></div></label>
-<div className="profilePreview"><span className="accountAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><div><small>ПРЕДПРОСМОТР НИКА</small><strong style={{color}}>{display||user.username}</strong><span>@{user.username}</span></div></div>
+<label>Эффект ника<select value={nicknameEffect} onChange={e=>setNicknameEffect(e.target.value)}><option value="none">Обычный</option><option value="gradient">Градиент</option><option value="neon">Неон</option><option value="rgb">RGB</option></select></label>
+<label>Рамка аватара<select value={avatarFrame} onChange={e=>setAvatarFrame(e.target.value)}><option value="none">Без рамки</option><option value="purple">Фиолетовая</option><option value="neon">Неоновая</option><option value="fire">Огненная</option><option value="electric">Электрическая</option></select></label>
+<div className="profilePreview"><span className={`accountAvatar avatar-frame-${avatarFrame}`}>{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><div><small>ПРЕДПРОСМОТР НИКА</small><strong className={`nickname-effect-${nicknameEffect}`} style={{color}}>{display||user.username}</strong><span>@{user.username}</span></div></div>
 <button className="primary big" disabled={busy}>{busy?'Сохраняем…':'Сохранить изменения'}</button>
 </form>
 <div className="profileSettingsSide">

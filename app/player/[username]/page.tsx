@@ -168,7 +168,7 @@ export default function PlayerProfilePage() {
         } : undefined}
       >
         <div className="publicProfileIdentity">
-          <div className="publicProfileAvatar">
+          <div className={`publicProfileAvatar avatar-frame-${player.avatar_frame||"none"}`}>
             {player.avatar_url
               ? <img src={player.avatar_url} alt={"Аватар " + displayName} />
               : avatarLetter}
@@ -176,7 +176,7 @@ export default function PlayerProfilePage() {
 
           <div className="publicProfileName">
             <span className="eyebrow">PLAYER PROFILE</span>
-            <h1 style={{ color: player.nickname_color || "#c4b5fd" }}>
+            <h1 className={`nickname-effect-${player.nickname_effect||"none"}`} style={{ color: player.nickname_color || "#c4b5fd" }}>
               {displayName}
             </h1>
             <p>@{player.username}</p>
@@ -208,7 +208,7 @@ export default function PlayerProfilePage() {
 
           <div className="publicProfileMeta">
             <span>ИГРОК</span>
-            <strong style={{ color: player.nickname_color || "#c4b5fd" }}>
+            <strong className={`nickname-effect-${player.nickname_effect||"none"}`} style={{ color: player.nickname_color || "#c4b5fd" }}>
               {displayName}
             </strong>
           </div>
