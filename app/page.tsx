@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import { upload as uploadBlob } from '@vercel/blob/client';
 import ProfileMusicSettings from "./player/[username]/ProfileMusicSettings";
 import MusicPlayer from "./player/[username]/MusicPlayer";
@@ -21,10 +21,59 @@ type User={
 };
 type Product={id:string;name:string;description:string;category:string;store:string;price_cents:number;currency:string;discount_percent:number;requires_staff:boolean};
 async function api(url:string,init?:RequestInit){const r=await fetch('/api/'+url,{...init,headers:{'Content-Type':'application/json',...(init?.headers||{})}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Ошибка запроса');return j;}
-export default function Home(){const [user,setUser]=useState<User|null>(null),[roles,setRoles]=useState<any[]>([]),[products,setProducts]=useState<Product[]>([]),[tab,setTab]=useState('home'),[profileSection,setProfileSection]=useState('overview'),[openNav,setOpenNav]=useState(''),[store,setStore]=useState('main'),[login,setLogin]=useState(''),[password,setPassword]=useState(''),[email,setEmail]=useState(''),[mode,setMode]=useState('login'),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[display,setDisplay]=useState(''),[bio,setBio]=useState(''),[color,setColor]=useState('#a78bfa'),[nicknameEffect,setNicknameEffect]=useState('none'),[avatarFrame,setAvatarFrame]=useState('none'),[vkUrl,setVkUrl]=useState(''),[telegramUsername,setTelegramUsername]=useState(''),[target,setTarget]=useState(''),[currency,setCurrency]=useState('KZT'),[amount,setAmount]=useState('1000'),[challengeId,setChallengeId]=useState(''),[loginCode,setLoginCode]=useState(''),[forgotMode,setForgotMode]=useState(false),[forgotEmail,setForgotEmail]=useState('');
+export default function Home(){const [user,setUser]=useState<User|null>(null),[roles,setRoles]=useState<any[]>([]),[products,setProducts]=useState<Product[]>([]),[tab,setTab]=useState('home'),[profileSection,setProfileSection]=useState('overview'),[openNav,setOpenNav]=useState(''),[store,setStore]=useState('main'),[routeReady,setRouteReady]=useState(false),[login,setLogin]=useState(''),[password,setPassword]=useState(''),[email,setEmail]=useState(''),[mode,setMode]=useState('login'),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[display,setDisplay]=useState(''),[bio,setBio]=useState(''),[color,setColor]=useState('#a78bfa'),[nicknameEffect,setNicknameEffect]=useState('none'),[avatarFrame,setAvatarFrame]=useState('none'),[vkUrl,setVkUrl]=useState(''),[telegramUsername,setTelegramUsername]=useState(''),[target,setTarget]=useState(''),[currency,setCurrency]=useState('KZT'),[amount,setAmount]=useState('1000'),[challengeId,setChallengeId]=useState(''),[loginCode,setLoginCode]=useState(''),[forgotMode,setForgotMode]=useState(false),[forgotEmail,setForgotEmail]=useState('');
 async function load(){try{const j=await api('me');setUser(j.user);setRoles(j.roles||[]);setDisplay(j.user.display_name||j.user.username);setBio(j.user.bio||'');setColor(j.user.nickname_color||'#a78bfa');setNicknameEffect(j.user.nickname_effect||'none');setAvatarFrame(j.user.avatar_frame||'none');setVkUrl(j.user.vk_url||'');setTelegramUsername(j.user.telegram_username||'');return j.user as User;}catch{setUser(null);setRoles([]);return null;}}
 async function loadProducts(s=store){try{const j=await api('products?store='+s);setProducts(j.products||[])}catch(e:any){setNotice(e.message)}}
-useEffect(()=>{load()},[]);useEffect(()=>{if(user)loadProducts(store)},[user,store]);
+const routeKeyRef=useRef('home|overview|main'),skipRoutePushRef=useRef(false);
+useEffect(()=>{
+  const allowed=['home','shop','rules','players','groups','trainee','profile','profile-settings','billing','friends','admin','auth'];
+  const readRoute=()=>{
+    const params=new URLSearchParams(window.location.search);
+    const requested=params.get('tab')||'home';
+    const nextTab=allowed.includes(requested)?requested:'home';
+    const nextSection=params.get('section')==='wall'?'wall':'overview';
+    const nextStore=params.get('store')==='staff'?'staff':'main';
+    return {nextTab,nextSection,nextStore};
+  };
+  const initial=readRoute();
+  setTab(initial.nextTab);
+  setProfileSection(initial.nextSection);
+  setStore(initial.nextStore);
+  routeKeyRef.current=initial.nextTab+'|'+initial.nextSection+'|'+initial.nextStore;
+  setRouteReady(true);
+  const onPopState=()=>{
+    const next=readRoute();
+    skipRoutePushRef.current=true;
+    routeKeyRef.current=next.nextTab+'|'+next.nextSection+'|'+next.nextStore;
+    setTab(next.nextTab);
+    setProfileSection(next.nextSection);
+    setStore(next.nextStore);
+    setOpenNav('');
+  };
+  window.addEventListener('popstate',onPopState);
+  return ()=>window.removeEventListener('popstate',onPopState);
+},[]);
+useEffect(()=>{
+  if(!routeReady)return;
+  const key=tab+'|'+profileSection+'|'+store;
+  if(key===routeKeyRef.current)return;
+  routeKeyRef.current=key;
+  const url=new URL(window.location.href);
+  if(tab==='home')url.searchParams.delete('tab');
+  else url.searchParams.set('tab',tab);
+  if(profileSection==='wall')url.searchParams.set('section','wall');
+  else url.searchParams.delete('section');
+  if(store==='staff')url.searchParams.set('store','staff');
+  else url.searchParams.delete('store');
+  if(skipRoutePushRef.current){
+    skipRoutePushRef.current=false;
+    window.history.replaceState({},'',url);
+  }else{
+    window.history.pushState({},'',url);
+  }
+},[tab,profileSection,store,routeReady]);
+useEffect(()=>{load()},[]);
+useEffect(()=>{if(user)loadProducts(store)},[user,store]);
 async function auth(e:React.FormEvent) {
   e.preventDefault();
   setBusy(true);
