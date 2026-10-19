@@ -215,6 +215,25 @@ function VerifyEmailContent() {
               <br />
               Ссылка подтверждения больше не может быть использована повторно.
             </div>
+
+                  <a
+                    href="/?tab=auth"
+                    style={{
+                      display: 'block',
+                      marginTop: '22px',
+                      padding: '14px 20px',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #8b5cf6, #6d45d9)',
+                      color: '#ffffff',
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      boxShadow: '0 8px 24px rgba(139, 92, 246, 0.22)',
+                    }}
+                  >
+                    Перейти ко входу →
+                  </a>
+
           </>
         )}
 
