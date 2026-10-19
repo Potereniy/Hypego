@@ -128,7 +128,7 @@ if(key==='auth/login'&&method==='POST'){
   if(!isHttps(audioUrl))throw new HttpError(400,'Ссылка на аудио должна начинаться с https://');
   if(coverUrl&&!isHttps(coverUrl))throw new HttpError(400,'Ссылка на обложку должна начинаться с https://');
   const count=await db`SELECT COUNT(*)::int AS count FROM profile_tracks WHERE user_id=${u.id}`;
-  if(Number(count[0]?.count||0)>=20)throw new HttpError(400,'В плейлисте может быть не больше 20 треков');
+
   const rows=await db`INSERT INTO profile_tracks(user_id,title,artist,audio_url,cover_url,sort_order) VALUES(${u.id},${title},${artist},${audioUrl},${coverUrl||null},(SELECT COALESCE(MAX(sort_order),-1)+1 FROM profile_tracks WHERE user_id=${u.id})) RETURNING id,title,artist,audio_url,cover_url,sort_order,created_at`;
   await audit(u.id,'profile.track.add','profile_track',rows[0].id);
   return Response.json({track:rows[0]}, {status:201});
@@ -148,13 +148,13 @@ if(key==='auth/login'&&method==='POST'){
   if(!(file instanceof File))throw new HttpError(400,'Выбери аудиофайл');
   const allowed=['audio/mpeg','audio/mp3','audio/mp4','audio/x-m4a','audio/aac','audio/wav','audio/x-wav','audio/ogg','audio/webm','audio/flac'];
   if(!allowed.includes(file.type.toLowerCase()))throw new HttpError(400,'Поддерживаются MP3, M4A, AAC, WAV, OGG, WEBM и FLAC');
-  if(file.size<1||file.size>20*1024*1024)throw new HttpError(400,'Размер аудиофайла должен быть не больше 20 МБ');
+  if(file.size<1)throw new HttpError(400,'Аудиофайл пустой');
   const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(-100);
   const blob=await put(`profiles/${u.id}/music-${Date.now()}-${safeName}`,file,{access:'public',token:process.env.BLOB_READ_WRITE_TOKEN,contentType:file.type});
   await audit(u.id,'profile.music.upload','profile_track',u.id);
   return Response.json({url:blob.url});
  }
- if(key==='profile/upload'&&method==='POST'){const u=await requireUser();if(!process.env.BLOB_READ_WRITE_TOKEN)throw new HttpError(503,'Загрузка изображений недоступна: добавь BLOB_READ_WRITE_TOKEN в Vercel');const form=await req.formData(),file=form.get('file'),kind=String(form.get('kind')||'avatar');if(!(file instanceof File)||!['avatar','banner'].includes(kind))throw new HttpError(400,'Нужен файл и тип avatar/banner');if(!file.type.startsWith('image/')||file.size>5*1024*1024)throw new HttpError(400,'Разрешены изображения до 5 МБ');const blob=await put(`profiles/${u.id}/${kind}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`,file,{access:'public',token:process.env.BLOB_READ_WRITE_TOKEN});if(kind==='avatar')await db`UPDATE users SET avatar_url=${blob.url} WHERE id=${u.id}`;else await db`UPDATE users SET banner_url=${blob.url} WHERE id=${u.id}`;await audit(u.id,'profile.image.update','user',u.id,{kind});return Response.json({url:blob.url});}
+ if(key==='profile/upload'&&method==='POST'){const u=await requireUser();if(!process.env.BLOB_READ_WRITE_TOKEN)throw new HttpError(503,'Загрузка изображений недоступна: добавь BLOB_READ_WRITE_TOKEN в Vercel');const form=await req.formData(),file=form.get('file'),kind=String(form.get('kind')||'avatar');if(!(file instanceof File)||!['avatar','banner'].includes(kind))throw new HttpError(400,'Нужен файл и тип avatar/banner');if(!file.type.startsWith('image/'))throw new HttpError(400,'Нужен файл изображения');const blob=await put(`profiles/${u.id}/${kind}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`,file,{access:'public',token:process.env.BLOB_READ_WRITE_TOKEN});if(kind==='avatar')await db`UPDATE users SET avatar_url=${blob.url} WHERE id=${u.id}`;else await db`UPDATE users SET banner_url=${blob.url} WHERE id=${u.id}`;await audit(u.id,'profile.image.update','user',u.id,{kind});return Response.json({url:blob.url});}
 
 if(key==='friends'&&method==='GET'){
  const actor=await requireUser();
@@ -276,7 +276,7 @@ if(key==='players'&&method==='GET'){const q=(req.nextUrl.searchParams.get('q')||
       throw new HttpError(400,'Некорректная цена или скидка');
     }
     const active=b.active===undefined?null:Boolean(b.active);
-    const rows = active === null 
+    const rows = active === null
       ? await db`UPDATE products SET price_rub_kopecks=COALESCE(${priceRub}, price_rub_kopecks), price_hp=COALESCE(${priceHp}, price_hp), discount_percent=${discount}, stock=${stock} WHERE id=${id} RETURNING id,name,price_rub_kopecks,price_hp,discount_percent,stock,active,store`
       : await db`UPDATE products SET price_rub_kopecks=COALESCE(${priceRub}, price_rub_kopecks), price_hp=COALESCE(${priceHp}, price_hp), discount_percent=${discount}, stock=${stock}, active=${active} WHERE id=${id} RETURNING id,name,price_rub_kopecks,price_hp,discount_percent,stock,active,store`;
     if(!rows.length)throw new HttpError(404,'Товар не найден');
@@ -316,6 +316,31 @@ if(key==='players'&&method==='GET'){const q=(req.nextUrl.searchParams.get('q')||
  if(key==='orders'&&method==='GET'){const u=await requireUser(),rows=await db`SELECT o.id,o.username_target,o.status,o.amount_cents,o.currency,o.created_at,o.paid_at,p.name AS product_name FROM orders o JOIN products p ON p.id=o.product_id WHERE o.user_id=${u.id} ORDER BY o.created_at DESC LIMIT 100`;return Response.json({orders:rows});}
 if(key==='billing/topup'&&method==='POST'){await requireUser();throw new HttpError(503,'Пополнение временно отключено. Платёжный провайдер и источник курса не настроены. Баланс не изменён.');}
  if(key==='admin/orders'&&method==='GET'){await requirePermission('payments.manage');const rows=await db`SELECT o.*,u.username,p.name product_name FROM orders o JOIN users u ON u.id=o.user_id JOIN products p ON p.id=o.product_id ORDER BY o.created_at DESC LIMIT 200`;return Response.json({orders:rows});}
+
+ if(key==='punishments'&&method==='GET'){
+   const kind=(req.nextUrl.searchParams.get('kind')||'').toLowerCase();
+   const allowed=['ban','mute','warn','unban','unmute'];
+   if(kind&&!allowed.includes(kind))throw new HttpError(400,'Неизвестный тип наказания');
+   const rows=kind
+     ?await db`SELECT p.id,p.target_username,p.kind,p.reason,p.expires_at,p.created_at,u.username AS actor_username FROM punishments p JOIN users u ON u.id=p.actor_id WHERE p.kind=${kind} ORDER BY p.created_at DESC LIMIT 200`
+     :await db`SELECT p.id,p.target_username,p.kind,p.reason,p.expires_at,p.created_at,u.username AS actor_username FROM punishments p JOIN users u ON u.id=p.actor_id ORDER BY p.created_at DESC LIMIT 200`;
+   return Response.json({punishments:rows});
+ }
+ if(key==='admin/punishments'&&method==='PATCH'){
+   const actor=await requireUser(),b=await bodyJson(req);
+   const id=String(b.id||''),reason=String(b.reason||'').trim().slice(0,500);
+   const expires=b.expires_at||null;
+   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))throw new HttpError(400,'Некорректный ID наказания');
+   if(reason.length<3)throw new HttpError(400,'Причина должна содержать минимум 3 символа');
+   const rows=await db`SELECT p.id,p.actor_id FROM punishments p WHERE p.id=${id} LIMIT 1`;
+   if(!rows.length)throw new HttpError(404,'Наказание не найдено');
+   const roles=await db`SELECT role_id FROM user_roles WHERE user_id=${actor.id} AND role_id IN ('owner','curator')`;
+   if(rows[0].actor_id!==actor.id&&!roles.length)throw new HttpError(403,'Редактировать может только автор наказания, владелец или куратор');
+   const updated=await db`UPDATE punishments SET reason=${reason},expires_at=${expires} WHERE id=${id} RETURNING id,target_username,kind,reason,expires_at,created_at,actor_id`;
+   await audit(actor.id,'punishment.edit','punishment',id,{reason_changed:true});
+   return Response.json({punishment:updated[0]});
+ }
+
  if(key==='admin/punishments'&&method==='POST'){const actor=await requirePermission('punishments.manage'),b=await bodyJson(req),username=String(b.username||'').trim(),kind=String(b.kind||''),reason=String(b.reason||'').trim().slice(0,500),expires=b.expires_at||null;if(!/^[A-Za-z0-9_]{3,24}$/.test(username)||!['warn','mute','ban','unban','unmute'].includes(kind)||reason.length<3)throw new HttpError(400,'Проверь ник, тип наказания и причину');const rows=await db`INSERT INTO punishments(target_username,kind,reason,actor_id,expires_at) VALUES(${username},${kind},${reason},${actor.id},${expires}) RETURNING *`;await audit(actor.id,'punishment.create','punishment',rows[0].id,{username,kind});return Response.json({punishment:rows[0]},{status:201});}
  if(key==='admin/audit'&&method==='GET'){await requirePermission('audit.view');const rows=await db`SELECT a.id,a.action,a.target_type,a.target_id,a.details,a.created_at,u.username actor_username FROM audit_logs a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.created_at DESC LIMIT 200`;return Response.json({logs:rows});}
 
