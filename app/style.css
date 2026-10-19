@@ -1011,3 +1011,14 @@ h2 em {
 .socialLinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
 .socialLinks a{display:inline-flex;align-items:center;padding:9px 11px;border:1px solid #a78bfa55;border-radius:9px;color:#dcd3ff;text-decoration:none;font-size:11px;font-weight:800;background:#a78bfa0c}
 .socialLinks a:hover{background:#a78bfa20;border-color:#a78bfa}
+
+/* Compact accordion navigation */
+.top nav.siteNav{gap:7px;overflow:visible;position:relative;z-index:30}
+.siteNav .navGroup{position:relative;display:flex;align-items:center}
+.siteNav .navGroupTrigger{white-space:nowrap}
+.siteNav .navDropdown{position:absolute;top:calc(100% + 8px);left:0;min-width:190px;display:grid;gap:4px;padding:8px;background:#090b10;border:1px solid #ff7a0060;border-radius:12px;box-shadow:0 18px 42px #000b;z-index:80}
+.siteNav .navDropdown button{text-align:left;white-space:nowrap;border-color:transparent;padding:10px 12px}
+.siteNav .navDropdown button:hover{background:#ff7a0018;border-color:#ff7a0055}
+.profileContentGridHidden{display:none!important}
+.profileTabs button.selected{border-color:#ff7a00;background:#ff7a0018;color:#fff}
+@media(max-width:850px){.top nav.siteNav{overflow:visible;flex-wrap:wrap;row-gap:7px}.siteNav .navDropdown{left:auto;right:0;max-width:min(85vw,260px)}}
