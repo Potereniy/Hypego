@@ -1,0 +1,79 @@
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { requireUser, audit } from "@/lib/security";
+
+export const runtime = "nodejs";
+
+const allowedTypes = [
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/mp4",
+  "audio/x-m4a",
+  "audio/aac",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/ogg",
+  "audio/webm",
+  "audio/flac",
+];
+
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as HandleUploadBody;
+
+    const result = await handleUpload({
+      body,
+      request,
+
+      onBeforeGenerateToken: async () => {
+        const user = await requireUser();
+
+        if (!process.env.BLOB_READ_WRITE_TOKEN) {
+          throw new Error("Загрузка музыки не настроена в Vercel");
+        }
+
+        return {
+          allowedContentTypes: allowedTypes,
+
+          addRandomSuffix: true,
+          tokenPayload: JSON.stringify({
+            userId: String(user.id),
+          }),
+        };
+      },
+
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        if (!tokenPayload) {
+          throw new Error("Отсутствуют данные загрузки");
+        }
+
+        const payload = JSON.parse(tokenPayload);
+        const userId = String(payload.userId || "");
+
+        if (!userId || !blob.url) {
+          throw new Error("Некорректные данные загрузки");
+        }
+
+        await audit(
+          userId,
+          "profile.music.upload",
+          "profile_track",
+          userId
+        );
+      },
+    });
+
+    return Response.json(result);
+  } catch (error) {
+    console.error("Profile music upload error:", error);
+
+    return Response.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Не удалось загрузить аудиофайл",
+      },
+      { status: 400 }
+    );
+  }
+}

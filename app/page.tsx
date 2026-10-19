@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
+import { upload as uploadBlob } from '@vercel/blob/client';
 import ProfileMusicSettings from "./player/[username]/ProfileMusicSettings";
 import MusicPlayer from "./player/[username]/MusicPlayer";
 import TraineeApplications from './trainee-applications';
@@ -202,7 +203,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
   <span className="brandWord">
     <span className="brandHype">HYPE</span><span className="brandGo">GO</span>
   </span>
-</a><nav><button onClick={()=>setTab('home')}>Главная</button><button onClick={()=>{setTab('shop');setStore('main')}}>Магазин</button><button onClick={()=>setTab('rules')}>Правила</button><button onClick={()=>setTab('players')}>Игроки</button><button onClick={()=>setTab('trainee')}>Стажировка</button>{user&&<button onClick={()=>setTab('profile')}>Профиль</button>}{isStaff&&<button onClick={()=>setTab('admin')}>Управление</button>}</nav><div className="right">{user?<><div className="headerBalance"><small>БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} ₽</strong></div><div className="headerBalance headerHpBalance"><small>HYPE POINTS</small><strong>{Number(user.hp_balance||0).toLocaleString("ru-RU")} HP</strong></div><button type="button" className="accountTrigger" onClick={()=>setDrawerOpen(true)} aria-label="Открыть меню профиля"><span className="accountAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><span className="accountIdentity"><strong style={{color:user.nickname_color}}>{user.username}</strong><small>Мой аккаунт</small></span><span className="accountChevron">☰</span></button></>:<button className="primary" onClick={()=>setTab('auth')}>Войти</button>}</div></header>
+</a><nav><button onClick={()=>setTab('home')}>Главная</button><button onClick={()=>{setTab('shop');setStore('main')}}>Магазин</button><button onClick={()=>setTab('rules')}>Правила</button><button onClick={()=>setTab('players')}>Игроки</button><button onClick={()=>setTab('groups')}>Группы</button><button onClick={()=>setTab('trainee')}>Стажировка</button>{user&&<button onClick={()=>setTab('profile')}>Профиль</button>}{isStaff&&<button onClick={()=>setTab('admin')}>Управление</button>}</nav><div className="right">{user?<><div className="headerBalance"><small>БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} ₽</strong></div><div className="headerBalance headerHpBalance"><small>HYPE POINTS</small><strong>{Number(user.hp_balance||0).toLocaleString("ru-RU")} HP</strong></div><button type="button" className="accountTrigger" onClick={()=>setDrawerOpen(true)} aria-label="Открыть меню профиля"><span className="accountAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><span className="accountIdentity"><strong style={{color:user.nickname_color}}>{user.username}</strong><small>Мой аккаунт</small></span><span className="accountChevron">☰</span></button></>:<button className="primary" onClick={()=>setTab('auth')}>Войти</button>}</div></header>
 {drawerOpen&&user&&<div className="drawerLayer"><button type="button" className="drawerScrim" aria-label="Закрыть меню" onClick={()=>setDrawerOpen(false)}></button><aside className="profileDrawer" aria-label="Меню аккаунта"><div className="drawerTop"><span className="eyebrow">HYPEGO / ACCOUNT</span><button type="button" className="drawerClose" onClick={()=>setDrawerOpen(false)}>×</button></div><div className="drawerUser"><div className="drawerAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</div><div><strong style={{color:user.nickname_color}}>{user.display_name||user.username}</strong><small>@{user.username}</small></div></div><div className="drawerBalance"><small>ТВОЙ БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} <span>₽</span></strong><button type="button" className="outline" onClick={()=>{setTab('billing');setDrawerOpen(false)}}>＋ Пополнить баланс</button></div><div className="drawerLinks"><span className="drawerLabel">АККАУНТ</span><button type="button" onClick={()=>{setTab('profile');setDrawerOpen(false)}}>◈ <span>Профиль и настройки</span><b>›</b></button><button type="button" onClick={()=>{setTab('players');setDrawerOpen(false)}}>♙ <span>Игроки</span><b>›</b></button>
 <button type="button" onClick={()=>{setTab('friends');setDrawerOpen(false)}}>♧ <span>Друзья</span><b>›</b></button>
 <button type="button" onClick={()=>{setChatMode(true);setSelectedChat(null);setDrawerOpen(true);loadFriends()}}>✉ <span>Сообщения</span><b>›</b></button>
@@ -233,7 +234,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 </section>}
 <div className="drawerFooter">HYPEGO · ИГРОВОЙ ПОРТАЛ</div></aside></div>}
 {notice&&<div className="notice" role="status">{notice}<button onClick={()=>setNotice('')}>×</button></div>}
-{tab==='home'&&<><section className="hero"><div className="heroContent"><div className="eyebrow"><span className="pulse"/> MINECRAFT NETWORK · HYPEGO</div><h1>ТВОЯ ИГРА.<br/><em>ТВОИ ПРАВИЛА.</em></h1><p>Залетай в мир Hypego — играй с друзьями, собирай привилегии и создавай собственную историю.</p><div className="heroActions"><button className="primary big" onClick={()=>setTab(user?'shop':'auth')}>{user?'Открыть магазин':'Начать играть'} <b>↗</b></button><button className="outline big" onClick={()=>setTab('rules')}>Правила проекта</button></div><div className="serverAddress"><span className="serverDot"/><div><small>АДРЕС СЕРВЕРА</small><strong>hypego.org:19132</strong></div><button onClick={()=>{navigator.clipboard?.writeText('hypego.org:19132');setNotice('Адрес скопирован.')}}>Копировать</button></div></div><div className="heroArt"><div className="ring ring1"/><div className="ring ring2"/><div className="cube">H</div><div className="floatTag tagOne">✦ <span>YOUR WORLD</span></div><div className="floatTag tagTwo">⚡ <span>HYPEGO NETWORK</span></div></div></section><ServerStatus/><section className="stats"><div><strong>01</strong><span>ЕДИНЫЙ ПРОФИЛЬ</span></div><div><strong>∞</strong><span>ВОЗМОЖНОСТЕЙ</span></div><div><strong>24/7</strong><span>ТВОЯ ИСТОРИЯ</span></div><div><strong>H+</strong><span>HYPEGO COMMUNITY</span></div></section><section className="section"><div className="sectionHead"><div><div className="eyebrow">ТВОЯ ПЛАТФОРМА</div><h2>Всё для игры — <em>в одном месте</em></h2></div><p>Управляй профилем, изучай товары и следи за новостями проекта.</p></div><div className="featureGrid"><article className="feature"><span>◈</span><h3>Профиль игрока</h3><p>Аватар, баннер, цвет ника, история и персональная страница.</p><button onClick={()=>setTab(user?'profile':'auth')}>Открыть профиль ↗</button></article><article className="feature"><span>✧</span><h3>Магазин Hypego</h3><p>Привилегии, расходники, услуги и игровые улучшения.</p><button onClick={()=>setTab(user?'shop':'auth')}>Перейти в магазин ↗</button></article><article className="feature"><span>⌘</span><h3>Сообщество</h3><p>Находи игроков, знакомься и оставайся частью проекта.</p><button onClick={()=>setTab('players')}>Найти игроков ↗</button></article></div></section></>}
+{tab==='home'&&<><section className="hero"><div className="heroContent"><div className="eyebrow"><span className="pulse"/> MINECRAFT NETWORK · HYPEGO</div><h1>ТВОЯ ИГРА.<br/><em>ТВОИ ПРАВИЛА.</em></h1><p>Залетай в мир Hypego — играй с друзьями, собирай привилегии и создавай собственную историю.</p><div className="heroActions"><button className="primary big" onClick={()=>setTab(user?'shop':'auth')}>{user?'Открыть магазин':'Начать играть'} <b>↗</b></button><button className="outline big" onClick={()=>setTab('rules')}>Правила проекта</button></div><div className="serverAddress"><span className="serverDot"/><div><small>АДРЕС СЕРВЕРА</small><strong>hypego.org:19132</strong></div><button onClick={()=>{navigator.clipboard?.writeText('hypego.org:19132');setNotice('Адрес скопирован.')}}>Копировать</button></div></div><div className="heroArt"><div className="ring ring1"/><div className="ring ring2"/><div className="cube">H</div><div className="floatTag tagOne">✦ <span>YOUR WORLD</span></div><div className="floatTag tagTwo">⚡ <span>HYPEGO NETWORK</span></div></div></section><ServerStatus/><section className="stats"><div><strong>01</strong><span>ЕДИНЫЙ ПРОФИЛЬ</span></div><div><strong>∞</strong><span>ВОЗМОЖНОСТЕЙ</span></div><div><strong>24/7</strong><span>ТВОЯ ИСТОРИЯ</span></div><div><strong>H+</strong><span>HYPEGO COMMUNITY</span></div></section><section className="section"><div className="sectionHead"><div><div className="eyebrow">ТВОЯ ПЛАТФОРМА</div><h2>Всё для игры — <em>в одном месте</em></h2></div><p>Управляй профилем, изучай товары и следи за новостями проекта.</p></div><div className="featureGrid"><article className="feature"><span>◈</span><h3>Профиль игрока</h3><p>Аватар, баннер, цвет ника, история и персональная страница.</p><button onClick={()=>setTab(user?'profile':'auth')}>Открыть профиль ↗</button></article><article className="feature"><span>✧</span><h3>Магазин Hypego</h3><p>Привилегии, расходники, услуги и игровые улучшения.</p><button onClick={()=>setTab(user?'shop':'auth')}>Перейти в магазин ↗</button></article><article className="feature"><span>⌘</span><h3>Сообщество</h3><p>Находи игроков, знакомься и оставайся частью проекта.</p><button onClick={()=>setTab('players')}>Найти игроков ↗</button></article><article className="feature"><span>↗</span><h3>HYPEGO / SOCIALS</h3><p>Новости, общение и события проекта — присоединяйся к нашему сообществу.</p><div className="socialLinks"><a href="https://discord.gg/9kqv3Fg8Y5" target="_blank" rel="noreferrer">Discord ↗</a><a href="https://vk.ru/hypego" target="_blank" rel="noreferrer">ВКонтакте ↗</a><a href="https://t.me/hypego_news" target="_blank" rel="noreferrer">Telegram ↗</a></div></article></div></section></>}
 {tab==='auth'&&<section className="panel authPanel"><div className="eyebrow">HYPEGO ACCOUNT</div><h2>{mode==='login'?'С возвращением':'Создать аккаунт'}</h2><p className="muted">Один аккаунт для профиля и сервисов проекта.</p>{!challengeId&&!forgotMode&&<form onSubmit={auth} className="form"> <label>{mode==='login'?'Никнейм или email':'Никнейм'}<input value={login} onChange={e=>setLogin(e.target.value)} required autoComplete="username"/></label>{mode==='register'&&<label>Email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label>}<label>Пароль<input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={10} autoComplete={mode==='login'?'current-password':'new-password'}/></label><button className="primary big" disabled={busy}>{busy?'Подождите…':mode==='login'?'Войти':'Зарегистрироваться'}</button></form>}
 {forgotMode&&<form onSubmit={requestPasswordReset} className="form"><label>Email аккаунта<input type="email" value={forgotEmail} onChange={e=>setForgotEmail(e.target.value)} required autoComplete="email" placeholder="you@example.com"/></label><button className="primary big" disabled={busy}>{busy?'Отправляем…':'Отправить ссылку на почту'}</button><button type="button" className="textButton" disabled={busy} onClick={()=>{setForgotMode(false);setNotice('')}}>Вернуться ко входу</button></form>}{challengeId&&<form onSubmit={verifyLoginCode} className="form"><label>Код входа из письма<input inputMode="numeric" autoComplete="one-time-code" value={loginCode} onChange={e=>setLoginCode(e.target.value.replace(/\D/g,'').slice(0,6))} required minLength={6} maxLength={6} placeholder="123456"/></label><button className="primary big" disabled={busy||loginCode.length!==6}>{busy?'Проверяем…':'Подтвердить вход'}</button><button type="button" className="textButton" disabled={busy} onClick={()=>{setChallengeId('');setLoginCode('');setNotice('Войдите заново, чтобы получить новый код.')}}>Вернуться ко входу</button></form>}
 {mode==='login'&&!challengeId&&!forgotMode&&<button type="button" className="textButton" disabled={busy} onClick={()=>{setForgotEmail(login.includes('@')?login:'');setForgotMode(true);setNotice('')}}>Забыл пароль?</button>}
@@ -526,7 +527,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
   </article>
 </section>}
 
-{tab==='rules'&&<Rules/>}{tab==='players'&&<Players/>}{tab==='trainee'&&<TraineeApplications user={user} roles={roles} onNotice={setNotice}/ >}{tab==='admin'&&user&&isStaff&&<><Admin roles={roles} onNotice={setNotice}/>{roles.some(r=>r.id==='curator')&&<RulesEditor onNotice={setNotice}/>}<ProductEditor onNotice={setNotice}/></>}
+{tab==='rules'&&<Rules/>}{tab==='groups'&&<Punishments user={user} roles={roles} onNotice={setNotice}/>}{tab==='players'&&<Players/>}{tab==='trainee'&&<TraineeApplications user={user} roles={roles} onNotice={setNotice}/ >}{tab==='admin'&&user&&isStaff&&<><Admin roles={roles} onNotice={setNotice}/>{roles.some(r=>r.id==='curator')&&<RulesEditor onNotice={setNotice}/>}<ProductEditor onNotice={setNotice}/></>}
 <footer><div className="brand"><span className="brandMark">H</span> HYPEGO</div><span>© {new Date().getFullYear()} Hypego Project</span><span>Игра начинается здесь.</span></footer></main>}
 
 function ServerStatus() {
@@ -793,6 +794,194 @@ function RulesEditor({onNotice}:{onNotice:(s:string)=>void}) {
         <button className="primary" type="button" onClick={save} disabled={loading||saving}>{saving?'Сохранение...':'Сохранить правила'}</button>
       </div>
       <p className="tiny">Пустые записи не сохраняются. Удаление правил пока не предусмотрено в этом редакторе.</p>
+    </div>
+  </section>;
+}
+
+
+
+function Punishments({user,roles,onNotice}:{user:User|null;roles:any[];onNotice:(s:string)=>void}) {
+  const [kind,setKind]=useState('ban');
+  const [items,setItems]=useState<any[]>([]);
+  const [evidence,setEvidence]=useState<Record<string,any[]>>({});
+  const [linkUrls,setLinkUrls]=useState<Record<string,string>>({});
+  const [loading,setLoading]=useState(false);
+  const [uploading,setUploading]=useState<string|null>(null);
+  const [editing,setEditing]=useState<string|null>(null);
+  const [reason,setReason]=useState('');
+  const [expires,setExpires]=useState('');
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const j=await api('punishments?kind='+kind);
+      const rows=j.punishments||[];
+      setItems(rows);
+      const loaded=await Promise.all(rows.map(async (item:any)=>{
+        try {
+          const ev=await api('punishments/evidence?punishment_id='+encodeURIComponent(item.id));
+          return [item.id,ev.evidence||[]] as [string,any[]];
+        } catch {
+          return [item.id,[]] as [string,any[]];
+        }
+      }));
+      setEvidence(Object.fromEntries(loaded));
+    } catch(e:any) {
+      onNotice(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(()=>{
+    setEditing(null);
+    refresh();
+  },[kind]);
+
+  async function save(id:string) {
+    try {
+      await api('admin/punishments',{
+        method:'PATCH',
+        body:JSON.stringify({
+          id,
+          reason:reason.trim(),
+          expires_at:expires ? new Date(expires).toISOString() : null
+        })
+      });
+      onNotice('Наказание обновлено');
+      setEditing(null);
+      await refresh();
+    } catch(e:any) {
+      onNotice(e.message);
+    }
+  }
+
+  async function addLink(id:string) {
+    const url=(linkUrls[id]||'').trim();
+    if(!url) {
+      onNotice('Укажи ссылку на доказательство');
+      return;
+    }
+    try {
+      const form=new FormData();
+      form.set('punishment_id',id);
+      form.set('url',url);
+      const response=await fetch('/api/admin/punishments/evidence',{method:'POST',body:form});
+      const result=await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(result.error||'Не удалось добавить ссылку');
+      setLinkUrls(prev=>({...prev,[id]:''}));
+      onNotice('Ссылка на доказательство добавлена');
+      await refresh();
+    } catch(e:any) {
+      onNotice(e.message);
+    }
+  }
+
+  async function uploadEvidence(item:any,file?:File) {
+    if(!file) return;
+    const images=['image/jpeg','image/png','image/webp','image/gif'];
+    const videos=['video/mp4','video/webm','video/quicktime'];
+    if(!images.includes(file.type.toLowerCase())&&!videos.includes(file.type.toLowerCase())) {
+      onNotice('Поддерживаются JPG, PNG, WEBP, GIF, MP4, WEBM и MOV');
+      return;
+    }
+    if(file.size<1||file.size>200*1024*1024) {
+      onNotice('Размер файла должен быть от 1 байта до 200 МБ');
+      return;
+    }
+    setUploading(item.id);
+    try {
+      await uploadBlob(
+        'punishments/'+item.id+'/'+file.name,
+        file,
+        {
+          access:'public',
+          handleUploadUrl:'/api/admin/punishments/evidence/upload',
+          clientPayload:JSON.stringify({punishmentId:item.id})
+        }
+      );
+      const ev=await api('punishments/evidence?punishment_id='+encodeURIComponent(item.id));
+      setEvidence(prev=>({...prev,[item.id]:ev.evidence||[]}));
+      onNotice('Доказательство загружено');
+    } catch(e:any) {
+      onNotice(e.message||'Не удалось загрузить доказательство');
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  const privileged=roles.some(r=>r.id==='owner'||r.id==='curator');
+  const labels:Record<string,string>={ban:'Баны',mute:'Муты',warn:'Предупреждения'};
+
+  return <section className="section">
+    <div className="eyebrow">HYPEGO / MODERATION</div>
+    <h2>Группы <em>наказаний</em></h2>
+    <p className="muted">История наказаний игроков Minecraft. Список и доказательства доступны всем.</p>
+    <div className="searchLine">
+      {(['ban','mute','warn'] as const).map(k=>
+        <button key={k} className={kind===k?'primary':'outline'} onClick={()=>setKind(k)}>
+          {labels[k]}
+        </button>
+      )}
+      <button className="outline" onClick={refresh}>Обновить ↻</button>
+    </div>
+    {loading&&<p className="muted">Загружаем наказания…</p>}
+    {!loading&&!items.length&&<article className="panel"><p>Записей пока нет.</p></article>}
+    <div className="playerGrid">
+      {items.map(item=>{
+        const canEdit=!!user&&(privileged||item.actor_username===user.username);
+        const files=evidence[item.id]||[];
+        return <article className="panel" key={item.id}>
+          <div className="eyebrow">{labels[item.kind]||item.kind}</div>
+          <h3>{item.target_username}</h3>
+          <p><strong>Причина:</strong> {item.reason}</p>
+          <p><strong>Выдал:</strong> {item.actor_username}</p>
+          <p><strong>Дата:</strong> {new Date(item.created_at).toLocaleString('ru-RU')}</p>
+          <p><strong>Срок:</strong> {item.expires_at?new Date(item.expires_at).toLocaleString('ru-RU'):'Не указан'}</p>
+
+          <div className="evidence">
+            <h4>Доказательства ({files.length})</h4>
+            {!files.length&&<p className="muted">Доказательства пока не добавлены.</p>}
+            {files.map((ev:any)=><div key={ev.id} className="evidenceItem">
+              {ev.kind==='image'?
+                <a href={ev.url} target="_blank" rel="noreferrer">
+                  <img src={ev.url} alt={ev.filename||'Доказательство'} loading="lazy" style={{maxWidth:'100%',maxHeight:320,objectFit:'contain',borderRadius:10}}/>
+                </a>:
+                ev.kind==='video'?
+                  <video src={ev.url} controls preload="metadata" style={{width:'100%',maxHeight:360,borderRadius:10}}/>:
+                  <a href={ev.url} target="_blank" rel="noreferrer">{ev.url}</a>
+              }
+              <p className="muted">{ev.filename||ev.url} · {ev.uploader_username||'Загружено'}</p>
+            </div>)}
+          </div>
+
+          {canEdit&&<div className="form">
+            <label>Добавить изображение или видео (до 200 МБ)
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" disabled={uploading===item.id} onChange={e=>{const file=e.target.files?.[0];void uploadEvidence(item,file);e.currentTarget.value='';}}/>
+            </label>
+            {uploading===item.id&&<p className="muted">Загружаем файл… Не закрывай страницу.</p>}
+            <label>Или ссылка на доказательство
+              <input type="url" placeholder="https://..." value={linkUrls[item.id]||''} onChange={e=>setLinkUrls(prev=>({...prev,[item.id]:e.target.value}))}/>
+            </label>
+            <button className="outline" onClick={()=>void addLink(item.id)}>Добавить ссылку</button>
+          </div>}
+
+          {editing===item.id ? <div className="form">
+            <label>Причина
+              <textarea value={reason} onChange={e=>setReason(e.target.value)} required minLength={3} maxLength={500}/>
+            </label>
+            <label>Срок окончания
+              <input type="datetime-local" value={expires} onChange={e=>setExpires(e.target.value)}/>
+            </label>
+            <button className="primary" disabled={reason.trim().length<3} onClick={()=>save(item.id)}>Сохранить</button>
+            <button className="outline" onClick={()=>setEditing(null)}>Отмена</button>
+          </div> : canEdit&&<button className="outline" onClick={()=>{
+            setEditing(item.id);
+            setReason(item.reason||'');
+            setExpires(item.expires_at?new Date(item.expires_at).toISOString().slice(0,16):'');
+          }}>Редактировать</button>}
+        </article>;
+      })}
     </div>
   </section>;
 }

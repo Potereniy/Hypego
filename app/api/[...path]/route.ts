@@ -326,7 +326,78 @@ if(key==='billing/topup'&&method==='POST'){await requireUser();throw new HttpErr
      :await db`SELECT p.id,p.target_username,p.kind,p.reason,p.expires_at,p.created_at,u.username AS actor_username FROM punishments p JOIN users u ON u.id=p.actor_id ORDER BY p.created_at DESC LIMIT 200`;
    return Response.json({punishments:rows});
  }
- if(key==='admin/punishments'&&method==='PATCH'){
+
+if(key==='punishments/evidence'&&method==='GET'){
+  const id=String(req.nextUrl.searchParams.get('punishment_id')||'');
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))
+    throw new HttpError(400,'Некорректный ID наказания');
+  const exists=await db`SELECT id FROM punishments WHERE id=${id} LIMIT 1`;
+  if(!exists.length)throw new HttpError(404,'Наказание не найдено');
+  const evidence=await db`
+    SELECT e.id,e.punishment_id,e.kind,e.url,e.filename,e.created_at,
+           u.username AS uploader_username
+    FROM punishment_evidence e
+    JOIN users u ON u.id=e.uploaded_by
+    WHERE e.punishment_id=${id}
+    ORDER BY e.created_at ASC
+  `;
+  return Response.json({evidence});
+}
+
+if(key==='admin/punishments/evidence'&&method==='POST'){
+  const actor=await requireUser();
+  const form=await req.formData();
+  const id=String(form.get('punishment_id')||'');
+  const rawUrl=String(form.get('url')||'').trim();
+
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))
+    throw new HttpError(400,'Некорректный ID наказания');
+
+  if(form.get('file') instanceof File)
+    throw new HttpError(400,'Файлы загружай через прямую загрузку Vercel Blob');
+
+  if(!rawUrl)
+    throw new HttpError(400,'Укажи ссылку на доказательство');
+
+  if(rawUrl.length>2048)
+    throw new HttpError(400,'Ссылка слишком длинная');
+
+  let parsed:URL;
+  try {
+    parsed=new URL(rawUrl);
+  } catch {
+    throw new HttpError(400,'Некорректная ссылка');
+  }
+
+  if(!['http:','https:'].includes(parsed.protocol)||parsed.username||parsed.password)
+    throw new HttpError(400,'Разрешены только HTTP- и HTTPS-ссылки без учётных данных');
+
+  const punishment=await db`
+    SELECT id,actor_id FROM punishments WHERE id=${id} LIMIT 1
+  `;
+  if(!punishment.length)
+    throw new HttpError(404,'Наказание не найдено');
+
+  const privileged=await db`
+    SELECT role_id FROM user_roles
+    WHERE user_id=${actor.id} AND role_id IN ('owner','curator')
+    LIMIT 1
+  `;
+  if(String(punishment[0].actor_id)!==String(actor.id)&&!privileged.length)
+    throw new HttpError(403,'Добавлять доказательства может автор наказания, владелец или куратор');
+
+  const url=parsed.href;
+  const rows=await db`
+    INSERT INTO punishment_evidence
+      (punishment_id,kind,url,filename,uploaded_by)
+    VALUES(${id},'link',${url},NULL,${actor.id})
+    RETURNING id,punishment_id,kind,url,filename,uploaded_by,created_at
+  `;
+
+  await audit(actor.id,'punishment.evidence.add','punishment',id,{kind:'link'});
+  return Response.json({evidence:rows[0]},{status:201});
+}
+if(key==='admin/punishments'&&method==='PATCH'){
    const actor=await requireUser(),b=await bodyJson(req);
    const id=String(b.id||''),reason=String(b.reason||'').trim().slice(0,500);
    const expires=b.expires_at||null;

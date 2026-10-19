@@ -1,0 +1,126 @@
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
+import { sql } from '@/lib/db';
+import { requireUser, audit } from '@/lib/security';
+
+export const runtime = 'nodejs';
+
+const MAX_SIZE = 200 * 1024 * 1024;
+const allowedTypes = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+];
+
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+async function checkAccess(punishmentId: string, userId: string) {
+  if (!uuidPattern.test(punishmentId)) {
+    throw new Error('Некорректный ID наказания');
+  }
+
+  const db = sql();
+  const rows = await db`
+    SELECT p.id, p.actor_id
+    FROM punishments p
+    WHERE p.id = ${punishmentId}
+    LIMIT 1
+  `;
+
+  if (!rows.length) throw new Error('Наказание не найдено');
+
+  if (String(rows[0].actor_id) === String(userId)) return;
+
+  const roles = await db`
+    SELECT role_id
+    FROM user_roles
+    WHERE user_id = ${userId}
+      AND role_id IN ('owner', 'curator')
+    LIMIT 1
+  `;
+
+  if (!roles.length) {
+    throw new Error('Добавлять доказательства может автор наказания, владелец или куратор');
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as HandleUploadBody;
+
+    const result = await handleUpload({
+      body,
+      request,
+
+      onBeforeGenerateToken: async (_pathname, clientPayload) => {
+        const user = await requireUser();
+
+        if (!process.env.BLOB_READ_WRITE_TOKEN) {
+          throw new Error('Загрузка не настроена: проверь BLOB_READ_WRITE_TOKEN в Vercel');
+        }
+
+        let payload: any;
+        try {
+          payload = JSON.parse(clientPayload || '{}');
+        } catch {
+          throw new Error('Некорректные данные загрузки');
+        }
+
+        const punishmentId = String(payload.punishmentId || '');
+        await checkAccess(punishmentId, String(user.id));
+
+        return {
+          allowedContentTypes: allowedTypes,
+          maximumSizeInBytes: MAX_SIZE,
+          addRandomSuffix: true,
+          tokenPayload: JSON.stringify({
+            punishmentId,
+            userId: String(user.id),
+          }),
+        };
+      },
+
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        if (!tokenPayload) throw new Error('Отсутствуют данные загрузки');
+
+        const payload = JSON.parse(tokenPayload);
+        const punishmentId = String(payload.punishmentId || '');
+        const userId = String(payload.userId || '');
+
+        if (!uuidPattern.test(punishmentId) || !userId || !blob.url) {
+          throw new Error('Некорректные данные загрузки');
+        }
+
+        // Этот callback вызывается Vercel Blob после загрузки и не обязан иметь cookie пользователя.
+        // Токен callback проверяется SDK; здесь повторно проверяем право на наказание.
+        await checkAccess(punishmentId, userId);
+
+        const type = String(blob.contentType || '').toLowerCase();
+        const kind = type.startsWith('image/') ? 'image' : 'video';
+        const filename = blob.pathname.split('/').pop()?.slice(-100) || 'evidence';
+
+        const db = sql();
+        await db`
+          INSERT INTO punishment_evidence
+            (punishment_id, kind, url, filename, uploaded_by)
+          VALUES
+            (${punishmentId}, ${kind}, ${blob.url}, ${filename}, ${userId})
+        `;
+
+        await audit(userId, 'punishment.evidence.add', 'punishment', punishmentId, { kind });
+      },
+    });
+
+    return Response.json(result);
+  } catch (error) {
+    console.error('Punishment evidence upload error:', error);
+    return Response.json(
+      { error: error instanceof Error ? error.message : 'Не удалось загрузить доказательство' },
+      { status: 400 },
+    );
+  }
+}

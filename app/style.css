@@ -48,10 +48,10 @@
 .serverStatusSection { padding-top: 32px; }
 .serverStatusCard {
   padding: 26px;
-  border: 1px solid rgba(167,139,250,.24);
+  border: 1px solid rgba(255,140,0,.38);
   border-radius: 22px;
-  background: linear-gradient(135deg, rgba(30,27,55,.92), rgba(15,18,32,.96));
-  box-shadow: 0 18px 60px rgba(0,0,0,.15);
+  background: linear-gradient(135deg, rgba(25,20,15,.97), rgba(10,10,12,.98));
+  box-shadow: 0 18px 60px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,140,0,.06);
 }
 .serverStatusTop, .serverStatusIdentity, .serverStatusBottom {
   display: flex;
@@ -67,7 +67,7 @@
   height: 52px;
   flex-shrink: 0;
   border-radius: 15px;
-  background: linear-gradient(135deg,#8b5cf6,#4f46e5);
+  background: linear-gradient(135deg,#ff9d00,#ff5e00);
   color: white;
   font-size: 25px;
   font-weight: 900;
@@ -100,7 +100,7 @@
 }
 .statusOnline { color: #4ade80; background: rgba(34,197,94,.08); }
 .statusOffline { color: #fb7185; background: rgba(244,63,94,.08); }
-.statusChecking, .statusUnknown { color: #c4b5fd; background: rgba(139,92,246,.08); }
+.statusChecking, .statusUnknown { color: #ffad42; background: rgba(255,140,0,.09); }
 .serverStatusMetrics {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1007,3 +1007,7 @@ h2 em {
     min-height: 600px;
   }
 }
+
+.socialLinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.socialLinks a{display:inline-flex;align-items:center;padding:9px 11px;border:1px solid #a78bfa55;border-radius:9px;color:#dcd3ff;text-decoration:none;font-size:11px;font-weight:800;background:#a78bfa0c}
+.socialLinks a:hover{background:#a78bfa20;border-color:#a78bfa}
