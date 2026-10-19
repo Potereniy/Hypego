@@ -1022,3 +1022,32 @@ h2 em {
 .profileContentGridHidden{display:none!important}
 .profileTabs button.selected{border-color:#ff7a00;background:#ff7a0018;color:#fff}
 @media(max-width:850px){.top nav.siteNav{overflow:visible;flex-wrap:wrap;row-gap:7px}.siteNav .navDropdown{left:auto;right:0;max-width:min(85vw,260px)}}
+
+
+/* Hypego support tickets */
+.supportLayout{display:grid;grid-template-columns:minmax(250px,.75fr) minmax(0,1.5fr);gap:16px;align-items:start}
+.supportSidebar,.supportConversation{min-width:0}
+.supportSidebar>.primary{width:100%;margin:8px 0 14px}
+.supportTicketList{display:grid;gap:8px;margin-top:12px}
+.supportTicket{display:grid;gap:7px;text-align:left;width:100%;padding:13px;background:#090d16;border:1px solid var(--line);border-radius:10px;overflow-wrap:anywhere}
+.supportTicket.active{border-color:var(--accent);background:#a78bfa12}
+.supportTicket strong{font-size:12px}
+.supportTicket span,.supportTicket small{font-size:10px;color:var(--muted)}
+.supportTicket .supportUnread{color:var(--accent2)}
+.supportConversation{display:flex;flex-direction:column;gap:14px}
+.supportConversation h3{margin:5px 0 8px;overflow-wrap:anywhere}
+.supportConversationHead{display:flex;justify-content:space-between;gap:12px}
+.supportActions{display:flex;flex-wrap:wrap;gap:8px}
+.supportTransfer{display:flex;flex:1;min-width:220px;gap:6px}
+.supportTransfer input{width:100%;min-width:0;background:#090d16;border:1px solid var(--line);border-radius:8px;padding:9px;color:white;font-size:11px}
+.supportMessages{display:flex;flex-direction:column;gap:10px;max-height:480px;overflow:auto;padding:4px 2px}
+.supportMessage{align-self:flex-start;max-width:90%;padding:12px 14px;border:1px solid var(--line);background:#090d16;border-radius:12px;overflow-wrap:anywhere}
+.supportMessage.mine{align-self:flex-end;background:#a78bfa12;border-color:#a78bfa55}
+.supportMessageMeta{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.supportMessageMeta strong{font-size:11px}
+.supportMessageMeta time{font-size:9px;color:var(--muted)}
+.supportMessage p{white-space:pre-wrap;font-size:12px;line-height:1.7;margin:8px 0 0}
+.supportReply{display:flex;align-items:stretch;gap:9px}
+.supportReply textarea{flex:1;min-width:0;min-height:72px;resize:vertical;background:#090d16;border:1px solid var(--line);border-radius:10px;color:white;padding:12px;font-size:12px}
+.supportReply .primary{align-self:flex-end}
+@media(max-width:760px){.supportLayout{grid-template-columns:1fr}.supportMessages{max-height:400px}.supportReply{flex-direction:column}.supportReply .primary{align-self:stretch}.supportActions>*{max-width:100%}}

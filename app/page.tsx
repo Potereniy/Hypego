@@ -26,7 +26,7 @@ async function load(){try{const j=await api('me');setUser(j.user);setRoles(j.rol
 async function loadProducts(s=store){try{const j=await api('products?store='+s);setProducts(j.products||[])}catch(e:any){setNotice(e.message)}}
 const routeKeyRef=useRef('home|overview|main'),skipRoutePushRef=useRef(false);
 useEffect(()=>{
-  const allowed=['home','shop','rules','players','groups','trainee','profile','profile-settings','billing','friends','admin','auth'];
+  const allowed=['home','shop','rules','players','groups','trainee','profile','profile-settings','billing','friends','admin','support','auth'];
   const readRoute=()=>{
     const params=new URLSearchParams(window.location.search);
     const requested=params.get('tab')||'home';
@@ -252,7 +252,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
   <span className="brandWord">
     <span className="brandHype">HYPE</span><span className="brandGo">GO</span>
   </span>
-</a><nav className="siteNav"><button type="button" onClick={()=>{setTab('home');setOpenNav('')}}>Главная</button><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='community'} onClick={()=>setOpenNav(openNav==='community'?'':'community')}>Сообщество⌄</button>{openNav==='community'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('players');setOpenNav('')}}>Игроки</button><button type="button" onClick={()=>{setTab('groups');setOpenNav('')}}>Наказания</button>{user&&<button type="button" onClick={()=>{setTab('friends');setOpenNav('')}}>Друзья</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='shop'} onClick={()=>setOpenNav(openNav==='shop'?'':'shop')}>Магазин⌄</button>{openNav==='shop'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('shop');setStore('main');setOpenNav('')}}>Основной магазин</button>{isStaff&&<button type="button" onClick={()=>{setTab('shop');setStore('staff');setOpenNav('')}}>Магазин персонала</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='help'} onClick={()=>setOpenNav(openNav==='help'?'':'help')}>Справка⌄</button>{openNav==='help'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('rules');setOpenNav('')}}>Правила</button><button type="button" onClick={()=>{setTab('trainee');setOpenNav('')}}>Стажировка</button></div>}</div>{isStaff&&<button type="button" onClick={()=>{setTab('admin');setOpenNav('')}}>Управление</button>}</nav><div className="right">{user?<><div className="headerBalance"><small>БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} ₽</strong></div><div className="headerBalance headerHpBalance"><small>HYPE POINTS</small><strong>{Number(user.hp_balance||0).toLocaleString("ru-RU")} HP</strong></div><button type="button" className="accountTrigger" onClick={()=>setDrawerOpen(true)} aria-label="Открыть меню профиля"><span className="accountAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><span className="accountIdentity"><strong style={{color:user.nickname_color}}>{user.username}</strong><small>Мой аккаунт</small></span><span className="accountChevron">☰</span></button></>:<button className="primary" onClick={()=>setTab('auth')}>Войти</button>}</div></header>
+</a><nav className="siteNav"><button type="button" onClick={()=>{setTab('home');setOpenNav('')}}>Главная</button><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='community'} onClick={()=>setOpenNav(openNav==='community'?'':'community')}>Сообщество⌄</button>{openNav==='community'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('players');setOpenNav('')}}>Игроки</button><button type="button" onClick={()=>{setTab('groups');setOpenNav('')}}>Наказания</button>{user&&<button type="button" onClick={()=>{setTab('friends');setOpenNav('')}}>Друзья</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='shop'} onClick={()=>setOpenNav(openNav==='shop'?'':'shop')}>Магазин⌄</button>{openNav==='shop'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('shop');setStore('main');setOpenNav('')}}>Основной магазин</button>{isStaff&&<button type="button" onClick={()=>{setTab('shop');setStore('staff');setOpenNav('')}}>Магазин персонала</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='help'} onClick={()=>setOpenNav(openNav==='help'?'':'help')}>Справка⌄</button>{openNav==='help'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('rules');setOpenNav('')}}>Правила</button><button type="button" onClick={()=>{setTab('trainee');setOpenNav('')}}>Стажировка</button>{user&&<button type="button" onClick={()=>{setTab('support');setOpenNav('')}}>Техподдержка</button>}</div>}</div>{isStaff&&<button type="button" onClick={()=>{setTab('admin');setOpenNav('')}}>Управление</button>}</nav><div className="right">{user?<><div className="headerBalance"><small>БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} ₽</strong></div><div className="headerBalance headerHpBalance"><small>HYPE POINTS</small><strong>{Number(user.hp_balance||0).toLocaleString("ru-RU")} HP</strong></div><button type="button" className="accountTrigger" onClick={()=>setDrawerOpen(true)} aria-label="Открыть меню профиля"><span className="accountAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><span className="accountIdentity"><strong style={{color:user.nickname_color}}>{user.username}</strong><small>Мой аккаунт</small></span><span className="accountChevron">☰</span></button></>:<button className="primary" onClick={()=>setTab('auth')}>Войти</button>}</div></header>
 {drawerOpen&&user&&<div className="drawerLayer"><button type="button" className="drawerScrim" aria-label="Закрыть меню" onClick={()=>setDrawerOpen(false)}></button><aside className="profileDrawer" aria-label="Меню аккаунта"><div className="drawerTop"><span className="eyebrow">HYPEGO / ACCOUNT</span><button type="button" className="drawerClose" onClick={()=>setDrawerOpen(false)}>×</button></div><div className="drawerUser"><div className="drawerAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</div><div><strong style={{color:user.nickname_color}}>{user.display_name||user.username}</strong><small>@{user.username}</small></div></div><div className="drawerBalance"><small>ТВОЙ БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} <span>₽</span></strong><button type="button" className="outline" onClick={()=>{setTab('billing');setDrawerOpen(false)}}>＋ Пополнить баланс</button></div><div className="drawerLinks"><span className="drawerLabel">АККАУНТ</span><button type="button" onClick={()=>{setTab('profile');setDrawerOpen(false)}}>◈ <span>Профиль и настройки</span><b>›</b></button><button type="button" onClick={()=>{setTab('players');setDrawerOpen(false)}}>♙ <span>Игроки</span><b>›</b></button>
 <button type="button" onClick={()=>{setTab('friends');setDrawerOpen(false)}}>♧ <span>Друзья</span><b>›</b></button>
 <button type="button" onClick={()=>{setChatMode(true);setSelectedChat(null);setDrawerOpen(true);loadFriends()}}>✉ <span>Сообщения</span><b>›</b></button>
@@ -567,8 +567,179 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
   </article>
 </section>}
 
-{tab==='rules'&&<Rules/>}{tab==='groups'&&<Punishments user={user} roles={roles} onNotice={setNotice}/>}{tab==='players'&&<Players/>}{tab==='trainee'&&<TraineeApplications user={user} roles={roles} onNotice={setNotice}/ >}{tab==='admin'&&user&&isStaff&&<><Admin roles={roles} onNotice={setNotice}/>{roles.some(r=>r.id==='curator')&&<RulesEditor onNotice={setNotice}/>}<ProductEditor onNotice={setNotice}/></>}
+{tab==='rules'&&<Rules/>}{tab==='support'&&user&&<SupportCenter user={user} onNotice={setNotice}/>}{tab==='groups'&&<Punishments user={user} roles={roles} onNotice={setNotice}/>}{tab==='players'&&<Players/>}{tab==='trainee'&&<TraineeApplications user={user} roles={roles} onNotice={setNotice}/ >}{tab==='admin'&&user&&isStaff&&<><Admin roles={roles} onNotice={setNotice}/>{roles.some(r=>r.id==='curator')&&<RulesEditor onNotice={setNotice}/>}<ProductEditor onNotice={setNotice}/></>}
 <footer><div className="brand"><span className="brandMark">H</span> HYPEGO</div><span>© {new Date().getFullYear()} Hypego Project</span><span>Игра начинается здесь.</span></footer></main>}
+
+
+function SupportCenter({user,onNotice}:{user:any,onNotice:(s:string)=>void}) {
+ const [tickets,setTickets]=useState<any[]>([]);
+ const [selectedId,setSelectedId]=useState('');
+ const [messages,setMessages]=useState<any[]>([]);
+ const [staff,setStaff]=useState(false);
+ const [category,setCategory]=useState('other');
+ const [subject,setSubject]=useState('');
+ const [body,setBody]=useState('');
+ const [draft,setDraft]=useState('');
+ const [target,setTarget]=useState('');
+ const [busy,setBusy]=useState(false);
+
+ const categoryNames:Record<string,string>={
+  account:'Аккаунт',payments:'Платежи',privileges:'Привилегии',
+  server:'Проблема на сервере',player_complaint:'Жалоба на игрока',
+  staff_complaint:'Жалоба на персонал',other:'Другое'
+ };
+ const statusNames:Record<string,string>={
+  open:'Открыто',in_progress:'В работе',closed:'Закрыто'
+ };
+ const selected=tickets.find(t=>t.id===selectedId);
+
+ async function loadTickets(){
+  try{
+   const r=await api('tickets');
+   setTickets(r.tickets||[]);
+   setStaff(Boolean(r.staff));
+   setSelectedId(old=>old&&((r.tickets||[]).some((t:any)=>t.id===old))?old:'');
+  }catch(e:any){onNotice(e.message||'Не удалось загрузить обращения');}
+ }
+
+ async function loadMessages(id:string){
+  try{
+   const r=await api('ticket-messages?ticket_id='+encodeURIComponent(id));
+   setMessages(r.messages||[]);
+  }catch(e:any){setMessages([]);onNotice(e.message||'Не удалось загрузить переписку');}
+ }
+
+ useEffect(()=>{
+  if(user?.id)loadTickets();
+ },[user?.id]);
+
+ useEffect(()=>{
+  if(selectedId)loadMessages(selectedId);
+  else setMessages([]);
+ },[selectedId]);
+
+ async function createTicket(e:any){
+  e.preventDefault();
+  if(busy)return;
+  setBusy(true);
+  try{
+   const r=await api('tickets',{
+    method:'POST',
+    body:JSON.stringify({subject,body,category})
+   });
+   setSubject('');
+   setBody('');
+   await loadTickets();
+   setSelectedId(r.ticket.id);
+   onNotice('Обращение создано');
+  }catch(err:any){onNotice(err.message||'Не удалось создать обращение');}
+  finally{setBusy(false);}
+ }
+
+ async function sendMessage(e:any){
+  e.preventDefault();
+  if(!selectedId||!draft.trim()||busy)return;
+  setBusy(true);
+  try{
+   await api('ticket-messages',{
+    method:'POST',
+    body:JSON.stringify({ticket_id:selectedId,body:draft})
+   });
+   setDraft('');
+   await loadMessages(selectedId);
+   await loadTickets();
+  }catch(err:any){onNotice(err.message||'Не удалось отправить сообщение');}
+  finally{setBusy(false);}
+ }
+
+ async function ticketAction(action:string,assigned_to?:string){
+  if(!selectedId||busy)return;
+  setBusy(true);
+  try{
+   await api('tickets',{
+    method:'PATCH',
+    body:JSON.stringify({ticket_id:selectedId,action,assigned_to})
+   });
+   await loadTickets();
+   await loadMessages(selectedId);
+   onNotice('Обращение обновлено');
+  }catch(err:any){onNotice(err.message||'Не удалось изменить обращение');}
+  finally{setBusy(false);}
+ }
+
+ return <section className="section supportCenter">
+  <div className="sectionHead">
+   <div><span className="eyebrow">HYPEGO / SUPPORT</span><h2>Техподдержка</h2></div>
+   <p>{staff?'Очередь обращений игроков':'Создай обращение и следи за ответами здесь'}</p>
+  </div>
+  <div className="supportLayout">
+   <div className="panel supportSidebar">
+    <h3>{staff?'Очередь обращений':'Мои обращения'}</h3>
+    <button className="primary" type="button" onClick={()=>setSelectedId('')}>＋ Новое обращение</button>
+    <div className="supportTicketList">
+     {tickets.map((t:any)=><button type="button" key={t.id}
+      className={'supportTicket '+(selectedId===t.id?'active':'')}
+      onClick={()=>setSelectedId(t.id)}>
+      <strong>{t.subject}</strong>
+      <span>{categoryNames[t.category]||'Другое'} · {statusNames[t.status]||t.status}</span>
+      {staff&&<small>Игрок: {t.username||'—'}</small>}
+      {Number(t.unread_count)>0&&<small className="supportUnread">Непрочитано: {t.unread_count}</small>}
+     </button>)}
+     {!tickets.length&&<p className="muted">Обращений пока нет.</p>}
+    </div>
+   </div>
+
+   <div className="panel supportConversation">
+    {!selectedId?<>
+     <h3>Новое обращение</h3>
+     <p className="muted">Опиши проблему подробно. Не отправляй пароли и коды подтверждения.</p>
+     <form className="form" onSubmit={createTicket}>
+      <label>Категория
+       <select value={category} onChange={e=>setCategory(e.target.value)}>
+        {Object.entries(categoryNames).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+       </select>
+      </label>
+      <label>Тема
+       <input required minLength={3} maxLength={120} value={subject} onChange={e=>setSubject(e.target.value)} placeholder="Кратко опиши вопрос"/>
+      </label>
+      <label>Сообщение
+       <textarea required minLength={5} maxLength={4000} value={body} onChange={e=>setBody(e.target.value)} placeholder="Что произошло? Что ты уже пробовал?"/>
+      </label>
+      <button className="primary" disabled={busy} type="submit">{busy?'Отправка…':'Создать обращение'}</button>
+     </form>
+    </>:selected?<>
+     <div className="supportConversationHead">
+      <div><span className="eyebrow">{categoryNames[selected.category]||'Обращение'}</span><h3>{selected.subject}</h3>
+       <span className="muted">Статус: {statusNames[selected.status]||selected.status}</span>
+       {staff&&<p className="muted">Игрок: {selected.username||'—'} · Ответственный: {selected.assigned_to||'не назначен'}</p>}
+      </div>
+     </div>
+     {staff&&<div className="supportActions">
+      <button className="outline" type="button" disabled={busy} onClick={()=>ticketAction('assign')}>Взять в работу</button>
+      {selected.status==='closed'
+       ?<button className="outline" type="button" disabled={busy} onClick={()=>ticketAction('reopen')}>Открыть повторно</button>
+       :<button className="outline" type="button" disabled={busy} onClick={()=>ticketAction('close')}>Закрыть</button>}
+      <div className="supportTransfer">
+       <input value={target} onChange={e=>setTarget(e.target.value)} placeholder="UUID сотрудника"/>
+       <button className="outline" type="button" disabled={busy||!target.trim()} onClick={()=>ticketAction('transfer',target.trim())}>Передать</button>
+      </div>
+     </div>}
+     <div className="supportMessages">
+      {messages.map((m:any)=><div key={m.id} className={'supportMessage '+(m.sender_id===user.id?'mine':'')}>
+       <div className="supportMessageMeta"><strong>{m.sender_username|| (m.sender_id===user.id?'Вы':'Участник')}</strong><time>{m.created_at?new Date(m.created_at).toLocaleString('ru-RU'):''}</time></div>
+       <p>{m.body}</p>
+      </div>)}
+      {!messages.length&&<p className="muted">Сообщений пока нет.</p>}
+     </div>
+     {selected.status!=='closed'||staff?<form className="supportReply" onSubmit={sendMessage}>
+      <textarea required maxLength={4000} value={draft} onChange={e=>setDraft(e.target.value)} placeholder="Напиши сообщение…"/>
+      <button className="primary" disabled={busy||!draft.trim()} type="submit">Отправить</button>
+     </form>:<p className="muted">Обращение закрыто. Если проблема осталась, создай новое.</p>}
+    </>:<p className="muted">Выбери обращение из списка.</p>}
+   </div>
+  </div>
+ </section>;
+}
 
 function ServerStatus() {
   const [status, setStatus] = useState<{
