@@ -223,13 +223,13 @@ if(key==='players'&&method==='GET'){const q=(req.nextUrl.searchParams.get('q')||
   return Response.json({player:rows[0]});
  }
  if(key==='roles'&&method==='GET'){const u=await requireUser();const rows=await db`SELECT r.id,r.title,r.rank,EXISTS(SELECT 1 FROM user_roles ur WHERE ur.user_id=${u.id} AND ur.role_id=r.id) AS assigned FROM roles r ORDER BY r.rank DESC`;return Response.json({roles:rows});}
- if(key==='admin/users'&&method==='GET'){const actor=await requireUser();const privilegeStaff=!!(await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} AND role_id IN ('owner','deputy','management','curator','tech_admin','support') LIMIT 1`).length;if(!privilegeStaff&&!await hasPermission(actor.id,'admin.users')&&!await hasPermission(actor.id,'staff.roles.assign_limited')&&!await hasPermission(actor.id,'staff.salary.manage'))throw new HttpError(403,'Недостаточно прав');const q=(req.nextUrl.searchParams.get('q')||'').slice(0,50);const rows=await db`SELECT u.id,u.username,u.is_banned,u.donation_balance_rub_kopecks,u.hp_balance,u.created_at,COALESCE(json_agg(json_build_object('id',r.id,'title',r.title)) FILTER(WHERE r.id IS NOT NULL),'[]') roles FROM users u LEFT JOIN user_roles ur ON ur.user_id=u.id LEFT JOIN roles r ON r.id=ur.role_id WHERE u.username ILIKE ${'%'+q+'%'} GROUP BY u.id ORDER BY u.created_at DESC LIMIT 100`;return Response.json({users:rows});}
+ if(key==='admin/users'&&method==='GET'){const actor=await requireUser();const privilegeStaff=!!actor.is_project_owner||!!(await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} AND role_id IN ('owner','deputy','management','curator','tech_admin','support') LIMIT 1`).length;if(!privilegeStaff&&!await hasPermission(actor.id,'admin.users')&&!await hasPermission(actor.id,'staff.roles.assign_limited')&&!await hasPermission(actor.id,'staff.salary.manage'))throw new HttpError(403,'Недостаточно прав');const q=(req.nextUrl.searchParams.get('q')||'').slice(0,50);const rows=await db`SELECT u.id,u.username,u.is_banned,u.donation_balance_rub_kopecks,u.hp_balance,u.created_at,COALESCE(json_agg(json_build_object('id',r.id,'title',r.title)) FILTER(WHERE r.id IS NOT NULL),'[]') roles FROM users u LEFT JOIN user_roles ur ON ur.user_id=u.id LEFT JOIN roles r ON r.id=ur.role_id WHERE u.username ILIKE ${'%'+q+'%'} GROUP BY u.id ORDER BY u.created_at DESC LIMIT 100`;return Response.json({users:rows});}
  if(key==='admin/roles'&&method==='POST'){
 const actor=await requireUser(),b=await bodyJson(req),target=String(b.user_id||''),role=String(b.role_id||'');
 if(!staffRoleIds.includes(role)&&role!=='player'&&role!=='chsp')throw new HttpError(400,'Неизвестная роль');
 const permanent=!!(await db`SELECT 1 FROM users WHERE id=${actor.id} AND is_project_owner=TRUE LIMIT 1`).length;
 const ownerRole=!!(await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} AND role_id='owner' LIMIT 1`).length;
-const canAny=permanent||await hasPermission(actor.id,'staff.roles.assign_any');
+const canAny=permanent||ownerRole||await hasPermission(actor.id,'staff.roles.assign_any');
 const canLimited=permanent||await hasPermission(actor.id,'staff.roles.assign_limited');
 if(role==='curator'&&!permanent&&!ownerRole)throw new HttpError(403,'Назначать Куратора может только постоянный владелец');
 if(role==='chsp'&&!permanent&&!ownerRole)throw new HttpError(403,'Назначать ЧСП может только постоянный владелец');
@@ -240,7 +240,7 @@ const t=await db`SELECT id FROM users WHERE id=${target} LIMIT 1`;
 if(!t.length)throw new HttpError(404,'Пользователь не найден');
 if(role==='owner'){
 const existing=await db`SELECT 1 FROM user_roles WHERE user_id=${target} AND role_id='owner'`;
-if(!existing.length)await db`DELETE FROM user_roles WHERE role_id='owner'`;
+
 }
 await db`INSERT INTO user_roles(user_id,role_id,assigned_by) VALUES(${target},${role},${actor.id}) ON CONFLICT DO NOTHING`;
 await audit(actor.id,'staff.role.assign','user',target,{role});
@@ -253,7 +253,7 @@ const ownerRole=!!(await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} A
 if(role==='owner'&&!permanent&&!ownerRole)throw new HttpError(403,'Снимать роль владельца может только постоянный владелец');
 if(role==='curator'&&!permanent&&!ownerRole)throw new HttpError(403,'Снимать Куратора может только постоянный владелец');
 if(role==='chsp'&&!permanent&&!ownerRole)throw new HttpError(403,'Снимать ЧСП может только постоянный владелец');
-const canAny=permanent||await hasPermission(actor.id,'staff.roles.assign_any');
+const canAny=permanent||ownerRole||await hasPermission(actor.id,'staff.roles.assign_any');
 const canLimited=permanent||await hasPermission(actor.id,'staff.roles.assign_limited');
 if(!canAny&&!canLimited)throw new HttpError(403,'Нет права снимать роли');
 if(!canAny&&!allowedByCurator.includes(role))throw new HttpError(403,'Недостаточно прав');
