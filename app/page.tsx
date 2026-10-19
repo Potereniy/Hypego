@@ -1200,22 +1200,37 @@ function Punishments({user,roles,onNotice}:{user:User|null;roles:any[];onNotice:
   </section>;
 }
 
+
 function PrivilegeManager({onNotice}:{onNotice:(s:string)=>void}){
 const [users,setUsers]=useState<any[]>([]);
 const [q,setQ]=useState('');
 const [target,setTarget]=useState('');
-const [minecraft,setMinecraft]=useState('');
-const [product,setProduct]=useState('');
-const [server,setServer]=useState('Hypego');
+const [kind,setKind]=useState('privilege');
+const [catalog,setCatalog]=useState<any[]>([]);
+const [productId,setProductId]=useState('');
+const [quantity,setQuantity]=useState('1');
 const [items,setItems]=useState<any[]>([]);
 const [busy,setBusy]=useState(false);
+
+const filteredProducts=catalog.filter((p:any)=>
+  kind==='case'?Boolean(p.is_case):!p.is_case
+);
+const selectedProduct=filteredProducts.find((p:any)=>p.id===productId);
 
 async function searchUsers(){
   try{
     const j=await api('admin/users?q='+encodeURIComponent(q));
-    const next=j.users||[];
-    setUsers(next);
-    if(target&&!next.some((u:any)=>u.id===target))setTarget('');
+    setUsers(j.users||[]);
+    if(target&&!(j.users||[]).some((u:any)=>u.id===target))setTarget('');
+  }catch(e:any){onNotice(e.message)}
+}
+
+async function loadCatalog(){
+  try{
+    const j=await api('admin/privilege-products');
+    const next=j.products||[];
+    setCatalog(next);
+    if(!next.some((p:any)=>p.id===productId))setProductId('');
   }catch(e:any){onNotice(e.message)}
 }
 
@@ -1226,71 +1241,102 @@ async function loadPrivileges(){
   }catch(e:any){onNotice(e.message)}
 }
 
-useEffect(()=>{searchUsers();loadPrivileges()},[]);
+useEffect(()=>{searchUsers();loadCatalog();loadPrivileges()},[]);
+
+useEffect(()=>{
+  if(!filteredProducts.some((p:any)=>p.id===productId)){
+    setProductId(filteredProducts[0]?.id||'');
+  }
+},[kind,catalog,productId]);
 
 async function issue(){
-  if(!target||!minecraft.trim()||!product.trim()){
-    onNotice('Выбери аккаунт и укажи Minecraft-ник и название привилегии или кейса.');
-    return;
+  const count=Number(quantity);
+  if(!target){onNotice('Сначала выбери игрока.');return}
+  if(!productId){onNotice('В выбранной категории нет доступных товаров.');return}
+  if(!/^[0-9]+$/.test(quantity)||!Number.isSafeInteger(count)||count<1||count>1000000){
+    onNotice('Количество должно быть целым числом от 1 до 1000000.');return
   }
   setBusy(true);
   try{
     const j=await api('admin/privileges',{
       method:'POST',
-      body:JSON.stringify({
-        user_id:target,
-        minecraft_username:minecraft.trim(),
-        product_name:product.trim(),
-        server_name:server.trim()||'Hypego'
-      })
+      body:JSON.stringify({user_id:target,product_id:productId,quantity:count})
     });
-    onNotice(j.message||'Заявка сохранена.');
-    setProduct('');
-    await loadPrivileges();
+    onNotice(j.message||'Выдача сохранена.');
+    setQuantity('1');
+    await Promise.all([loadPrivileges(),searchUsers()]);
   }catch(e:any){onNotice(e.message)}
   finally{setBusy(false)}
 }
 
 return <div className="panel form">
-  <h3>Minecraft-привилегии и кейсы</h3>
-  <p className="muted">Создание заявки на привилегию или кейс для выбранного аккаунта.</p>
+  <h3>Выдача привилегий и кейсов</h3>
+  <p className="muted">Выбери игрока, товар и количество. Выдача сохраняется сразу, без заявок.</p>
+
   <div className="searchLine">
-    <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Ник или email аккаунта"/>
+    <input value={q} onChange={e=>setQ(e.target.value)}
+      onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();searchUsers()}}}
+      placeholder="Ник аккаунта игрока"/>
     <button className="outline" type="button" onClick={searchUsers}>Найти</button>
   </div>
+
   <div className="userList">
-    {users.map((u:any)=><button className={'userRow '+(target===u.id?'active':'')} key={u.id} type="button" onClick={()=>setTarget(u.id)}>
+    {users.map((u:any)=><button className={'userRow '+(target===u.id?'active':'')}
+      key={u.id} type="button" onClick={()=>setTarget(u.id)}>
       <strong>{u.username}</strong>
       <small>{(u.roles||[]).map((r:any)=>r.title).join(', ')||'Игрок'}</small>
     </button>)}
   </div>
-  <label>Выбранный аккаунт
-    <input value={users.find((u:any)=>u.id===target)?.username||''} readOnly placeholder="Сначала найди и выбери аккаунт"/>
+
+  <label>Выбранный игрок
+    <input value={users.find((u:any)=>u.id===target)?.username||''}
+      readOnly placeholder="Найди и выбери игрока"/>
   </label>
-  <label>Minecraft-ник
-    <input value={minecraft} onChange={e=>setMinecraft(e.target.value)} placeholder="Ник игрока на сервере"/>
+
+  <label>Категория
+    <select value={kind} onChange={e=>setKind(e.target.value)}>
+      <option value="privilege">Привилегии</option>
+      <option value="case">Кейсы</option>
+    </select>
   </label>
-  <label>Привилегия или кейс
-    <input value={product} onChange={e=>setProduct(e.target.value)} placeholder="Например: VIP или Кейс"/>
+
+  <label>Товар
+    <select value={productId} onChange={e=>setProductId(e.target.value)} required>
+      {filteredProducts.length===0&&<option value="">Нет доступных товаров</option>}
+      {filteredProducts.map((p:any)=><option value={p.id} key={p.id}>
+        {p.name}{p.store==='staff'?' · Магазин персонала':''}
+      </option>)}
+    </select>
   </label>
-  <label>Сервер
-    <input value={server} onChange={e=>setServer(e.target.value)} placeholder="Hypego"/>
+
+  {selectedProduct&&<p className="muted">{selectedProduct.description||'Товар из каталога Hypego'}</p>}
+
+  <label>Количество
+    <input type="text" inputMode="numeric" pattern="[0-9]*"
+      value={quantity} onChange={e=>setQuantity(e.target.value)}
+      placeholder="1" required/>
   </label>
-  <button className="primary" type="button" disabled={busy||!target||!minecraft.trim()||!product.trim()} onClick={issue}>
-    {busy?'Сохранение…':'Создать заявку'}
+
+  <button className="primary" type="button"
+    disabled={busy||!target||!productId||!quantity}
+    onClick={issue}>
+    {busy?'Выдаём…':'Выдать'}
   </button>
+
   <hr/>
   <div className="rowBetween">
-    <h3>Последние заявки</h3>
-    <button className="outline" type="button" onClick={loadPrivileges}>Обновить</button>
+    <h3>История выдач</h3>
+    <button className="outline" type="button"
+      onClick={()=>{loadPrivileges();loadCatalog()}}>Обновить</button>
   </div>
-  {items.length===0?<p className="muted">Заявок пока нет.</p>:<div className="userList">
+
+  {items.length===0?<p className="muted">Выдач пока нет.</p>:<div className="userList">
     {items.map((x:any)=><div className="userRow" key={x.id}>
-      <strong>{x.product_name||'Привилегия'} — {x.minecraft_username||'без ника'}</strong>
-      <small>Аккаунт: {x.account_username||x.user_id} · Сервер: {x.server_name||'Hypego'} · Статус: {x.status||'не указан'}</small>
+      <strong>{x.product_name||'Товар'} × {x.quantity||1}</strong>
+      <small>Аккаунт: {x.account_username||x.user_id} · Minecraft: {x.minecraft_username} · Статус: {x.status}</small>
     </div>)}
   </div>}
-  <p className="tiny">Заявка сохраняется в базе данных. Фактическая выдача на Minecraft-сервере требует настроенного Minecraft bridge.</p>
+  <p className="tiny">Статус active означает, что выдача записана в базе Hypego. Для автоматического применения на Minecraft-сервере необходима настроенная интеграция с сервером.</p>
 </div>;
 }
 

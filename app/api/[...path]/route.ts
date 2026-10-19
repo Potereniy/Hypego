@@ -553,24 +553,97 @@ if(key==='tickets'&&method==='PATCH'){
  return Response.json({ticket:rows[0]});
 }
 
-if(key==='admin/privileges'&&method==='POST'){
-const actor=await requireUser();
-const allowed=await db`SELECT 1 FROM users u WHERE u.id=${actor.id} AND (u.is_project_owner=TRUE OR EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role_id IN ('owner','deputy','management','curator','tech_admin','support'))) LIMIT 1`;
-if(!allowed.length)throw new HttpError(403,'Нет права выдавать Minecraft-привилегии и кейсы');
-const b=await bodyJson(req),target=String(b.user_id||''),username=String(b.minecraft_username||''),productName=String(b.product_name||'').trim(),server=String(b.server_name||'Hypego'),expires=b.expires_at||null;
-if(!/^[A-Za-z0-9_]{3,24}$/.test(username)||productName.length<2)throw new HttpError(400,'Проверь ник и привилегию');
-const targetRows=await db`SELECT id FROM users WHERE id=${target} LIMIT 1`;
-if(!targetRows.length)throw new HttpError(404,'Аккаунт пользователя не найден');
-const rows=await db`INSERT INTO privileges(user_id,server_name,minecraft_username,product_name,expires_at,status) VALUES(${target},${server},${username},${productName},${expires},'pending') RETURNING *`;
-await audit(actor.id,'privilege.issue.request','privilege',rows[0].id,{username,productName});
-return Response.json({privilege:rows[0],delivery:'pending',message:'Заявка сохранена. Для фактической выдачи требуется настроенный Minecraft bridge.'},{status:201});
+
+if(key==='admin/privilege-products'&&method==='GET'){
+ const actor=await requireUser();
+ const allowed=await db`SELECT 1 FROM users u WHERE u.id=${actor.id} AND (
+  u.is_project_owner=TRUE OR EXISTS(
+   SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id
+   AND ur.role_id IN ('owner','deputy','management','curator','tech_admin','support')
+  )
+ ) LIMIT 1`;
+ if(!allowed.length)throw new HttpError(403,'Нет доступа к каталогу выдачи');
+ const products=await db`
+  SELECT id,slug,name,description,category,store,
+   (lower(name) LIKE '%кейс%' OR lower(name) LIKE '%case%'
+    OR lower(slug) LIKE '%кейс%' OR lower(slug) LIKE '%case%') AS is_case
+  FROM products
+  WHERE active=TRUE AND (
+   category IN ('rank','privilege')
+   OR lower(name) LIKE '%кейс%' OR lower(name) LIKE '%case%'
+   OR lower(slug) LIKE '%кейс%' OR lower(slug) LIKE '%case%'
+  )
+  ORDER BY store,category,name`;
+ return Response.json({products});
 }
- if(key==='admin/privileges'&&method==='GET'){
-const actor=await requireUser();
-const allowed=await db`SELECT 1 FROM users u WHERE u.id=${actor.id} AND (u.is_project_owner=TRUE OR EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role_id IN ('owner','deputy','management','curator','tech_admin','support'))) LIMIT 1`;
-if(!allowed.length)throw new HttpError(403,'Нет доступа к управлению Minecraft-привилегиями');
-const rows=await db`SELECT p.*,u.username account_username FROM privileges p JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 200`;
-return Response.json({privileges:rows});
+
+if(key==='admin/privileges'&&method==='POST'){
+ const actor=await requireUser();
+ const allowed=await db`SELECT 1 FROM users u WHERE u.id=${actor.id} AND (
+  u.is_project_owner=TRUE OR EXISTS(
+   SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id
+   AND ur.role_id IN ('owner','deputy','management','curator','tech_admin','support')
+  )
+ ) LIMIT 1`;
+ if(!allowed.length)throw new HttpError(403,'Нет права выдавать Minecraft-привилегии и кейсы');
+
+ const b=await bodyJson(req);
+ const target=String(b.user_id||'');
+ const productId=String(b.product_id||'');
+ const quantity=Number(b.quantity);
+ if(!/^[0-9]+$/.test(String(b.quantity??''))||!Number.isSafeInteger(quantity)||quantity<1||quantity>1000000)
+  throw new HttpError(400,'Количество должно быть целым числом от 1 до 1000000');
+
+ const targetRows=await db`SELECT id,username FROM users WHERE id=${target} LIMIT 1`;
+ if(!targetRows.length)throw new HttpError(404,'Аккаунт пользователя не найден');
+ const username=String(targetRows[0].username||'');
+ if(!/^[A-Za-z0-9_]{3,24}$/.test(username))
+  throw new HttpError(400,'Ник выбранного аккаунта не подходит для Minecraft');
+
+ const products=await db`
+  SELECT id,name,slug,
+   (lower(name) LIKE '%кейс%' OR lower(name) LIKE '%case%'
+    OR lower(slug) LIKE '%кейс%' OR lower(slug) LIKE '%case%') AS is_case
+  FROM products WHERE id=${productId} AND active=TRUE LIMIT 1`;
+ if(!products.length)throw new HttpError(404,'Товар не найден или отключён');
+ const product=products[0];
+ const isCase=Boolean(product.is_case);
+ const validCategory=await db`
+  SELECT id FROM products WHERE id=${productId} AND active=TRUE AND (
+   category IN ('rank','privilege')
+   OR lower(name) LIKE '%кейс%' OR lower(name) LIKE '%case%'
+   OR lower(slug) LIKE '%кейс%' OR lower(slug) LIKE '%case%'
+  ) LIMIT 1`;
+ if(!validCategory.length)throw new HttpError(400,'Этот товар нельзя выдать через данный раздел');
+
+ const rows=await db`
+  INSERT INTO privileges(user_id,server_name,minecraft_username,product_name,quantity,status)
+  VALUES(${target},'Hypego',${username},${product.name},${quantity},'active')
+  RETURNING *`;
+ await audit(actor.id,'privilege.issue','privilege',rows[0].id,{
+  username,product_name:product.name,product_id:productId,quantity,is_case:isCase
+ });
+ return Response.json({
+  privilege:rows[0],
+  delivery:'active',
+  message:'Выдача сохранена в Hypego. Для автоматического применения на Minecraft-сервере требуется настроенная интеграция.'
+ },{status:201});
+}
+
+if(key==='admin/privileges'&&method==='GET'){
+ const actor=await requireUser();
+ const allowed=await db`SELECT 1 FROM users u WHERE u.id=${actor.id} AND (
+  u.is_project_owner=TRUE OR EXISTS(
+   SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id
+   AND ur.role_id IN ('owner','deputy','management','curator','tech_admin','support')
+  )
+ ) LIMIT 1`;
+ if(!allowed.length)throw new HttpError(403,'Нет доступа к управлению Minecraft-привилегиями');
+ const rows=await db`
+  SELECT p.*,u.username account_username
+  FROM privileges p JOIN users u ON u.id=p.user_id
+  ORDER BY p.created_at DESC LIMIT 200`;
+ return Response.json({privileges:rows});
 }
 
  if(key==='trainee-applications'&&method==='GET'){
