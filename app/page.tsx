@@ -20,9 +20,22 @@ type User={
   donation_balance_rub_kopecks:string|number;
   hp_balance:string|number;
 };
-type Product={id:string;name:string;description:string;category:string;store:string;price_cents:number;currency:string;discount_percent:number;requires_staff:boolean};
+type Product={id:string;slug?:string;name:string;description:string;category:string;store:string;price_rub_kopecks:number|string;price_hp:number|string;discount_percent:number;requires_staff:boolean;stock?:number|null};
+function isCaseProduct(p:Product){
+  return String(p.category||'').toLowerCase()==='consumable' &&
+    /(?:case|box|ящик|кейс)/i.test(String(p.slug||'')+' '+String(p.name||''));
+}
+function productUnitPrice(p:Product){
+  const raw=p.store==='staff'?Number(p.price_hp||0):Number(p.price_rub_kopecks||0);
+  return Math.round(raw*(100-Number(p.discount_percent||0))/100);
+}
+function productPriceLabel(p:Product){
+  const n=productUnitPrice(p);
+  if(n<=0)return 'Цена не установлена';
+  return p.store==='staff'?n+' HP':(n/100).toFixed(2)+' ₽';
+}
 async function api(url:string,init?:RequestInit){const r=await fetch('/api/'+url,{...init,headers:{'Content-Type':'application/json',...(init?.headers||{})}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Ошибка запроса');return j;}
-export default function Home(){const [user,setUser]=useState<User|null>(null),[roles,setRoles]=useState<any[]>([]),[products,setProducts]=useState<Product[]>([]),[tab,setTab]=useState('home'),[profileSection,setProfileSection]=useState('overview'),[openNav,setOpenNav]=useState(''),[store,setStore]=useState('main'),[routeReady,setRouteReady]=useState(false),[login,setLogin]=useState(''),[password,setPassword]=useState(''),[email,setEmail]=useState(''),[mode,setMode]=useState('login'),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[display,setDisplay]=useState(''),[bio,setBio]=useState(''),[color,setColor]=useState('#a78bfa'),[nicknameEffect,setNicknameEffect]=useState('none'),[avatarFrame,setAvatarFrame]=useState('none'),[vkUrl,setVkUrl]=useState(''),[telegramUsername,setTelegramUsername]=useState(''),[target,setTarget]=useState(''),[currency,setCurrency]=useState('KZT'),[amount,setAmount]=useState('1000'),[challengeId,setChallengeId]=useState(''),[loginCode,setLoginCode]=useState(''),[forgotMode,setForgotMode]=useState(false),[forgotEmail,setForgotEmail]=useState('');
+export default function Home(){const [user,setUser]=useState<User|null>(null),[roles,setRoles]=useState<any[]>([]),[products,setProducts]=useState<Product[]>([]),[tab,setTab]=useState('home'),[profileSection,setProfileSection]=useState('overview'),[openNav,setOpenNav]=useState(''),[store,setStore]=useState('main'),[routeReady,setRouteReady]=useState(false),[login,setLogin]=useState(''),[password,setPassword]=useState(''),[email,setEmail]=useState(''),[mode,setMode]=useState('login'),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[purchaseProduct,setPurchaseProduct]=useState<Product|null>(null),[purchaseNickname,setPurchaseNickname]=useState(''),[purchaseQuantity,setPurchaseQuantity]=useState('1'),[display,setDisplay]=useState(''),[bio,setBio]=useState(''),[color,setColor]=useState('#a78bfa'),[nicknameEffect,setNicknameEffect]=useState('none'),[avatarFrame,setAvatarFrame]=useState('none'),[vkUrl,setVkUrl]=useState(''),[telegramUsername,setTelegramUsername]=useState(''),[target,setTarget]=useState(''),[currency,setCurrency]=useState('KZT'),[amount,setAmount]=useState('1000'),[challengeId,setChallengeId]=useState(''),[loginCode,setLoginCode]=useState(''),[forgotMode,setForgotMode]=useState(false),[forgotEmail,setForgotEmail]=useState('');
 async function load(){try{const j=await api('me');setUser(j.user);setRoles(j.roles||[]);setDisplay(j.user.display_name||j.user.username);setBio(j.user.bio||'');setColor(j.user.nickname_color||'#a78bfa');setNicknameEffect(j.user.nickname_effect||'none');setAvatarFrame(j.user.avatar_frame||'none');setVkUrl(j.user.vk_url||'');setTelegramUsername(j.user.telegram_username||'');return j.user as User;}catch{setUser(null);setRoles([]);return null;}}
 async function loadProducts(s=store){try{const j=await api('products?store='+s);setProducts(j.products||[])}catch(e:any){setNotice(e.message)}}
 const routeKeyRef=useRef('home|overview|main'),skipRoutePushRef=useRef(false);
@@ -162,7 +175,33 @@ async function resendVerification() {
 
 async function saveProfile(e:React.FormEvent){e.preventDefault();try{await api('profile',{method:'PATCH',body:JSON.stringify({display_name:display,bio,nickname_color:color,nickname_effect:nicknameEffect,avatar_frame:avatarFrame,vk_url:vkUrl,telegram_username:telegramUsername})});await load();setNotice('Профиль сохранён.')}catch(e:any){setNotice(e.message)}}
 async function upload(kind:string,file?:File){if(!file)return;const fd=new FormData();fd.set('kind',kind);fd.set('file',file);try{const r=await fetch('/api/profile/upload',{method:'POST',body:fd});const j=await r.json();if(!r.ok)throw new Error(j.error);await load();setNotice('Изображение обновлено.')}catch(e:any){setNotice(e.message)}}
-async function buy(p:Product){const mc=prompt('Minecraft-ник, которому выдать товар:',user?.username||'');if(!mc)return;try{const j=await api('orders',{method:'POST',body:JSON.stringify({product_id:p.id,minecraft_username:mc})});setNotice(j.payment?.message||'Заказ создан.');}catch(e:any){setNotice(e.message)}}
+function buy(p:Product){
+  setPurchaseProduct(p);
+  setPurchaseNickname(user?.username||'');
+  setPurchaseQuantity('1');
+}
+async function confirmPurchase(){
+  if(!purchaseProduct)return;
+  const p=purchaseProduct,box=isCaseProduct(p),qty=Number(purchaseQuantity),nick=purchaseNickname.trim();
+  if(!/^[A-Za-z0-9_]{3,24}$/.test(nick)){
+    setNotice('Проверь Minecraft-ник: от 3 до 24 символов.');
+    return;
+  }
+  if(!Number.isSafeInteger(qty)||qty<1||qty>(box?1000:1)){
+    setNotice(box?'Количество ящиков должно быть от 1 до 1000.':'Этот товар покупается по одной штуке.');
+    return;
+  }
+  setBusy(true);
+  try{
+    const j=await api('orders',{method:'POST',body:JSON.stringify({
+      product_id:p.id,minecraft_username:nick,quantity:box?qty:1
+    })});
+    const total=Number(j.total_amount??j.order?.amount_cents??0);
+    setPurchaseProduct(null);
+    setNotice('Покупка оформлена. Сумма: '+(p.store==='staff'?total+' HP':(total/100).toFixed(2)+' ₽')+'. Автовыдача требует интеграции сервера.');
+  }catch(e:any){setNotice(e.message||'Ошибка покупки')}
+  finally{setBusy(false)}
+}
 async function logout(){await api('auth/logout',{method:'POST'});setUser(null);setRoles([]);setNotice('Вы вышли из аккаунта.');}
 async function loadFriends(){
   try {
@@ -506,7 +545,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 </div>
 </div>
 </section>}
-{tab==='shop'&&user&&(store!=='staff'||canAccessStaffShop)&&<section className="section"><div className="sectionHead"><div><div className="eyebrow">HYPEGO STORE</div><h2>Магазин <em>{store==='staff'?'персонала':'проекта'}</em></h2></div><div className="switch"><button className={store==='main'?'selected':''} onClick={()=>setStore('main')}>Основной</button>{canAccessStaffShop&&<button className={store==='staff'?'selected':''} onClick={()=>setStore('staff')}>Персонал</button>}</div></div><div className="notice subtle">Цены и наличие задаются владельцем в админ-панели. Пока не подключён платёжный провайдер, оформление заказа не списывает деньги и не выдаёт предметы на сервере.</div><div className="productGrid">{products.map(p=><article className="product" key={p.id}><div className="productIcon">{p.category==='rank'?'♛':p.category==='consumable'?'▣':p.category==='service'?'✚':p.category==='economy'?'◉':'✧'}</div><span className="category">{p.category.toUpperCase()}</span><h3>{p.name}</h3><p>{p.description}</p><div className="priceLine"><strong>{p.price_cents>0?(p.price_cents/100*(100-p.discount_percent)/100).toFixed(2)+' '+p.currency:'Цена не установлена'}</strong>{p.discount_percent>0&&<span>-{p.discount_percent}%</span>}</div><button className="primary" onClick={()=>buy(p)}>Выбрать товар</button></article>)}</div></section>}
+{tab==='shop'&&user&&(store!=='staff'||canAccessStaffShop)&&<section className="section"><div className="sectionHead"><div><div className="eyebrow">HYPEGO STORE</div><h2>Магазин <em>{store==='staff'?'персонала':'проекта'}</em></h2></div><div className="switch"><button className={store==='main'?'selected':''} onClick={()=>setStore('main')}>Основной</button>{canAccessStaffShop&&<button className={store==='staff'?'selected':''} onClick={()=>setStore('staff')}>Персонал</button>}</div></div><div className="notice subtle">Цены и наличие задаются владельцем в админ-панели. Покупка списывает средства с внутреннего баланса. Автоматическая выдача на сервер требует настроенной интеграции.</div><div className="productGrid">{products.map(p=><article className="product" key={p.id}><div className="productIcon">{p.category==='rank'?'♛':p.category==='consumable'?'▣':p.category==='service'?'✚':p.category==='economy'?'◉':'✧'}</div><span className="category">{p.category.toUpperCase()}</span><h3>{p.name}</h3><p>{p.description}</p><div className="priceLine"><strong>{productPriceLabel(p)}</strong>{p.discount_percent>0&&<span>-{p.discount_percent}%</span>}</div><button className="primary" onClick={()=>buy(p)}>Выбрать товар</button></article>)}</div></section>}
 {tab==='billing'&&user&&<section className="panel authPanel"><div className="eyebrow">ACCOUNT BALANCE</div><h2>Пополнение баланса</h2><p className="muted">Доступные валюты интерфейса: KZT, RUB и EUR. Платёжная обработка должна быть подключена к реальному провайдеру.</p><form className="form" onSubmit={async e=>{e.preventDefault();try{await api('billing/topup',{method:'POST',body:JSON.stringify({amount_cents:Math.round(Number(amount)*100),currency})});}catch(err:any){setNotice(err.message)}}}><label>Сумма<input type="number" min="1" max="1000000" step="1" value={amount} onChange={e=>setAmount(e.target.value)}/></label><label>Валюта<select value={currency} onChange={e=>setCurrency(e.target.value)}><option>KZT</option><option>RUB</option><option>EUR</option></select></label><button className="primary big">Перейти к оплате</button></form><p className="tiny">Номер карты, CVV и платёжные данные сайт не принимает и не хранит. Пополнение недоступно, пока администратор не подключит провайдера и проверенный webhook.</p></section>}
 
 {tab==='friends'&&user&&<section className="section">
@@ -571,6 +610,35 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 </section>}
 
 {tab==='rules'&&<Rules/>}{tab==='support'&&user&&<SupportCenter user={user} onNotice={setNotice}/>}{tab==='groups'&&<Punishments user={user} roles={roles} onNotice={setNotice}/>}{tab==='players'&&<Players/>}{tab==='trainee'&&<TraineeApplications user={user} roles={roles} onNotice={setNotice}/ >}{tab==='admin'&&user&&canAccessAdmin&&<><PrivilegeManager onNotice={setNotice}/>{(isPermanentOwner||roles.some(r=>['owner','management','curator','tech_admin'].includes(r.id)))&&<Admin roles={roles} isPermanentOwner={isPermanentOwner} onNotice={setNotice}/ >}{(isPermanentOwner||roles.some(r=>r.id==='curator'))&&<RulesEditor onNotice={setNotice}/ >}{(isPermanentOwner||roles.some(r=>['owner','management','curator','tech_admin'].includes(r.id)))&&<ProductEditor onNotice={setNotice}/>}</>}
+{purchaseProduct&&<div className="purchaseLayer">
+  <button type="button" className="purchaseScrim" aria-label="Закрыть панель покупки" onClick={()=>setPurchaseProduct(null)}></button>
+  <section className="purchaseDrawer" role="dialog" aria-modal="true" aria-labelledby="purchaseTitle">
+    <div className="purchaseTop">
+      <div><div className="eyebrow">HYPEGO STORE</div><h2 id="purchaseTitle">Оформление покупки</h2></div>
+      <button type="button" className="outline" onClick={()=>setPurchaseProduct(null)}>Закрыть</button>
+    </div>
+    <div className="purchaseProduct">
+      <span className="category">{purchaseProduct.category.toUpperCase()}</span>
+      <h3>{purchaseProduct.name}</h3><p>{purchaseProduct.description}</p>
+      <div className="priceLine"><strong>{productPriceLabel(purchaseProduct)}</strong>
+      {purchaseProduct.discount_percent>0&&<span>-{purchaseProduct.discount_percent}%</span>}</div>
+    </div>
+    <label>Minecraft-ник
+      <input value={purchaseNickname} maxLength={24} placeholder="Minecraft-ник" onChange={e=>setPurchaseNickname(e.target.value)}/>
+    </label>
+    {isCaseProduct(purchaseProduct)?<label>Количество ящиков (1–1000)
+      <input type="number" min="1" max="1000" step="1" value={purchaseQuantity} onChange={e=>setPurchaseQuantity(e.target.value)}/>
+    </label>:<p className="tiny">Количество: 1 штука.</p>}
+    <div className="purchaseTotal"><span>Итого</span><strong>{(()=>{
+      const box=isCaseProduct(purchaseProduct),q=box?Number(purchaseQuantity):1;
+      const total=productUnitPrice(purchaseProduct)*q;
+      if(!Number.isSafeInteger(q)||q<1||q>(box?1000:1)||total<=0)return '—';
+      return purchaseProduct.store==='staff'?total+' HP':(total/100).toFixed(2)+' ₽';
+    })()}</strong></div>
+    <p className="tiny">Списание идёт с внутреннего баланса. Автовыдача требует интеграции сервера.</p>
+    <button type="button" className="primary" disabled={busy} onClick={confirmPurchase}>{busy?'Оформление…':'Подтвердить покупку'}</button>
+  </section>
+</div>}
 <footer><div className="brand"><span className="brandMark">H</span> HYPEGO</div><span>© {new Date().getFullYear()} Hypego Project</span><span>Игра начинается здесь.</span></footer></main>}
 
 
@@ -1677,17 +1745,17 @@ useEffect(()=>{load()},[]);
 
 async function save(p:any){
 try{
-const price=Number(p.price_cents);
+const price=p.store==='staff'?Number(p.price_hp):Number(p.price_rub_kopecks);
 const discount=Number(p.discount_percent);
 const stock=p.stock===''||p.stock===null?null:Number(p.stock);
 
-if(!Number.isSafeInteger(price)||price<0)throw new Error('Некорректная цена');
+if(!Number.isSafeInteger(price)||price<0)throw new Error(p.store==='staff'?'Цена HP должна быть целым числом от 0':'Цена в копейках должна быть целым числом от 0');
 if(!Number.isInteger(discount)||discount<0||discount>100)throw new Error('Скидка должна быть от 0 до 100');
 if(stock!==null&&(!Number.isInteger(stock)||stock<0))throw new Error('Некорректный остаток');
 
 await api('admin/products',{
 method:'PATCH',
-body:JSON.stringify({id:p.id,price_cents:price,discount_percent:discount,stock,active:Boolean(p.active)})
+body:JSON.stringify({id:p.id,[p.store==='staff'?'price_hp':'price_rub_kopecks']:price,discount_percent:discount,stock,active:Boolean(p.active)})
 });
 onNotice('Товар сохранён: '+p.name);
 await load();
@@ -1701,10 +1769,10 @@ return <section className="panel form" style={{marginTop:24}}>
 </button>
 {items.map(p=><article className="panel form" key={p.id} style={{marginTop:16}}>
 <h3>{p.name}</h3>
-<p className="tiny">{p.store} · {p.category} · {p.currency}</p>
-<label>Цена в минимальных единицах
-<input type="number" min="0" step="1" value={p.price_cents??0}
-onChange={e=>setItems(old=>old.map(x=>x.id===p.id?{...x,price_cents:e.target.value}:x))}/>
+<p className="tiny">{p.store} · {p.category} · {p.store==='staff'?'HP':'RUB'}</p>
+<label>{p.store==='staff'?'Цена в HP':'Цена в копейках'}
+<input type="number" min="0" step="1" value={p.store==='staff'?(p.price_hp??0):(p.price_rub_kopecks??0)}
+onChange={e=>setItems(old=>old.map(x=>x.id===p.id?{...x,[p.store==='staff'?'price_hp':'price_rub_kopecks']:e.target.value}:x))}/>
 </label>
 <label>Скидка (%)
 <input type="number" min="0" max="100" value={p.discount_percent??0}

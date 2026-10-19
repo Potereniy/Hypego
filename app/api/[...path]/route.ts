@@ -319,36 +319,44 @@ if(key==='admin/salary'&&method==='POST'){
     return Response.json({product:rows[0]});
   }
  if(key==='orders'&&method==='POST'){
-    const u=await requireUser(),b=await bodyJson(req),productId=String(b.product_id||''),target=String(b.minecraft_username||u.username).trim();
-    if(!/^[A-Za-z0-9_]{3,24}$/.test(target))throw new HttpError(400,'Некорректный Minecraft-ник');
-    const rows=await db`SELECT * FROM products WHERE id=${productId} AND active=TRUE LIMIT 1`;
-    if(!rows.length)throw new HttpError(404,'Товар не найден');
-    const p=rows[0];
-    const isStaffStore = p.store === 'staff';
-    if(isStaffStore && !await hasPermission(u.id,'shop.staff'))throw new HttpError(403,'Магазин персонала недоступен');
-    if(p.slug==='owner-project'||p.name==='Владелец проекта')throw new HttpError(403,'Роль владельца проекта не продаётся');
-    const rawPrice = isStaffStore ? Number(p.price_hp || 0) : Number(p.price_rub_kopecks || 0);
-    if(rawPrice <= 0)throw new HttpError(400,'У товара ещё не установлена цена. Покупка недоступна.');
-    const finalAmount = Math.round(rawPrice * (100 - Number(p.discount_percent)) / 100);
-    if(isStaffStore) {
-      const userRows = await db`SELECT hp_balance FROM users WHERE id=${u.id}`;
-      if(!userRows.length || Number(userRows[0].hp_balance) < finalAmount) {
-        throw new HttpError(400, 'Недостаточно HP для покупки');
-      }
-      await db`UPDATE users SET hp_balance = hp_balance - ${finalAmount} WHERE id=${u.id} AND hp_balance >= ${finalAmount}`;
-      await db`INSERT INTO hp_transactions(user_id, amount_hp, balance_after_hp, kind, reason) VALUES(${u.id}, ${-finalAmount}, (SELECT hp_balance FROM users WHERE id=${u.id}), 'purchase', ${'Покупка товара: ' + p.name})`;
-    } else {
-      const userRows = await db`SELECT donation_balance_rub_kopecks FROM users WHERE id=${u.id}`;
-      if(!userRows.length || Number(userRows[0].donation_balance_rub_kopecks) < finalAmount) {
-        throw new HttpError(400, 'Недостаточно средств на рублевом балансе');
-      }
-      await db`UPDATE users SET donation_balance_rub_kopecks = donation_balance_rub_kopecks - ${finalAmount} WHERE id=${u.id} AND donation_balance_rub_kopecks >= ${finalAmount}`;
-      await db`INSERT INTO wallet_transactions(user_id, amount_rub_kopecks, balance_after_rub_kopecks, kind, reason) VALUES(${u.id}, ${-finalAmount}, (SELECT donation_balance_rub_kopecks FROM users WHERE id=${u.id}), 'purchase', ${'Покупка товара: ' + p.name})`;
-    }
-    const order=await db`INSERT INTO orders(user_id,product_id,username_target,amount_cents,currency,status) VALUES(${u.id},${p.id},${target},${finalAmount},${isStaffStore ? 'HP' : 'RUB'},'paid') RETURNING id,status,amount_cents,currency`;
-    return Response.json({ok:true,order},{status:201});
+  const u=await requireUser(),b=await bodyJson(req),productId=String(b.product_id||''),target=String(b.minecraft_username||u.username).trim();
+  if(!/^[A-Za-z0-9_]{3,24}$/.test(target))throw new HttpError(400,'Некорректный Minecraft-ник');
+  const rows=await db`SELECT * FROM products WHERE id=${productId} AND active=TRUE LIMIT 1`;
+  if(!rows.length)throw new HttpError(404,'Товар не найден');
+  const p=rows[0];
+  const isStaffStore=p.store==='staff';
+  if(isStaffStore&&!await hasPermission(u.id,'shop.staff'))throw new HttpError(403,'Магазин персонала недоступен');
+  if(p.slug==='owner-project'||p.name==='Владелец проекта')throw new HttpError(403,'Роль владельца проекта не продаётся');
+
+  const isCase=String(p.category||'').toLowerCase()==='consumable'&&/(case|box|ящик|кейс)/i.test(String(p.slug||'')+' '+String(p.name||''));
+  const quantity=Number(b.quantity??1);
+  if(!Number.isSafeInteger(quantity)||quantity<1||quantity>(isCase?1000:1)){
+    throw new HttpError(400,isCase?'Количество ящиков должно быть от 1 до 1000':'Этот товар можно купить только в количестве 1 штука');
   }
- if(key==='orders'&&method==='GET'){const u=await requireUser(),rows=await db`SELECT o.id,o.username_target,o.status,o.amount_cents,o.currency,o.created_at,o.paid_at,p.name AS product_name FROM orders o JOIN products p ON p.id=o.product_id WHERE o.user_id=${u.id} ORDER BY o.created_at DESC LIMIT 100`;return Response.json({orders:rows});}
+
+  const rawPrice=isStaffStore?Number(p.price_hp||0):Number(p.price_rub_kopecks||0);
+  if(!Number.isSafeInteger(rawPrice)||rawPrice<=0)throw new HttpError(400,'У товара ещё не установлена корректная цена. Покупка недоступна.');
+  const discount=Number(p.discount_percent||0);
+  if(!Number.isInteger(discount)||discount<0||discount>100)throw new HttpError(400,'Некорректная скидка');
+  const unitAmount=Math.round(rawPrice*(100-discount)/100);
+  const finalAmount=unitAmount*quantity;
+  if(!Number.isSafeInteger(finalAmount)||finalAmount<=0)throw new HttpError(400,'Некорректная итоговая стоимость');
+
+  if(isStaffStore){
+    const userRows=await db`SELECT hp_balance FROM users WHERE id=${u.id}`;
+    if(!userRows.length||Number(userRows[0].hp_balance)<finalAmount)throw new HttpError(400,'Недостаточно HP для покупки');
+    await db`UPDATE users SET hp_balance=hp_balance-${finalAmount} WHERE id=${u.id} AND hp_balance>=${finalAmount}`;
+    await db`INSERT INTO hp_transactions(user_id,amount_hp,balance_after_hp,kind,reason) VALUES(${u.id},${-finalAmount},(SELECT hp_balance FROM users WHERE id=${u.id}),'purchase',${'Покупка товара: '+p.name+' × '+quantity})`;
+  }else{
+    const userRows=await db`SELECT donation_balance_rub_kopecks FROM users WHERE id=${u.id}`;
+    if(!userRows.length||Number(userRows[0].donation_balance_rub_kopecks)<finalAmount)throw new HttpError(400,'Недостаточно средств на рублевом балансе');
+    await db`UPDATE users SET donation_balance_rub_kopecks=donation_balance_rub_kopecks-${finalAmount} WHERE id=${u.id} AND donation_balance_rub_kopecks>=${finalAmount}`;
+    await db`INSERT INTO wallet_transactions(user_id,amount_rub_kopecks,balance_after_rub_kopecks,kind,reason) VALUES(${u.id},${-finalAmount},(SELECT donation_balance_rub_kopecks FROM users WHERE id=${u.id}),'purchase',${'Покупка товара: '+p.name+' × '+quantity})`;
+  }
+  const order=await db`INSERT INTO orders(user_id,product_id,username_target,amount_cents,currency,status) VALUES(${u.id},${p.id},${target},${finalAmount},${isStaffStore?'HP':'RUB'},'paid') RETURNING id,status,amount_cents,currency`;
+  return Response.json({ok:true,order,quantity,unit_amount:unitAmount,total_amount:finalAmount},{status:201});
+}
+if(key==='orders'&&method==='GET'){const u=await requireUser(),rows=await db`SELECT o.id,o.username_target,o.status,o.amount_cents,o.currency,o.created_at,o.paid_at,p.name AS product_name FROM orders o JOIN products p ON p.id=o.product_id WHERE o.user_id=${u.id} ORDER BY o.created_at DESC LIMIT 100`;return Response.json({orders:rows});}
 if(key==='billing/topup'&&method==='POST'){await requireUser();throw new HttpError(503,'Пополнение временно отключено. Платёжный провайдер и источник курса не настроены. Баланс не изменён.');}
  if(key==='admin/orders'&&method==='GET'){await requirePermission('payments.manage');const rows=await db`SELECT o.*,u.username,p.name product_name FROM orders o JOIN users u ON u.id=o.user_id JOIN products p ON p.id=o.product_id ORDER BY o.created_at DESC LIMIT 200`;return Response.json({orders:rows});}
 
