@@ -5,6 +5,7 @@ import ProfileMusicSettings from "./player/[username]/ProfileMusicSettings";
 import MusicPlayer from "./player/[username]/MusicPlayer";
 import TraineeApplications from './trainee-applications';
 type User={
+  is_project_owner?:boolean;
   id:string;
   username:string;
   display_name:string;
@@ -209,7 +210,9 @@ async function removeFriend(id:string){
 useEffect(()=>{if(user&&tab==='friends')loadFriends()},[user,tab]);
 
 const isStaff=roles.some(r=>['owner','deputy','management','curator','tech_admin'].includes(r.id));
-const canAccessStaffShop=roles.some(r=>['trainee','moderator','support','tech_admin','curator','management','deputy','owner'].includes(r.id));
+const isPermanentOwner=Boolean(user?.is_project_owner);
+const canAccessAdmin=isPermanentOwner||roles.some(r=>['owner','deputy','management','curator','tech_admin','support'].includes(r.id));
+const canAccessStaffShop=Boolean(user?.is_project_owner)||roles.some(r=>['trainee','moderator','support','tech_admin','curator','management','deputy','owner'].includes(r.id));
 const [drawerOpen,setDrawerOpen]=useState(false);
 const [friendData,setFriendData]=useState<any>({friends:[],incoming:[],outgoing:[]});
 const [friendQuery,setFriendQuery]=useState('');
@@ -252,11 +255,11 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
   <span className="brandWord">
     <span className="brandHype">HYPE</span><span className="brandGo">GO</span>
   </span>
-</a><nav className="siteNav"><button type="button" onClick={()=>{setTab('home');setOpenNav('')}}>Главная</button><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='community'} onClick={()=>setOpenNav(openNav==='community'?'':'community')}>Сообщество⌄</button>{openNav==='community'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('players');setOpenNav('')}}>Игроки</button><button type="button" onClick={()=>{setTab('groups');setOpenNav('')}}>Наказания</button>{user&&<button type="button" onClick={()=>{setTab('friends');setOpenNav('')}}>Друзья</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='shop'} onClick={()=>setOpenNav(openNav==='shop'?'':'shop')}>Магазин⌄</button>{openNav==='shop'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('shop');setStore('main');setOpenNav('')}}>Основной магазин</button>{isStaff&&<button type="button" onClick={()=>{setTab('shop');setStore('staff');setOpenNav('')}}>Магазин персонала</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='help'} onClick={()=>setOpenNav(openNav==='help'?'':'help')}>Справка⌄</button>{openNav==='help'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('rules');setOpenNav('')}}>Правила</button><button type="button" onClick={()=>{setTab('trainee');setOpenNav('')}}>Стажировка</button>{user&&<button type="button" onClick={()=>{setTab('support');setOpenNav('')}}>Техподдержка</button>}</div>}</div>{isStaff&&<button type="button" onClick={()=>{setTab('admin');setOpenNav('')}}>Управление</button>}</nav><div className="right">{user?<><div className="headerBalance"><small>БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} ₽</strong></div><div className="headerBalance headerHpBalance"><small>HYPE POINTS</small><strong>{Number(user.hp_balance||0).toLocaleString("ru-RU")} HP</strong></div><button type="button" className="accountTrigger" onClick={()=>setDrawerOpen(true)} aria-label="Открыть меню профиля"><span className="accountAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><span className="accountIdentity"><strong style={{color:user.nickname_color}}>{user.username}</strong><small>Мой аккаунт</small></span><span className="accountChevron">☰</span></button></>:<button className="primary" onClick={()=>setTab('auth')}>Войти</button>}</div></header>
+</a><nav className="siteNav"><button type="button" onClick={()=>{setTab('home');setOpenNav('')}}>Главная</button><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='community'} onClick={()=>setOpenNav(openNav==='community'?'':'community')}>Сообщество⌄</button>{openNav==='community'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('players');setOpenNav('')}}>Игроки</button><button type="button" onClick={()=>{setTab('groups');setOpenNav('')}}>Наказания</button>{user&&<button type="button" onClick={()=>{setTab('friends');setOpenNav('')}}>Друзья</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='shop'} onClick={()=>setOpenNav(openNav==='shop'?'':'shop')}>Магазин⌄</button>{openNav==='shop'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('shop');setStore('main');setOpenNav('')}}>Основной магазин</button>{canAccessStaffShop&&<button type="button" onClick={()=>{setTab('shop');setStore('staff');setOpenNav('')}}>Магазин персонала</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='help'} onClick={()=>setOpenNav(openNav==='help'?'':'help')}>Справка⌄</button>{openNav==='help'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('rules');setOpenNav('')}}>Правила</button><button type="button" onClick={()=>{setTab('trainee');setOpenNav('')}}>Стажировка</button>{user&&<button type="button" onClick={()=>{setTab('support');setOpenNav('')}}>Техподдержка</button>}</div>}</div>{canAccessAdmin&&<button type="button" onClick={()=>{setTab('admin');setOpenNav('')}}>Управление</button>}</nav><div className="right">{user?<><div className="headerBalance"><small>БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} ₽</strong></div><div className="headerBalance headerHpBalance"><small>HYPE POINTS</small><strong>{Number(user.hp_balance||0).toLocaleString("ru-RU")} HP</strong></div><button type="button" className="accountTrigger" onClick={()=>setDrawerOpen(true)} aria-label="Открыть меню профиля"><span className="accountAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><span className="accountIdentity"><strong style={{color:user.nickname_color}}>{user.username}</strong><small>Мой аккаунт</small></span><span className="accountChevron">☰</span></button></>:<button className="primary" onClick={()=>setTab('auth')}>Войти</button>}</div></header>
 {drawerOpen&&user&&<div className="drawerLayer"><button type="button" className="drawerScrim" aria-label="Закрыть меню" onClick={()=>setDrawerOpen(false)}></button><aside className="profileDrawer" aria-label="Меню аккаунта"><div className="drawerTop"><span className="eyebrow">HYPEGO / ACCOUNT</span><button type="button" className="drawerClose" onClick={()=>setDrawerOpen(false)}>×</button></div><div className="drawerUser"><div className="drawerAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</div><div><strong style={{color:user.nickname_color}}>{user.display_name||user.username}</strong><small>@{user.username}</small></div></div><div className="drawerBalance"><small>ТВОЙ БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} <span>₽</span></strong><button type="button" className="outline" onClick={()=>{setTab('billing');setDrawerOpen(false)}}>＋ Пополнить баланс</button></div><div className="drawerLinks"><span className="drawerLabel">АККАУНТ</span><button type="button" onClick={()=>{setTab('profile');setDrawerOpen(false)}}>◈ <span>Профиль и настройки</span><b>›</b></button><button type="button" onClick={()=>{setTab('players');setDrawerOpen(false)}}>♙ <span>Игроки</span><b>›</b></button>
 <button type="button" onClick={()=>{setTab('friends');setDrawerOpen(false)}}>♧ <span>Друзья</span><b>›</b></button>
 <button type="button" onClick={()=>{setChatMode(true);setSelectedChat(null);setDrawerOpen(true);loadFriends()}}>✉ <span>Сообщения</span><b>›</b></button>
-<button type="button" onClick={()=>{setTab('trainee');setDrawerOpen(false)}}>✧ <span>Стажировка</span><b>›</b></button><button type="button" onClick={()=>{setTab('shop');setStore('main');setDrawerOpen(false)}}>◇ <span>Магазин</span><b>›</b></button><button type="button" onClick={()=>{setTab('rules');setDrawerOpen(false)}}>≡ <span>Правила и справка</span><b>›</b></button>{isStaff&&<><span className="drawerLabel">ПЕРСОНАЛ</span><button type="button" onClick={()=>{setTab('admin');setDrawerOpen(false)}}>⌘ <span>Панель управления</span><b>›</b></button></>}<span className="drawerLabel">СЕАНС</span><button type="button" className="drawerLogout" onClick={()=>{setDrawerOpen(false);logout()}}>↪ <span>Выйти из аккаунта</span></button></div>{chatMode&&<section className="drawerChat">
+<button type="button" onClick={()=>{setTab('trainee');setDrawerOpen(false)}}>✧ <span>Стажировка</span><b>›</b></button><button type="button" onClick={()=>{setTab('shop');setStore('main');setDrawerOpen(false)}}>◇ <span>Магазин</span><b>›</b></button><button type="button" onClick={()=>{setTab('rules');setDrawerOpen(false)}}>≡ <span>Правила и справка</span><b>›</b></button>{canAccessAdmin&&<><span className="drawerLabel">ПЕРСОНАЛ</span><button type="button" onClick={()=>{setTab('admin');setDrawerOpen(false)}}>⌘ <span>Панель управления</span><b>›</b></button></>}<span className="drawerLabel">СЕАНС</span><button type="button" className="drawerLogout" onClick={()=>{setDrawerOpen(false);logout()}}>↪ <span>Выйти из аккаунта</span></button></div>{chatMode&&<section className="drawerChat">
 <div className="profileCardHeading">
 <div><div className="eyebrow">HYPEGO MESSAGES</div><h3>{selectedChat?'Переписка':'Твои диалоги'}</h3></div>
 <button type="button" className="outline" onClick={()=>{setChatMode(false);setSelectedChat(null)}}>Закрыть</button>
@@ -567,7 +570,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
   </article>
 </section>}
 
-{tab==='rules'&&<Rules/>}{tab==='support'&&user&&<SupportCenter user={user} onNotice={setNotice}/>}{tab==='groups'&&<Punishments user={user} roles={roles} onNotice={setNotice}/>}{tab==='players'&&<Players/>}{tab==='trainee'&&<TraineeApplications user={user} roles={roles} onNotice={setNotice}/ >}{tab==='admin'&&user&&isStaff&&<><Admin roles={roles} onNotice={setNotice}/>{roles.some(r=>r.id==='curator')&&<RulesEditor onNotice={setNotice}/>}<ProductEditor onNotice={setNotice}/></>}
+{tab==='rules'&&<Rules/>}{tab==='support'&&user&&<SupportCenter user={user} onNotice={setNotice}/>}{tab==='groups'&&<Punishments user={user} roles={roles} onNotice={setNotice}/>}{tab==='players'&&<Players/>}{tab==='trainee'&&<TraineeApplications user={user} roles={roles} onNotice={setNotice}/ >}{tab==='admin'&&user&&canAccessAdmin&&<><PrivilegeManager onNotice={setNotice}/>{(isPermanentOwner||roles.some(r=>['owner','management','curator','tech_admin'].includes(r.id)))&&<Admin roles={roles} isPermanentOwner={isPermanentOwner} onNotice={setNotice}/ >}{(isPermanentOwner||roles.some(r=>r.id==='curator'))&&<RulesEditor onNotice={setNotice}/ >}{(isPermanentOwner||roles.some(r=>['owner','management','curator','tech_admin'].includes(r.id)))&&<ProductEditor onNotice={setNotice}/>}</>}
 <footer><div className="brand"><span className="brandMark">H</span> HYPEGO</div><span>© {new Date().getFullYear()} Hypego Project</span><span>Игра начинается здесь.</span></footer></main>}
 
 
@@ -1197,7 +1200,101 @@ function Punishments({user,roles,onNotice}:{user:User|null;roles:any[];onNotice:
   </section>;
 }
 
-function Admin({roles,onNotice}:{roles:any[];onNotice:(s:string)=>void}){
+function PrivilegeManager({onNotice}:{onNotice:(s:string)=>void}){
+const [users,setUsers]=useState<any[]>([]);
+const [q,setQ]=useState('');
+const [target,setTarget]=useState('');
+const [minecraft,setMinecraft]=useState('');
+const [product,setProduct]=useState('');
+const [server,setServer]=useState('Hypego');
+const [items,setItems]=useState<any[]>([]);
+const [busy,setBusy]=useState(false);
+
+async function searchUsers(){
+  try{
+    const j=await api('admin/users?q='+encodeURIComponent(q));
+    const next=j.users||[];
+    setUsers(next);
+    if(target&&!next.some((u:any)=>u.id===target))setTarget('');
+  }catch(e:any){onNotice(e.message)}
+}
+
+async function loadPrivileges(){
+  try{
+    const j=await api('admin/privileges');
+    setItems(j.privileges||[]);
+  }catch(e:any){onNotice(e.message)}
+}
+
+useEffect(()=>{searchUsers();loadPrivileges()},[]);
+
+async function issue(){
+  if(!target||!minecraft.trim()||!product.trim()){
+    onNotice('Выбери аккаунт и укажи Minecraft-ник и название привилегии или кейса.');
+    return;
+  }
+  setBusy(true);
+  try{
+    const j=await api('admin/privileges',{
+      method:'POST',
+      body:JSON.stringify({
+        user_id:target,
+        minecraft_username:minecraft.trim(),
+        product_name:product.trim(),
+        server_name:server.trim()||'Hypego'
+      })
+    });
+    onNotice(j.message||'Заявка сохранена.');
+    setProduct('');
+    await loadPrivileges();
+  }catch(e:any){onNotice(e.message)}
+  finally{setBusy(false)}
+}
+
+return <div className="panel form">
+  <h3>Minecraft-привилегии и кейсы</h3>
+  <p className="muted">Создание заявки на привилегию или кейс для выбранного аккаунта.</p>
+  <div className="searchLine">
+    <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Ник или email аккаунта"/>
+    <button className="outline" type="button" onClick={searchUsers}>Найти</button>
+  </div>
+  <div className="userList">
+    {users.map((u:any)=><button className={'userRow '+(target===u.id?'active':'')} key={u.id} type="button" onClick={()=>setTarget(u.id)}>
+      <strong>{u.username}</strong>
+      <small>{(u.roles||[]).map((r:any)=>r.title).join(', ')||'Игрок'}</small>
+    </button>)}
+  </div>
+  <label>Выбранный аккаунт
+    <input value={users.find((u:any)=>u.id===target)?.username||''} readOnly placeholder="Сначала найди и выбери аккаунт"/>
+  </label>
+  <label>Minecraft-ник
+    <input value={minecraft} onChange={e=>setMinecraft(e.target.value)} placeholder="Ник игрока на сервере"/>
+  </label>
+  <label>Привилегия или кейс
+    <input value={product} onChange={e=>setProduct(e.target.value)} placeholder="Например: VIP или Кейс"/>
+  </label>
+  <label>Сервер
+    <input value={server} onChange={e=>setServer(e.target.value)} placeholder="Hypego"/>
+  </label>
+  <button className="primary" type="button" disabled={busy||!target||!minecraft.trim()||!product.trim()} onClick={issue}>
+    {busy?'Сохранение…':'Создать заявку'}
+  </button>
+  <hr/>
+  <div className="rowBetween">
+    <h3>Последние заявки</h3>
+    <button className="outline" type="button" onClick={loadPrivileges}>Обновить</button>
+  </div>
+  {items.length===0?<p className="muted">Заявок пока нет.</p>:<div className="userList">
+    {items.map((x:any)=><div className="userRow" key={x.id}>
+      <strong>{x.product_name||'Привилегия'} — {x.minecraft_username||'без ника'}</strong>
+      <small>Аккаунт: {x.account_username||x.user_id} · Сервер: {x.server_name||'Hypego'} · Статус: {x.status||'не указан'}</small>
+    </div>)}
+  </div>}
+  <p className="tiny">Заявка сохраняется в базе данных. Фактическая выдача на Minecraft-сервере требует настроенного Minecraft bridge.</p>
+</div>;
+}
+
+function Admin({roles,isPermanentOwner,onNotice}:{roles:any[];isPermanentOwner:boolean;onNotice:(s:string)=>void}){
 const [users,setUsers]=useState<any[]>([]);
 const [q,setQ]=useState('');
 const [target,setTarget]=useState('');
@@ -1206,10 +1303,34 @@ const [removeRole,setRemoveRole]=useState('');
 const [salary,setSalary]=useState('1000');
 const [reason,setReason]=useState('Премия персоналу');
 
-const canManage=roles.some(r=>['owner','deputy','management','curator'].includes(r.id));
-
+const canManageRoles=isPermanentOwner||roles.some(r=>['owner','management','curator','tech_admin'].includes(r.id));
+const canManageSalary=isPermanentOwner||roles.some(r=>r.id==='curator');
+const canManageProducts=isPermanentOwner||roles.some(r=>['owner','management','curator','tech_admin'].includes(r.id));
+const canAssignAny=isPermanentOwner||roles.some(r=>['owner','management'].includes(r.id));
+const manageableRoleIds=isPermanentOwner
+  ? ['owner','deputy','management','curator','tech_admin','support','moderator','trainee','player','chsp']
+  : canAssignAny
+    ? ['deputy','management','tech_admin','support','moderator','trainee','player']
+    : ['support','moderator','trainee'];
+const roleOptions=manageableRoleIds.map(id=>({
+  id,
+  title:({
+    owner:'Владелец проекта',
+    deputy:'Заместитель (ОПКА)',
+    management:'Руководство',
+    curator:'Куратор',
+    tech_admin:'Тех. админ',
+    support:'Тех. поддержка',
+    moderator:'Модератор',
+    trainee:'Стажёр',
+    player:'Игрок',
+    chsp:'ЧСП'
+  } as Record<string,string>)[id]||id
+}));
 const selectedUser=users.find(u=>u.id===target);
-const selectedUserRoles=(selectedUser?.roles||[]).filter((r:any)=>r.id!=='player');
+const selectedUserRoles=(selectedUser?.roles||[]).filter((r:any)=>r.id!=='player'&&manageableRoleIds.includes(r.id));
+
+
 
 async function search(){
   try{
@@ -1316,7 +1437,7 @@ return <section className="section">
 
   <div className="adminGrid">
 
-    <div className="panel form">
+    {canManageRoles&&<div className="panel form">
       <h3>Пользователи и роли</h3>
 
       <div className="searchLine">
@@ -1365,19 +1486,9 @@ return <section className="section">
           onChange={e=>setRole(e.target.value)}
           disabled={!target}
         >
-          {[
-            ['deputy','Заместитель (ОПКА)'],
-            ['management','Руководство'],
-            ['curator','Куратор'],
-            ['tech_admin','Тех. админ'],
-            ['support','Тех. поддержка'],
-            ['moderator','Модератор'],
-            ['trainee','Стажёр'],
-            ['player','Игрок'],
-            ...(roles.some(r=>r.id==='owner')?[['chsp','ЧСП']]:[])
-          ].map(r=>
-            <option value={r[0]} key={r[0]}>
-              {r[1]}
+          {roleOptions.map(r=>
+            <option value={r.id} key={r.id}>
+              {r.title}
             </option>
           )}
         </select>
@@ -1437,9 +1548,10 @@ return <section className="section">
         Выберите игрока, затем его текущую привилегию и нажмите «Снять выбранную привилегию».
         Система дополнительно проверит ваши права.
       </p>
-    </div>
+    </div>}
 
     <div className="panel form">
+      {canManageSalary&&<>
       <h3>Внутренняя зарплата</h3>
       <p className="muted">
         Это непереводимая внутренняя валюта, не деньги и не платёжный баланс.
@@ -1471,6 +1583,9 @@ return <section className="section">
         Изменить зарплату
       </button>
 
+      </>}
+
+      {canManageProducts&&<>
       <hr/>
 
       <h3>Каталог магазина</h3>
@@ -1482,12 +1597,16 @@ return <section className="section">
         Инициализировать каталог
       </button>
 
+      </>}
+
+      {(canManageRoles||canManageProducts)&&<>
       <hr/>
 
       <h3>Служебные разделы</h3>
       <p className="tiny">
         API управления правилами, наказаниями, привилегиями, заказами и журналом действий доступен по защищённым endpoint. Реальная выдача требует Minecraft bridge.
       </p>
+      </>}
     </div>
 
   </div>

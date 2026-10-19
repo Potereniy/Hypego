@@ -223,11 +223,44 @@ if(key==='players'&&method==='GET'){const q=(req.nextUrl.searchParams.get('q')||
   return Response.json({player:rows[0]});
  }
  if(key==='roles'&&method==='GET'){const u=await requireUser();const rows=await db`SELECT r.id,r.title,r.rank,EXISTS(SELECT 1 FROM user_roles ur WHERE ur.user_id=${u.id} AND ur.role_id=r.id) AS assigned FROM roles r ORDER BY r.rank DESC`;return Response.json({roles:rows});}
- if(key==='admin/users'&&method==='GET'){const actor=await requireUser();if(!await hasPermission(actor.id,'admin.users')&&!await hasPermission(actor.id,'staff.roles.assign_limited')&&!await hasPermission(actor.id,'staff.salary.manage'))throw new HttpError(403,'Недостаточно прав');const q=(req.nextUrl.searchParams.get('q')||'').slice(0,50);const rows=await db`SELECT u.id,u.username,u.is_banned,u.donation_balance_rub_kopecks,u.hp_balance,u.created_at,COALESCE(json_agg(json_build_object('id',r.id,'title',r.title)) FILTER(WHERE r.id IS NOT NULL),'[]') roles FROM users u LEFT JOIN user_roles ur ON ur.user_id=u.id LEFT JOIN roles r ON r.id=ur.role_id WHERE u.username ILIKE ${'%'+q+'%'} GROUP BY u.id ORDER BY u.created_at DESC LIMIT 100`;return Response.json({users:rows});}
- if(key==='admin/roles'&&method==='POST'){const actor=await requireUser(),b=await bodyJson(req),target=String(b.user_id||''),role=String(b.role_id||'');if(!staffRoleIds.includes(role)&&role!=='player'&&role!=='chsp')throw new HttpError(400,'Неизвестная роль');if(role==='chsp'&&!await hasPermission(actor.id,'site.settings'))throw new HttpError(403,'Назначать ЧСП может только владелец проекта');if(role==='owner'&&!(await hasPermission(actor.id,'site.settings')))throw new HttpError(403,'Роль владельца проекта назначается только текущим владельцем');const canAny=await hasPermission(actor.id,'staff.roles.assign_any'),canLimited=await hasPermission(actor.id,'staff.roles.assign_limited');if(!canAny&&!canLimited)throw new HttpError(403,'Нет права выдавать роли');if(role==='owner'&&!canAny)throw new HttpError(403,'Нельзя выдать владельца проекта');if(!canAny&&!allowedByCurator.includes(role))throw new HttpError(403,'Куратор может выдавать только стажёра, модератора и техподдержку');const t=await db`SELECT id FROM users WHERE id=${target} LIMIT 1`;if(!t.length)throw new HttpError(404,'Пользователь не найден');if(role==='owner'){const existing=await db`SELECT 1 FROM user_roles WHERE user_id=${target} AND role_id='owner'`;if(!existing.length){await db`DELETE FROM user_roles WHERE role_id='owner'`;}}await db`INSERT INTO user_roles(user_id,role_id,assigned_by) VALUES(${target},${role},${actor.id}) ON CONFLICT DO NOTHING`;await audit(actor.id,'staff.role.assign','user',target,{role});return Response.json({ok:true});}
- if(key==='admin/roles'&&method==='DELETE'){const actor=await requireUser(),b=await bodyJson(req),target=String(b.user_id||''),role=String(b.role_id||'');if(role==='owner')throw new HttpError(403,'Роль владельца нельзя снять через этот endpoint');if(!await hasPermission(actor.id,'staff.roles.assign_any')&&!await hasPermission(actor.id,'staff.roles.assign_limited'))throw new HttpError(403,'Нет права снимать роли');if(!await hasPermission(actor.id,'staff.roles.assign_any')&&!allowedByCurator.includes(role))throw new HttpError(403,'Недостаточно прав');await db`DELETE FROM user_roles WHERE user_id=${target} AND role_id=${role}`;await audit(actor.id,'staff.role.remove','user',target,{role});return Response.json({ok:true});}
- if(key==='admin/salary'&&method==='POST'){
-  const actor=await requirePermission('staff.salary.manage'),b=await bodyJson(req),target=String(b.user_id||''),amount=Number(b.amount),reason=String(b.reason||'').trim().slice(0,200);
+ if(key==='admin/users'&&method==='GET'){const actor=await requireUser();const privilegeStaff=!!(await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} AND role_id IN ('owner','deputy','management','curator','tech_admin','support') LIMIT 1`).length;if(!privilegeStaff&&!await hasPermission(actor.id,'admin.users')&&!await hasPermission(actor.id,'staff.roles.assign_limited')&&!await hasPermission(actor.id,'staff.salary.manage'))throw new HttpError(403,'Недостаточно прав');const q=(req.nextUrl.searchParams.get('q')||'').slice(0,50);const rows=await db`SELECT u.id,u.username,u.is_banned,u.donation_balance_rub_kopecks,u.hp_balance,u.created_at,COALESCE(json_agg(json_build_object('id',r.id,'title',r.title)) FILTER(WHERE r.id IS NOT NULL),'[]') roles FROM users u LEFT JOIN user_roles ur ON ur.user_id=u.id LEFT JOIN roles r ON r.id=ur.role_id WHERE u.username ILIKE ${'%'+q+'%'} GROUP BY u.id ORDER BY u.created_at DESC LIMIT 100`;return Response.json({users:rows});}
+ if(key==='admin/roles'&&method==='POST'){
+const actor=await requireUser(),b=await bodyJson(req),target=String(b.user_id||''),role=String(b.role_id||'');
+if(!staffRoleIds.includes(role)&&role!=='player'&&role!=='chsp')throw new HttpError(400,'Неизвестная роль');
+const permanent=!!(await db`SELECT 1 FROM users WHERE id=${actor.id} AND is_project_owner=TRUE LIMIT 1`).length;
+const canAny=permanent||await hasPermission(actor.id,'staff.roles.assign_any');
+const canLimited=permanent||await hasPermission(actor.id,'staff.roles.assign_limited');
+if(role==='curator'&&!permanent)throw new HttpError(403,'Назначать Куратора может только постоянный владелец');
+if(role==='chsp'&&!permanent)throw new HttpError(403,'Назначать ЧСП может только постоянный владелец');
+if(role==='owner'&&!permanent)throw new HttpError(403,'Назначать владельца проекта может только постоянный владелец');
+if(!canAny&&!canLimited)throw new HttpError(403,'Нет права выдавать роли');
+if(!canAny&&!allowedByCurator.includes(role))throw new HttpError(403,'Куратор может выдавать только стажёра, модератора и техподдержку');
+const t=await db`SELECT id FROM users WHERE id=${target} LIMIT 1`;
+if(!t.length)throw new HttpError(404,'Пользователь не найден');
+if(role==='owner'){
+const existing=await db`SELECT 1 FROM user_roles WHERE user_id=${target} AND role_id='owner'`;
+if(!existing.length)await db`DELETE FROM user_roles WHERE role_id='owner'`;
+}
+await db`INSERT INTO user_roles(user_id,role_id,assigned_by) VALUES(${target},${role},${actor.id}) ON CONFLICT DO NOTHING`;
+await audit(actor.id,'staff.role.assign','user',target,{role});
+return Response.json({ok:true});
+}
+if(key==='admin/roles'&&method==='DELETE'){
+const actor=await requireUser(),b=await bodyJson(req),target=String(b.user_id||''),role=String(b.role_id||'');
+const permanent=!!(await db`SELECT 1 FROM users WHERE id=${actor.id} AND is_project_owner=TRUE LIMIT 1`).length;
+if(role==='owner'&&!permanent)throw new HttpError(403,'Снимать роль владельца может только постоянный владелец');
+if(role==='curator'&&!permanent)throw new HttpError(403,'Снимать Куратора может только постоянный владелец');
+if(role==='chsp'&&!permanent)throw new HttpError(403,'Снимать ЧСП может только постоянный владелец');
+const canAny=permanent||await hasPermission(actor.id,'staff.roles.assign_any');
+const canLimited=permanent||await hasPermission(actor.id,'staff.roles.assign_limited');
+if(!canAny&&!canLimited)throw new HttpError(403,'Нет права снимать роли');
+if(!canAny&&!allowedByCurator.includes(role))throw new HttpError(403,'Недостаточно прав');
+await db`DELETE FROM user_roles WHERE user_id=${target} AND role_id=${role}`;
+await audit(actor.id,'staff.role.remove','user',target,{role});
+return Response.json({ok:true});
+}
+if(key==='admin/salary'&&method==='POST'){
+  const actor=await requireUser();const permanent=!!(await db`SELECT 1 FROM users WHERE id=${actor.id} AND is_project_owner=TRUE LIMIT 1`).length;const curator=!!(await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} AND role_id='curator' LIMIT 1`).length;if(!permanent&&!curator)throw new HttpError(403,'Зарплату может менять только куратор или постоянный владелец');const b=await bodyJson(req),target=String(b.user_id||''),amount=Number(b.amount),reason=String(b.reason||'').trim().slice(0,200);
   if(!Number.isSafeInteger(amount)||amount===0||Math.abs(amount)>1000000000)throw new HttpError(400,'Укажи корректную сумму HP');
   if(reason.length<3)throw new HttpError(400,'Укажи причину начисления/списания HP');
   if(amount<0){
@@ -241,7 +274,7 @@ if(key==='players'&&method==='GET'){const q=(req.nextUrl.searchParams.get('q')||
   return Response.json({ok:true,balance:result[0].hp_balance});
 }
  if(key==='admin/rules'&&method==='GET'){const rows=await db`SELECT id,title,body,sort_order,updated_at FROM rules ORDER BY sort_order,id`;return Response.json({rules:rows});}
- if(key==='admin/rules'&&method==='PUT'){const actor=await requireUser();if(!await hasPermission(actor.id,'rules.edit')||!(await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} AND role_id='curator' LIMIT 1`).length)throw new HttpError(403,'Изменять правила может только куратор');const b=await bodyJson(req),rules=Array.isArray(b.rules)?b.rules:[];if(rules.length>100)throw new HttpError(400,'Слишком много правил');for(let i=0;i<rules.length;i++){const r=rules[i],title=String(r.title||'').trim().slice(0,150),body=String(r.body||'').trim().slice(0,5000);if(!title||!body)continue;if(r.id)await db`UPDATE rules SET title=${title},body=${body},sort_order=${i},updated_by=${actor.id},updated_at=NOW() WHERE id=${r.id}`;else await db`INSERT INTO rules(title,body,sort_order,updated_by) VALUES(${title},${body},${i},${actor.id})`;}await audit(actor.id,'rules.update','rules',undefined,{count:rules.length});return Response.json({ok:true});}
+ if(key==='admin/rules'&&method==='PUT'){const actor=await requireUser();if(!await hasPermission(actor.id,'rules.edit')||(!(await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} AND role_id='curator' LIMIT 1`).length && !(await db`SELECT 1 FROM users WHERE id=${actor.id} AND is_project_owner=TRUE LIMIT 1`).length))throw new HttpError(403,'Недостаточно прав для изменения правил');const b=await bodyJson(req),rules=Array.isArray(b.rules)?b.rules:[];if(rules.length>100)throw new HttpError(400,'Слишком много правил');for(let i=0;i<rules.length;i++){const r=rules[i],title=String(r.title||'').trim().slice(0,150),body=String(r.body||'').trim().slice(0,5000);if(!title||!body)continue;if(r.id)await db`UPDATE rules SET title=${title},body=${body},sort_order=${i},updated_by=${actor.id},updated_at=NOW() WHERE id=${r.id}`;else await db`INSERT INTO rules(title,body,sort_order,updated_by) VALUES(${title},${body},${i},${actor.id})`;}await audit(actor.id,'rules.update','rules',undefined,{count:rules.length});return Response.json({ok:true});}
  if(key==='rules'&&method==='GET'){const rows=await db`SELECT id,title,body,sort_order,updated_at FROM rules ORDER BY sort_order,id`;return Response.json({rules:rows});}
  if(key==='products/seed'&&method==='POST'){
     const actor=await requirePermission('products.manage');
@@ -460,7 +493,7 @@ if(key==='tickets'&&method==='POST'){
 
 if(key==='tickets'&&method==='GET'){
  const u=await requireUser();
- const rr=await db`SELECT EXISTS(SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=${u.id} AND r.id IN ('owner','deputy','management','curator','tech_admin','support')) AS staff`;
+ const rr=await db`SELECT EXISTS(SELECT 1 FROM users x WHERE x.id=${u.id} AND (x.is_project_owner=TRUE OR EXISTS(SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=x.id AND r.id IN ('owner','deputy','management','curator','tech_admin','support')))) AS staff`;
  const staff=Boolean(rr[0]?.staff);
  const rows=staff
  ?await db`SELECT t.*,u.username,(SELECT COUNT(*)::int FROM ticket_messages m WHERE m.ticket_id=t.id AND m.read_at IS NULL AND m.sender_id<>${u.id}) AS unread_count FROM tickets t JOIN users u ON u.id=t.user_id ORDER BY CASE WHEN t.status='closed' THEN 1 ELSE 0 END,t.updated_at DESC LIMIT 200`
@@ -470,7 +503,7 @@ if(key==='tickets'&&method==='GET'){
 
 if(key==='ticket-messages'&&(method==='GET'||method==='POST')){
  const u=await requireUser();
- const rr=await db`SELECT EXISTS(SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=${u.id} AND r.id IN ('owner','deputy','management','curator','tech_admin','support')) AS staff`;
+ const rr=await db`SELECT EXISTS(SELECT 1 FROM users x WHERE x.id=${u.id} AND (x.is_project_owner=TRUE OR EXISTS(SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=x.id AND r.id IN ('owner','deputy','management','curator','tech_admin','support')))) AS staff`;
  const staff=Boolean(rr[0]?.staff);
  const b=method==='POST'?await bodyJson(req):{};
  const ticketId=String(method==='GET'?new URL(req.url).searchParams.get('ticket_id')||'':b.ticket_id||'');
@@ -497,7 +530,7 @@ if(key==='tickets'&&method==='PATCH'){
  const u=await requireUser(),b=await bodyJson(req);
  const ticketId=String(b.ticket_id||''),action=String(b.action||'');
  if(!/^[0-9a-f-]{36}$/i.test(ticketId))throw new HttpError(400,'Некорректный номер обращения');
- const rr=await db`SELECT EXISTS(SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=${u.id} AND r.id IN ('owner','deputy','management','curator','tech_admin','support')) AS staff`;
+ const rr=await db`SELECT EXISTS(SELECT 1 FROM users x WHERE x.id=${u.id} AND (x.is_project_owner=TRUE OR EXISTS(SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=x.id AND r.id IN ('owner','deputy','management','curator','tech_admin','support')))) AS staff`;
  if(!rr[0]?.staff)throw new HttpError(403,'Нет доступа к управлению обращениями');
  let rows;
  if(action==='assign'){
@@ -518,8 +551,25 @@ if(key==='tickets'&&method==='PATCH'){
  return Response.json({ticket:rows[0]});
 }
 
-if(key==='admin/privileges'&&method==='POST'){const actor=await requirePermission('admin.users'),b=await bodyJson(req),target=String(b.user_id||''),username=String(b.minecraft_username||''),productName=String(b.product_name||''),server=String(b.server_name||'Hypego'),expires=b.expires_at||null;if(!/^[A-Za-z0-9_]{3,24}$/.test(username)||productName.length<2)throw new HttpError(400,'Проверь ник и привилегию');const rows=await db`INSERT INTO privileges(user_id,server_name,minecraft_username,product_name,expires_at,status) VALUES(${target},${server},${username},${productName},${expires},'pending') RETURNING *`;await audit(actor.id,'privilege.issue.request','privilege',rows[0].id,{username,productName});return Response.json({privilege:rows[0],delivery:'pending',message:'Запись создана в Neon. Фактическая выдача на сервере требует настроенного Minecraft bridge.'},{status:201});}
- if(key==='admin/privileges'&&method==='GET'){await requirePermission('admin.users');const rows=await db`SELECT p.*,u.username account_username FROM privileges p JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 200`;return Response.json({privileges:rows});}
+if(key==='admin/privileges'&&method==='POST'){
+const actor=await requireUser();
+const allowed=await db`SELECT 1 FROM users u WHERE u.id=${actor.id} AND (u.is_project_owner=TRUE OR EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role_id IN ('owner','deputy','management','curator','tech_admin','support'))) LIMIT 1`;
+if(!allowed.length)throw new HttpError(403,'Нет права выдавать Minecraft-привилегии и кейсы');
+const b=await bodyJson(req),target=String(b.user_id||''),username=String(b.minecraft_username||''),productName=String(b.product_name||'').trim(),server=String(b.server_name||'Hypego'),expires=b.expires_at||null;
+if(!/^[A-Za-z0-9_]{3,24}$/.test(username)||productName.length<2)throw new HttpError(400,'Проверь ник и привилегию');
+const targetRows=await db`SELECT id FROM users WHERE id=${target} LIMIT 1`;
+if(!targetRows.length)throw new HttpError(404,'Аккаунт пользователя не найден');
+const rows=await db`INSERT INTO privileges(user_id,server_name,minecraft_username,product_name,expires_at,status) VALUES(${target},${server},${username},${productName},${expires},'pending') RETURNING *`;
+await audit(actor.id,'privilege.issue.request','privilege',rows[0].id,{username,productName});
+return Response.json({privilege:rows[0],delivery:'pending',message:'Заявка сохранена. Для фактической выдачи требуется настроенный Minecraft bridge.'},{status:201});
+}
+ if(key==='admin/privileges'&&method==='GET'){
+const actor=await requireUser();
+const allowed=await db`SELECT 1 FROM users u WHERE u.id=${actor.id} AND (u.is_project_owner=TRUE OR EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role_id IN ('owner','deputy','management','curator','tech_admin','support'))) LIMIT 1`;
+if(!allowed.length)throw new HttpError(403,'Нет доступа к управлению Minecraft-привилегиями');
+const rows=await db`SELECT p.*,u.username account_username FROM privileges p JOIN users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 200`;
+return Response.json({privileges:rows});
+}
 
  if(key==='trainee-applications'&&method==='GET'){
    const rows=await db`SELECT id,minecraft_username,status,created_at,reviewed_at FROM trainee_applications ORDER BY created_at DESC LIMIT 200`;
