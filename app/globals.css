@@ -55,3 +55,40 @@
   position: relative;
   z-index: 1;
 }
+
+/* Полноэкранный видеофон страницы профиля */
+.profilePage {
+  position: relative;
+  isolation: isolate;
+}
+
+.profilePage > .hypegoProfileVideoBackground {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.profilePage > .hypegoProfileVideoBackground iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 177.78vh;
+  height: 56.25vw;
+  min-width: 100%;
+  min-height: 100%;
+  transform: translate(-50%, -50%);
+  border: 0;
+  pointer-events: none;
+}
+
+.profilePage > .hypegoProfileVideoBackground .hypegoProfileVideoOverlay {
+  position: absolute;
+  inset: 0;
+}
+
+.profilePage > :not(.hypegoProfileVideoBackground) {
+  position: relative;
+  z-index: 1;
+}
