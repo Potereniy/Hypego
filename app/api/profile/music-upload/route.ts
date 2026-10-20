@@ -14,6 +14,9 @@ const allowedTypes = [
   "audio/ogg",
   "audio/webm",
   "audio/flac",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
 ];
 
 export async function POST(request: Request) {

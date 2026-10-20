@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { upload } from "@vercel/blob/client";
+import jsmediatags from "jsmediatags";
 
 type Track = {
   id: string;
@@ -21,6 +22,7 @@ export default function ProfileMusicSettings({ username }: { username: string })
   const [url, setUrl] = useState("");
   const [cover, setCover] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
@@ -76,6 +78,56 @@ export default function ProfileMusicSettings({ username }: { username: string })
       throw new Error("Нужна ссылка на VK");
     }
     return parsed.href;
+  }
+
+
+  async function handleAudioSelection(selected: File | null) {
+    setFile(selected);
+    setCoverFile(null);
+    if (!selected) return;
+
+    setTitle(selected.name.replace(/\.[^.]+$/, ""));
+    setArtist("");
+    setNotice("Читаем теги аудиофайла…");
+
+    try {
+      const tags = await new Promise<any>((resolve, reject) => {
+        jsmediatags.read(selected, {
+          onSuccess: (result: any) => resolve(result.tags || {}),
+          onError: (error: any) => reject(error),
+        });
+      });
+
+      if (typeof tags.title === "string" && tags.title.trim()) {
+        setTitle(tags.title.trim());
+      }
+      if (typeof tags.artist === "string" && tags.artist.trim()) {
+        setArtist(tags.artist.trim());
+      }
+
+      const picture = tags.picture;
+      if (picture?.data?.length) {
+        const rawMime = String(picture.format || "").toLowerCase();
+        const mime = ["image/jpeg", "image/png", "image/webp"].includes(rawMime)
+          ? rawMime
+          : "image/jpeg";
+
+        const bytes = new Uint8Array(picture.data);
+        const buffer = new ArrayBuffer(bytes.length);
+        new Uint8Array(buffer).set(bytes);
+        const ext = mime === "image/png" ? "png"
+          : mime === "image/webp" ? "webp" : "jpg";
+
+        setCoverFile(new File([buffer], `cover-${Date.now()}.${ext}`, {
+          type: mime,
+        }));
+        setNotice("Теги и встроенная обложка найдены.");
+      } else {
+        setNotice("Теги прочитаны. Встроенная обложка не найдена.");
+      }
+    } catch {
+      setNotice("Теги прочитать не удалось. Можно заполнить поля вручную.");
+    }
   }
 
   async function addTrack(e: FormEvent) {
@@ -136,11 +188,28 @@ audioUrl = blob.url;
         (source === "file" ? file?.name.replace(/\.[^.]+$/, "") : "");
       if (!finalTitle) throw new Error("Укажи название песни");
 
+      let coverUrl = cover.trim();
+
+      if (coverFile) {
+        const ext = coverFile.type === "image/png" ? "png"
+          : coverFile.type === "image/webp" ? "webp" : "jpg";
+        const coverBlob = await upload(
+          `music-cover-${Date.now()}.${ext}`,
+          coverFile,
+          {
+            access: "public",
+            handleUploadUrl: "/api/profile/music-upload",
+            contentType: coverFile.type,
+          }
+        );
+        coverUrl = coverBlob.url;
+      }
+
       await requestJson("/api/profile/tracks", {
         title: finalTitle,
         artist: artist.trim(),
         audio_url: audioUrl,
-        cover_url: cover.trim(),
+        cover_url: coverUrl,
       });
 
       setTitle("");
@@ -148,6 +217,7 @@ audioUrl = blob.url;
       setUrl("");
       setCover("");
       setFile(null);
+      setCoverFile(null);
       setNotice("Трек добавлен в плейлист.");
       await loadTracks();
     } catch (e) {
@@ -206,7 +276,7 @@ audioUrl = blob.url;
             <input
               type="file"
               accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.webm,.flac"
-              onChange={e => setFile(e.target.files?.[0] || null)}
+              onChange={e => { void handleAudioSelection(e.target.files?.[0] || null); }}
             />
           </label>
         ) : (

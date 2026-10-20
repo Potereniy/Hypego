@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { randomInt } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { put } from '@vercel/blob';
+import { handleUpload } from '@vercel/blob/client';
 import { sql } from '@/lib/db';
 import { appUrl, sendEmail } from '@/lib/mail';
 import { randomToken, hashToken, createEmailToken, isTrustedDevice, trustDevice, clearTrustedDeviceCookie, hashCode } from '@/lib/email-auth';
@@ -12,7 +13,7 @@ export const runtime='nodejs';
 const staffRoleIds=['owner','deputy','management','curator','tech_admin','support','moderator','trainee'];
 const allowedByCurator=['trainee','moderator','support'];
 const seedProducts=[
- ['opka-deputy','👑 Заместитель','rank','main',75,'ОПКА: Заместитель. Осталось 1 место.'],['chief-admin','📈 Гл. Администратор','rank','main',75,'Главный администратор'],['administrator','🚀 Администратор','rank','main',70,'Администратор проекта'],['developer','🔥 Разработчик','privilege','main',75,'Привилегия разработчика'],['chief-console','😎 Гл.Консоль','privilege','main',70,'Главная консоль'],['console','📱 Консоль','privilege','main',70,'Доступ к консоли'],['owner-rank','Владелец','privilege','main',50,'Игровая привилегия «Владелец»; не роль владельца сайта'],['creator','Создатель','privilege','main',50,'Привилегия создателя'],['operator','Оператор','privilege','main',50,'Оператор сервера'],['anti-griefer','Анти-Грифер','privilege','main',50,'Защита от гриферов'],['support-rank','Поддержка','privilege','main',50,'Игровая привилегия поддержки'],['helper','Хелпер','privilege','main',50,'Помощник сервера'],['admin-rank','Админ','privilege','main',50,'Игровая привилегия администратора'],['moderator-rank','Модератор','privilege','main',50,'Игровая привилегия модератора'],['creative','Креатив','privilege','main',50,'Режим креатива'],['premium','Премиум','privilege','main',50,'Премиум'],['vip','Вип','privilege','main',50,'VIP'],['fly','Флай','privilege','main',50,'Полёт'],['donate','Донат','privilege','main',0,'Донат-привилегия'],['beta-tester','❗ БЕТА-ТЕСТЕР [NEW]','privilege','main',0,'Статус бета-тестера'],['best-player','⚡ Статус ★ Лучший игрок ★','privilege','main',0,'Статус лучшего игрока'],['mvp-plus-plus','🪎 MVP++','privilege','main',0,'MVP++'],['mvp-plus','🍯 MVP+','privilege','main',0,'MVP+'],['mvp','🎗 MVP','privilege','main',0,'MVP'],['max-money','Максимальное количество денег','economy','main',0,'До 18 квинтиллионов игровой валюты'],['wipe-100b','Сохранение валюты после вайпа 100.000.000.000$','economy','main',0,'Сохранение игровой валюты после вайпа'],['wipe-100m','Сохранение валюты после вайпа 100.000.000$','economy','main',0,'Сохранение игровой валюты после вайпа'],['unlock-all','Разблокировка всего','economy','main',0,'Разблокировка доступного контента'],['unlock-console','Разблокировка консоли','economy','main',0,'Разблокировка консоли'],['unlock-privilege','Разблокировка привилегии','economy','main',0,'Разблокировка привилегии'],['unban','Разбан по нику','service','main',0,'Заявка на снятие бана'],['unmute','Размут','service','main',0,'Заявка на снятие мута'],['mega-box','Мега-Ящик','consumable','main',0,'Мега-ящик'],['title-box','Титул-Ящик','consumable','main',0,'Ящик титулов'],['companion-box','Компаньон-Ящик','consumable','main',0,'Ящик компаньонов'],['pet-box','Питомец-Ящик','consumable','main',0,'Ящик питомцев'],['hologram-box','Голограмм-Ящик','consumable','main',0,'Ящик голограмм'],['staff-deputy','Заместитель (персонал)','rank','staff',0,'Магазин персонала',true],['staff-chief-admin','Гл. Администратор (персонал)','rank','staff',0,'Магазин персонала',true],['staff-admin','Администратор (персонал)','rank','staff',0,'Магазин персонала',true],['staff-console','Консоль (персонал)','privilege','staff',0,'Магазин персонала',true],['staff-chief-console','Гл.Консоль (персонал)','privilege','staff',0,'Магазин персонала',true],['staff-owner','Владелец (игровая привилегия, персонал)','privilege','staff',0,'Не является ролью владельца проекта',true],['staff-creator','Создатель (персонал)','privilege','staff',0,'Магазин персонала',true],['staff-pet-box','Пет кейс','consumable','staff',0,'Магазин персонала',true],['staff-hologram-box','Голограм кейс','consumable','staff',0,'Магазин персонала',true],['staff-companion-box','Компаньон кейс','consumable','staff',0,'Магазин персонала',true],['staff-title-box','Титул кейс','consumable','staff',0,'Магазин персонала',true],['staff-mega-box','Мега ящик','consumable','staff',0,'Магазин персонала',true],['staff-unmute','Размут (персонал)','service','staff',0,'Магазин персонала',true],['staff-unban','Разбан (персонал)','service','staff',0,'Магазин персонала',true]
+ ['opka','⚡ ОПКА','privilege','main',0,'Игровая привилегия ОПКА'],['opka-deputy','👑 Заместитель','rank','main',75,'ОПКА: Заместитель. Осталось 1 место.'],['chief-admin','📈 Гл. Администратор','rank','main',75,'Главный администратор'],['administrator','🚀 Администратор','rank','main',70,'Администратор проекта'],['developer','🔥 Разработчик','privilege','main',75,'Привилегия разработчика'],['chief-console','😎 Гл.Консоль','privilege','main',70,'Главная консоль'],['console','📱 Консоль','privilege','main',70,'Доступ к консоли'],['owner-rank','Владелец','privilege','main',50,'Игровая привилегия «Владелец»; не роль владельца сайта'],['creator','Создатель','privilege','main',50,'Привилегия создателя'],['operator','Оператор','privilege','main',50,'Оператор сервера'],['anti-griefer','Анти-Грифер','privilege','main',50,'Защита от гриферов'],['support-rank','Поддержка','privilege','main',50,'Игровая привилегия поддержки'],['helper','Хелпер','privilege','main',50,'Помощник сервера'],['admin-rank','Админ','privilege','main',50,'Игровая привилегия администратора'],['moderator-rank','Модератор','privilege','main',50,'Игровая привилегия модератора'],['creative','Креатив','privilege','main',50,'Режим креатива'],['premium','Премиум','privilege','main',50,'Премиум'],['vip','Вип','privilege','main',50,'VIP'],['fly','Флай','privilege','main',50,'Полёт'],['donate','Донат','privilege','main',0,'Донат-привилегия'],['beta-tester','❗ БЕТА-ТЕСТЕР [NEW]','privilege','main',0,'Статус бета-тестера'],['best-player','⚡ Статус ★ Лучший игрок ★','privilege','main',0,'Статус лучшего игрока'],['mvp-plus-plus','🪎 MVP++','privilege','main',0,'MVP++'],['mvp-plus','🍯 MVP+','privilege','main',0,'MVP+'],['mvp','🎗 MVP','privilege','main',0,'MVP'],['max-money','Максимальное количество денег','economy','main',0,'До 18 квинтиллионов игровой валюты'],['wipe-100b','Сохранение валюты после вайпа 100.000.000.000$','economy','main',0,'Сохранение игровой валюты после вайпа'],['wipe-100m','Сохранение валюты после вайпа 100.000.000$','economy','main',0,'Сохранение игровой валюты после вайпа'],['unlock-all','Разблокировка всего','economy','main',0,'Разблокировка доступного контента'],['unlock-console','Разблокировка консоли','economy','main',0,'Разблокировка консоли'],['unlock-privilege','Разблокировка привилегии','economy','main',0,'Разблокировка привилегии'],['unban','Разбан по нику','service','main',0,'Заявка на снятие бана'],['unmute','Размут','service','main',0,'Заявка на снятие мута'],['mega-box','Мега-Ящик','consumable','main',0,'Мега-ящик'],['title-box','Титул-Ящик','consumable','main',0,'Ящик титулов'],['companion-box','Компаньон-Ящик','consumable','main',0,'Ящик компаньонов'],['pet-box','Питомец-Ящик','consumable','main',0,'Ящик питомцев'],['hologram-box','Голограмм-Ящик','consumable','main',0,'Ящик голограмм'],['staff-deputy','Заместитель (персонал)','rank','staff',0,'Магазин персонала',true],['staff-chief-admin','Гл. Администратор (персонал)','rank','staff',0,'Магазин персонала',true],['staff-admin','Администратор (персонал)','rank','staff',0,'Магазин персонала',true],['staff-console','Консоль (персонал)','privilege','staff',0,'Магазин персонала',true],['staff-chief-console','Гл.Консоль (персонал)','privilege','staff',0,'Магазин персонала',true],['staff-owner','Владелец (игровая привилегия, персонал)','privilege','staff',0,'Не является ролью владельца проекта',true],['staff-creator','Создатель (персонал)','privilege','staff',0,'Магазин персонала',true],['staff-pet-box','Пет кейс','consumable','staff',0,'Магазин персонала',true],['staff-hologram-box','Голограм кейс','consumable','staff',0,'Магазин персонала',true],['staff-companion-box','Компаньон кейс','consumable','staff',0,'Магазин персонала',true],['staff-title-box','Титул кейс','consumable','staff',0,'Магазин персонала',true],['staff-mega-box','Мега ящик','consumable','staff',0,'Магазин персонала',true],['staff-unmute','Размут (персонал)','service','staff',0,'Магазин персонала',true],['staff-unban','Разбан (персонал)','service','staff',0,'Магазин персонала',true]
 ];
 async function route(req:NextRequest,{params}:{params:Promise<{path:string[]}>}) {
  const {path}=await params, key=path.join('/'), method=req.method, db=sql();
@@ -144,17 +145,27 @@ if(key==='auth/login'&&method==='POST'){
  if(key==='profile/music-upload'&&method==='POST'){
   const u=await requireUser();
   if(!process.env.BLOB_READ_WRITE_TOKEN)throw new HttpError(503,'Загрузка недоступна: настрой BLOB_READ_WRITE_TOKEN в Vercel');
-  const form=await req.formData(),file=form.get('file');
-  if(!(file instanceof File))throw new HttpError(400,'Выбери аудиофайл');
-  const allowed=['audio/mpeg','audio/mp3','audio/mp4','audio/x-m4a','audio/aac','audio/wav','audio/x-wav','audio/ogg','audio/webm','audio/flac'];
-  if(!allowed.includes(file.type.toLowerCase()))throw new HttpError(400,'Поддерживаются MP3, M4A, AAC, WAV, OGG, WEBM и FLAC');
-  if(file.size<1)throw new HttpError(400,'Аудиофайл пустой');
-  const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(-100);
-  const blob=await put(`profiles/${u.id}/music-${Date.now()}-${safeName}`,file,{access:'public',token:process.env.BLOB_READ_WRITE_TOKEN,contentType:file.type});
-  await audit(u.id,'profile.music.upload','profile_track',u.id);
-  return Response.json({url:blob.url});
- }
- if(key==='profile/upload'&&method==='POST'){const u=await requireUser();if(!process.env.BLOB_READ_WRITE_TOKEN)throw new HttpError(503,'Загрузка изображений недоступна: добавь BLOB_READ_WRITE_TOKEN в Vercel');const form=await req.formData(),file=form.get('file'),kind=String(form.get('kind')||'avatar');if(!(file instanceof File)||!['avatar','banner'].includes(kind))throw new HttpError(400,'Нужен файл и тип avatar/banner');if(!file.type.startsWith('image/'))throw new HttpError(400,'Нужен файл изображения');const blob=await put(`profiles/${u.id}/${kind}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`,file,{access:'public',token:process.env.BLOB_READ_WRITE_TOKEN});if(kind==='avatar')await db`UPDATE users SET avatar_url=${blob.url} WHERE id=${u.id}`;else await db`UPDATE users SET banner_url=${blob.url} WHERE id=${u.id}`;await audit(u.id,'profile.image.update','user',u.id,{kind});return Response.json({url:blob.url});}
+  const body=await req.json();
+  const result=await handleUpload({
+    body,
+    request:req,
+    onBeforeGenerateToken:async(pathname)=>{
+      if(!/^music-[a-zA-Z0-9._-]+$/.test(pathname))throw new HttpError(400,'Некорректное имя аудиофайла');
+      return {
+        allowedContentTypes:['audio/mpeg','audio/mp3','audio/mp4','audio/x-m4a','audio/aac','audio/wav','audio/x-wav','audio/ogg','audio/webm','audio/flac'],
+        addRandomSuffix:true,
+        tokenPayload:JSON.stringify({userId:u.id})
+      };
+    },
+    onUploadCompleted:async({blob,tokenPayload})=>{
+      const payload=JSON.parse(tokenPayload||'{}');
+      if(!payload.userId)throw new Error('Не удалось определить владельца аудиофайла');
+      await audit(payload.userId,'profile.music.upload','profile_track',blob.pathname,{url:blob.url});
+    }
+  });
+  return Response.json(result);
+}
+if(key==='profile/upload'&&method==='POST'){const u=await requireUser();if(!process.env.BLOB_READ_WRITE_TOKEN)throw new HttpError(503,'Загрузка изображений недоступна: добавь BLOB_READ_WRITE_TOKEN в Vercel');const form=await req.formData(),file=form.get('file'),kind=String(form.get('kind')||'avatar');if(!(file instanceof File)||!['avatar','banner'].includes(kind))throw new HttpError(400,'Нужен файл и тип avatar/banner');if(!file.type.startsWith('image/'))throw new HttpError(400,'Нужен файл изображения');const blob=await put(`profiles/${u.id}/${kind}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`,file,{access:'public',token:process.env.BLOB_READ_WRITE_TOKEN});if(kind==='avatar')await db`UPDATE users SET avatar_url=${blob.url} WHERE id=${u.id}`;else await db`UPDATE users SET banner_url=${blob.url} WHERE id=${u.id}`;await audit(u.id,'profile.image.update','user',u.id,{kind});return Response.json({url:blob.url});}
 
 if(key==='friends'&&method==='GET'){
  const actor=await requireUser();
@@ -305,15 +316,18 @@ if(key==='admin/salary'&&method==='POST'){
     const priceRub = b.price_rub_kopecks !== undefined ? Number(b.price_rub_kopecks) : null;
     const priceHp = b.price_hp !== undefined ? Number(b.price_hp) : null;
     const discount=Number(b.discount_percent),stock=b.stock===null?null:Number(b.stock);
+    const name=b.name===undefined?null:String(b.name).trim().slice(0,150);
+    const description=b.description===undefined?null:String(b.description).trim().slice(0,5000);
     if((priceRub !== null && (!Number.isSafeInteger(priceRub) || priceRub < 0)) ||
        (priceHp !== null && (!Number.isSafeInteger(priceHp) || priceHp < 0)) ||
-       !Number.isInteger(discount) || discount < 0 || discount > 100) {
-      throw new HttpError(400,'Некорректная цена или скидка');
+       !Number.isInteger(discount) || discount < 0 || discount > 100 ||
+       (name !== null && !name)) {
+      throw new HttpError(400,'Некорректное название, цена или скидка');
     }
     const active=b.active===undefined?null:Boolean(b.active);
     const rows = active === null
-      ? await db`UPDATE products SET price_rub_kopecks=COALESCE(${priceRub}, price_rub_kopecks), price_hp=COALESCE(${priceHp}, price_hp), discount_percent=${discount}, stock=${stock} WHERE id=${id} RETURNING id,name,price_rub_kopecks,price_hp,discount_percent,stock,active,store`
-      : await db`UPDATE products SET price_rub_kopecks=COALESCE(${priceRub}, price_rub_kopecks), price_hp=COALESCE(${priceHp}, price_hp), discount_percent=${discount}, stock=${stock}, active=${active} WHERE id=${id} RETURNING id,name,price_rub_kopecks,price_hp,discount_percent,stock,active,store`;
+      ? await db`UPDATE products SET name=COALESCE(${name},name), description=COALESCE(${description},description), price_rub_kopecks=COALESCE(${priceRub}, price_rub_kopecks), price_hp=COALESCE(${priceHp}, price_hp), discount_percent=${discount}, stock=${stock} WHERE id=${id} RETURNING id,name,description,price_rub_kopecks,price_hp,discount_percent,stock,active,store`
+      : await db`UPDATE products SET name=COALESCE(${name},name), description=COALESCE(${description},description), price_rub_kopecks=COALESCE(${priceRub}, price_rub_kopecks), price_hp=COALESCE(${priceHp}, price_hp), discount_percent=${discount}, stock=${stock}, active=${active} WHERE id=${id} RETURNING id,name,description,price_rub_kopecks,price_hp,discount_percent,stock,active,store`;
     if(!rows.length)throw new HttpError(404,'Товар не найден');
     await audit(actor.id,'product.update','product',id,{priceRub, priceHp, discount, stock});
     return Response.json({product:rows[0]});

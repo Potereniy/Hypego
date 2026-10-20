@@ -1755,7 +1755,7 @@ if(stock!==null&&(!Number.isInteger(stock)||stock<0))throw new Error('Некор
 
 await api('admin/products',{
 method:'PATCH',
-body:JSON.stringify({id:p.id,[p.store==='staff'?'price_hp':'price_rub_kopecks']:price,discount_percent:discount,stock,active:Boolean(p.active)})
+body:JSON.stringify({id:p.id,name:p.name,description:p.description,[p.store==='staff'?'price_hp':'price_rub_kopecks']:price,discount_percent:discount,stock,active:Boolean(p.active)})
 });
 onNotice('Товар сохранён: '+p.name);
 await load();
@@ -1770,6 +1770,14 @@ return <section className="panel form" style={{marginTop:24}}>
 {items.map(p=><article className="panel form" key={p.id} style={{marginTop:16}}>
 <h3>{p.name}</h3>
 <p className="tiny">{p.store} · {p.category} · {p.store==='staff'?'HP':'RUB'}</p>
+<label>Название товара
+<input type="text" maxLength={150} value={p.name??''}
+onChange={e=>setItems(old=>old.map(x=>x.id===p.id?{...x,name:e.target.value}:x))}/>
+</label>
+<label>Описание товара
+<textarea maxLength={5000} value={p.description??''}
+onChange={e=>setItems(old=>old.map(x=>x.id===p.id?{...x,description:e.target.value}:x))}/>
+</label>
 <label>{p.store==='staff'?'Цена в HP':'Цена в копейках'}
 <input type="number" min="0" step="1" value={p.store==='staff'?(p.price_hp??0):(p.price_rub_kopecks??0)}
 onChange={e=>setItems(old=>old.map(x=>x.id===p.id?{...x,[p.store==='staff'?'price_hp':'price_rub_kopecks']:e.target.value}:x))}/>
