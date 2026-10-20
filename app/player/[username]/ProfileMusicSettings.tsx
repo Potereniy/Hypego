@@ -107,10 +107,25 @@ export default function ProfileMusicSettings({ username }: { username: string })
   {
     access: "public",
     handleUploadUrl: "/api/profile/music-upload",
-    contentType: file.type,
-    multipart: true,
-  }
-);
+    contentType: (() => {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "";
+      const types: Record<string, string> = {
+        mp3: "audio/mpeg",
+        m4a: "audio/mp4",
+        aac: "audio/aac",
+        wav: "audio/wav",
+        ogg: "audio/ogg",
+        webm: "audio/webm",
+        flac: "audio/flac",
+      };
+
+      return types[ext] || (
+        file.type && file.type !== "application/octet-stream"
+          ? file.type
+          : "audio/mpeg"
+      );
+    })(),
+});
 
 audioUrl = blob.url;
       } else {
