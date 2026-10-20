@@ -39,3 +39,19 @@
     min-width: 100%;
   }
 }
+
+/* Видеоэдит в баннере собственного профиля */
+.profileBannerModern {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.profileBannerModern > .hypegoProfileVideoBackground {
+  z-index: 0;
+}
+
+.profileBannerModern > :not(.hypegoProfileVideoBackground) {
+  position: relative;
+  z-index: 1;
+}

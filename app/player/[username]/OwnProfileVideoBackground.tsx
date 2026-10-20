@@ -1,0 +1,74 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import ProfileVideoBackground from "./ProfileVideoBackground";
+
+type Settings = {
+  mode: "off" | "manual" | "auto";
+  selected_video_id: string | null;
+  video_ids: string[];
+  interval_seconds: number;
+};
+
+export default function OwnProfileVideoBackground() {
+  const [settings, setSettings] = useState<Settings>({
+    mode: "off",
+    selected_video_id: null,
+    video_ids: [],
+    interval_seconds: 30,
+  });
+
+  useEffect(() => {
+    let active = true;
+
+    fetch("/api/profile/video-settings")
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Не удалось загрузить видеофон");
+        }
+        return data.settings;
+      })
+      .then((value) => {
+        if (!active || !value) return;
+
+        const ids = Array.isArray(value.video_ids)
+          ? value.video_ids.filter((id: unknown): id is string =>
+              typeof id === "string" && /^[A-Za-z0-9_-]{11}$/.test(id)
+            )
+          : [];
+
+        const selected = value.selected_video_id || null;
+        const videos = ids.length ? ids : selected ? [selected] : [];
+
+        setSettings({
+          mode: ["off", "manual", "auto"].includes(value.mode)
+            ? value.mode
+            : "off",
+          selected_video_id: selected,
+          video_ids: videos,
+          interval_seconds: Number(value.interval_seconds) || 30,
+        });
+      })
+      .catch((error) => {
+        console.error("Profile video background:", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (
+    <ProfileVideoBackground
+      mode={settings.mode}
+      selectedVideoId={settings.selected_video_id}
+      intervalSeconds={settings.interval_seconds}
+      videos={settings.video_ids.map((id) => ({
+        id,
+        title: "Видеоэдит",
+        youtubeId: id,
+      }))}
+    />
+  );
+}
