@@ -1,0 +1,41 @@
+
+/* Hypego: персональный видеофон профиля */
+.hypegoProfileVideoBackground {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #090b12;
+}
+
+.hypegoProfileVideoBackground iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 177.78vh;
+  height: 56.25vw;
+  min-width: 100%;
+  min-height: 100%;
+  transform: translate(-50%, -50%);
+  border: 0;
+  pointer-events: none;
+}
+
+.hypegoProfileVideoOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(9, 11, 18, 0.35),
+    rgba(9, 11, 18, 0.78)
+  );
+}
+
+@media (max-width: 600px) {
+  .hypegoProfileVideoBackground iframe {
+    width: 177.78vh;
+    height: 100vh;
+    min-width: 100%;
+  }
+}

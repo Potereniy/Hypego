@@ -2,6 +2,7 @@
 import {useEffect,useRef,useState} from 'react';
 import { upload as uploadBlob } from '@vercel/blob/client';
 import ProfileMusicSettings from "./player/[username]/ProfileMusicSettings";
+import ProfileVideoSettings from "./player/[username]/ProfileVideoSettings";
 import MusicPlayer from "./player/[username]/MusicPlayer";
 import TraineeApplications from './trainee-applications';
 type User={
@@ -540,6 +541,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 <p className="tiny">Выбери изображения с устройства. После загрузки данные профиля обновятся.</p>
 </div>
 <ProfileMusicSettings username={user.username} />
+          <ProfileVideoSettings />
 <MusicPlayer username={user.username} />
 <div className="profileSettingsTip"><span>ⓘ</span><p>Имя, описание и цвет ника сохраняются кнопкой «Сохранить изменения». Аватар и баннер загружаются отдельно.</p></div>
 </div>

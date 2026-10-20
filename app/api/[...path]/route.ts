@@ -18,6 +18,48 @@ const seedProducts=[
 async function route(req:NextRequest,{params}:{params:Promise<{path:string[]}>}) {
  const {path}=await params, key=path.join('/'), method=req.method, db=sql();
  if(key==='health'&&method==='GET') return Response.json({ok:true,service:'Hypego',database:'configured'});
+
+if(key==='profile/video-settings'&&(method==='GET'||method==='PATCH')){
+ const user=await requireUser();
+
+ if(method==='GET'){
+  const rows=await db`SELECT mode,selected_video_id,interval_seconds FROM profile_video_settings WHERE user_id=${user.id} LIMIT 1`;
+  return Response.json({settings:rows[0]||{mode:'off',selected_video_id:null,video_ids:[],interval_seconds:30}});
+ }
+
+ const b=await bodyJson(req);
+ const mode=String(b.mode||'');
+ if(!['off','manual','auto'].includes(mode))
+  throw new HttpError(400,'Неизвестный режим видеофона');
+
+ const rawId=b.selectedVideoId==null?'':String(b.selectedVideoId).trim();
+ if(rawId.length>100)
+  throw new HttpError(400,'Некорректный идентификатор видео');
+
+ const rawVideoIds=b.videoIds;
+ if(rawVideoIds!==undefined&&(!Array.isArray(rawVideoIds)||rawVideoIds.length>30||rawVideoIds.some((id:any)=>typeof id!=='string'||id.length>100||!/^[A-Za-z0-9_-]+$/.test(id))))
+  throw new HttpError(400,'Список видео некорректен');
+ const videoIds:string[]=rawVideoIds===undefined?(rawId?[rawId]:[]):[...new Set(rawVideoIds as string[])];
+
+ const interval=Number(b.intervalSeconds??30);
+ if(!Number.isInteger(interval)||interval<10||interval>600)
+  throw new HttpError(400,'Интервал должен быть от 10 до 600 секунд');
+
+ const selectedId=rawId||null;
+ const rows=await db`
+  INSERT INTO profile_video_settings(user_id,mode,selected_video_id,video_ids,interval_seconds,updated_at)
+  VALUES(${user.id},${mode},${selectedId},${videoIds},${interval},NOW())
+  ON CONFLICT(user_id) DO UPDATE SET
+   mode=EXCLUDED.mode,
+   selected_video_id=EXCLUDED.selected_video_id,
+   video_ids=EXCLUDED.video_ids,
+   interval_seconds=EXCLUDED.interval_seconds,
+   updated_at=NOW()
+  RETURNING mode,selected_video_id,video_ids,interval_seconds
+ `;
+ return Response.json({settings:rows[0]});
+}
+
  if(key==='auth/verify-email'&&method==='POST'){
  const b=await bodyJson(req),token=String(b.token||'');
  if(!token)throw new HttpError(400,'Ссылка подтверждения недействительна');
@@ -239,7 +281,9 @@ if(key==='players'&&method==='GET'){const q=(req.nextUrl.searchParams.get('q')||
   const player=rows[0];
   const roles=await db`SELECT r.id,r.title,r.rank FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=${player.id} ORDER BY r.rank DESC`;
   const privileges=await db`SELECT server_name,minecraft_username,product_name,quantity,status,starts_at,expires_at,created_at FROM privileges WHERE user_id=${player.id} AND status='active'  ORDER BY created_at DESC`;
-  return Response.json({player,roles,privileges});
+  const videoSettingsRows=await db`SELECT mode,selected_video_id,video_ids,interval_seconds FROM profile_video_settings WHERE user_id=${player.id} LIMIT 1`;
+ const videoSettings=videoSettingsRows[0]||{mode:'off',selected_video_id:null,interval_seconds:30};
+ return Response.json({player,roles,privileges,videoSettings});
 }
  if(key==='roles'&&method==='GET'){const u=await requireUser();const rows=await db`SELECT r.id,r.title,r.rank,EXISTS(SELECT 1 FROM user_roles ur WHERE ur.user_id=${u.id} AND ur.role_id=r.id) AS assigned FROM roles r ORDER BY r.rank DESC`;return Response.json({roles:rows});}
  if(key==='admin/users'&&method==='GET'){const actor=await requireUser();const privilegeStaff=!!actor.is_project_owner||!!(await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} AND role_id IN ('owner','deputy','management','curator','tech_admin','support') LIMIT 1`).length;if(!privilegeStaff&&!await hasPermission(actor.id,'admin.users')&&!await hasPermission(actor.id,'staff.roles.assign_limited')&&!await hasPermission(actor.id,'staff.salary.manage'))throw new HttpError(403,'Недостаточно прав');const q=(req.nextUrl.searchParams.get('q')||'').slice(0,50);const rows=await db`SELECT u.id,u.username,u.is_banned,u.donation_balance_rub_kopecks,u.hp_balance,u.created_at,COALESCE(json_agg(json_build_object('id',r.id,'title',r.title)) FILTER(WHERE r.id IS NOT NULL),'[]') roles FROM users u LEFT JOIN user_roles ur ON ur.user_id=u.id LEFT JOIN roles r ON r.id=ur.role_id WHERE u.username ILIKE ${'%'+q+'%'} GROUP BY u.id ORDER BY u.created_at DESC LIMIT 100`;return Response.json({users:rows});}
