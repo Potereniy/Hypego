@@ -35,8 +35,8 @@ function productPriceLabel(p:Product){
   return p.store==='staff'?n+' HP':(n/100).toFixed(2)+' ₽';
 }
 async function api(url:string,init?:RequestInit){const r=await fetch('/api/'+url,{...init,headers:{'Content-Type':'application/json',...(init?.headers||{})}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Ошибка запроса');return j;}
-export default function Home(){const [user,setUser]=useState<User|null>(null),[roles,setRoles]=useState<any[]>([]),[products,setProducts]=useState<Product[]>([]),[tab,setTab]=useState('home'),[profileSection,setProfileSection]=useState('overview'),[openNav,setOpenNav]=useState(''),[store,setStore]=useState('main'),[routeReady,setRouteReady]=useState(false),[login,setLogin]=useState(''),[password,setPassword]=useState(''),[email,setEmail]=useState(''),[mode,setMode]=useState('login'),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[purchaseProduct,setPurchaseProduct]=useState<Product|null>(null),[purchaseNickname,setPurchaseNickname]=useState(''),[purchaseQuantity,setPurchaseQuantity]=useState('1'),[display,setDisplay]=useState(''),[bio,setBio]=useState(''),[color,setColor]=useState('#a78bfa'),[nicknameEffect,setNicknameEffect]=useState('none'),[avatarFrame,setAvatarFrame]=useState('none'),[vkUrl,setVkUrl]=useState(''),[telegramUsername,setTelegramUsername]=useState(''),[target,setTarget]=useState(''),[currency,setCurrency]=useState('KZT'),[amount,setAmount]=useState('1000'),[challengeId,setChallengeId]=useState(''),[loginCode,setLoginCode]=useState(''),[forgotMode,setForgotMode]=useState(false),[forgotEmail,setForgotEmail]=useState('');
-async function load(){try{const j=await api('me');setUser(j.user);setRoles(j.roles||[]);setDisplay(j.user.display_name||j.user.username);setBio(j.user.bio||'');setColor(j.user.nickname_color||'#a78bfa');setNicknameEffect(j.user.nickname_effect||'none');setAvatarFrame(j.user.avatar_frame||'none');setVkUrl(j.user.vk_url||'');setTelegramUsername(j.user.telegram_username||'');return j.user as User;}catch{setUser(null);setRoles([]);return null;}}
+export default function Home(){const [user,setUser]=useState<User|null>(null),[roles,setRoles]=useState<any[]>([]),[privileges,setPrivileges]=useState<any[]>([]),[products,setProducts]=useState<Product[]>([]),[tab,setTab]=useState('home'),[profileSection,setProfileSection]=useState('overview'),[openNav,setOpenNav]=useState(''),[store,setStore]=useState('main'),[routeReady,setRouteReady]=useState(false),[login,setLogin]=useState(''),[password,setPassword]=useState(''),[email,setEmail]=useState(''),[mode,setMode]=useState('login'),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[purchaseProduct,setPurchaseProduct]=useState<Product|null>(null),[purchaseNickname,setPurchaseNickname]=useState(''),[purchaseQuantity,setPurchaseQuantity]=useState('1'),[display,setDisplay]=useState(''),[bio,setBio]=useState(''),[color,setColor]=useState('#a78bfa'),[nicknameEffect,setNicknameEffect]=useState('none'),[avatarFrame,setAvatarFrame]=useState('none'),[vkUrl,setVkUrl]=useState(''),[telegramUsername,setTelegramUsername]=useState(''),[target,setTarget]=useState(''),[currency,setCurrency]=useState('KZT'),[amount,setAmount]=useState('1000'),[challengeId,setChallengeId]=useState(''),[loginCode,setLoginCode]=useState(''),[forgotMode,setForgotMode]=useState(false),[forgotEmail,setForgotEmail]=useState('');
+async function load(){try{const j=await api('me');setUser(j.user);setRoles(j.roles||[]);setPrivileges(j.privileges||[]);setDisplay(j.user.display_name||j.user.username);setBio(j.user.bio||'');setColor(j.user.nickname_color||'#a78bfa');setNicknameEffect(j.user.nickname_effect||'none');setAvatarFrame(j.user.avatar_frame||'none');setVkUrl(j.user.vk_url||'');setTelegramUsername(j.user.telegram_username||'');return j.user as User;}catch{setUser(null);setRoles([]);setPrivileges([]);return null;}}
 async function loadProducts(s=store){try{const j=await api('products?store='+s);setProducts(j.products||[])}catch(e:any){setNotice(e.message)}}
 const routeKeyRef=useRef('home|overview|main'),skipRoutePushRef=useRef(false);
 useEffect(()=>{
@@ -461,13 +461,13 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
       <span className="profileCardIcon">✧</span>
     </div>
 
-    {roles.length
+    {privileges.length
       ? <div className="profileRoleList">
-          {roles.map(r=>
-            <span key={r.id}>{r.title}</span>
-          )}
+          {privileges.map((p:any,i:number)=><span key={`${p.server_name}-${p.product_name}-${i}`} title={`Minecraft: ${p.minecraft_username} · Сервер: ${p.server_name}`}>
+            {p.product_name}
+          </span>)}
         </div>
-      : <p className="profileBio">Привилегий нет</p>
+      : <p className="profileBio">Игровых привилегий пока нет</p>
     }
   </article>
 

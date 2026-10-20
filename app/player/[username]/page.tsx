@@ -41,7 +41,7 @@ export default function PlayerProfilePage() {
       .then(async (r) => {
         const data = await r.json();
         if (!r.ok) throw new Error(data.error || "Игрок не найден");
-        return data.player;
+        return { ...data.player, roles: data.roles || [], privileges: data.privileges || [] };
       })
       .then((p) => {
         if (active) setPlayer(p);
@@ -217,6 +217,53 @@ export default function PlayerProfilePage() {
             <strong>{player.created_at
               ? new Date(player.created_at).toLocaleDateString("ru-RU")
               : "Не указана"}</strong>
+          </div>
+        </section>
+
+        {/* PUBLIC_PROFILE_ROLES_PRIVILEGES */}
+        <section className="publicProfileCard">
+          <div className="publicProfileSectionTitle">
+            <div>
+              <span className="eyebrow">HYPEGO STATUS</span>
+              <h2>Должности и привилегии</h2>
+            </div>
+            <span className="publicProfileIcon">✧</span>
+          </div>
+
+          <div className="publicProfileMeta">
+            <span>ГРУППА</span>
+            <strong>
+              {player.roles?.some((r: any) => r.id === "owner")
+                ? "Владелец проекта"
+                : player.roles?.some((r: any) => ["deputy", "management"].includes(r.id))
+                  ? "Руководство"
+                  : player.roles?.some((r: any) => ["curator", "tech_admin", "support", "moderator", "trainee"].includes(r.id))
+                    ? "Персонал"
+                    : "Игрок"}
+            </strong>
+          </div>
+
+          <div className="publicProfileMeta">
+            <span>ДОЛЖНОСТИ НА САЙТЕ</span>
+            <strong>
+              {player.roles?.length
+                ? player.roles.map((r: any) => r.title).join(", ")
+                : "Нет специальных должностей"}
+            </strong>
+          </div>
+
+          <div className="publicProfileMeta">
+            <span>ПРИВИЛЕГИИ MINECRAFT</span>
+            <strong>
+              {player.privileges?.length
+                ? player.privileges.map((p: any, i: number) => (
+                    <span key={`${p.server_name}-${p.product_name}-${i}`} style={{ display: "block", marginTop: 6 }}>
+                      {p.product_name} — {p.server_name}
+                      
+                    </span>
+                  ))
+                : "Активных игровых привилегий нет"}
+            </strong>
           </div>
         </section>
 

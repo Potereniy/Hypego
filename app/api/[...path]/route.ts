@@ -107,7 +107,12 @@ if(key==='auth/login'&&method==='POST'){
   return Response.json({user:{id:rows[0].id,username:rows[0].username,email:rows[0].email}});
 }
  if(key==='auth/logout'&&method==='POST'){await clearSession();return Response.json({ok:true});}
- if(key==='me'&&method==='GET'){const u=await requireUser();const roles=await db`SELECT r.id,r.title,r.rank FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=${u.id} ORDER BY r.rank DESC`;return Response.json({user:u,roles});}
+ if(key==='me'&&method==='GET'){
+  const u=await requireUser();
+  const roles=await db`SELECT r.id,r.title,r.rank FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=${u.id} ORDER BY r.rank DESC`;
+  const privileges=await db`SELECT server_name,minecraft_username,product_name,quantity,status,starts_at,expires_at,created_at FROM privileges WHERE user_id=${u.id} AND status='active'  ORDER BY created_at DESC`;
+  return Response.json({user:u,roles,privileges});
+}
  if(key==='profile'&&method==='PATCH'){const u=await requireUser(),b=await bodyJson(req);const display=String(b.display_name??u.display_name??u.username).slice(0,40),bio=String(b.bio??u.bio??'').slice(0,500),color=String(b.nickname_color??u.nickname_color);if(!/^#[0-9a-fA-F]{6}$/.test(color))throw new HttpError(400,'Некорректный цвет ника');const effect=String(b.nickname_effect??u.nickname_effect??'none');const frame=String(b.avatar_frame??u.avatar_frame??'none');if(!['none','gradient','neon','rgb'].includes(effect))throw new HttpError(400,'Некорректный эффект ника');if(!['none','purple','neon','fire','electric','gold','red','blue','emerald','rgb','pulse','cosmic'].includes(frame))throw new HttpError(400,'Некорректная рамка аватара');const birth=b.birth_date||null,vk=String(b.vk_url??u.vk_url??'').trim().slice(0,300),telegram=String(b.telegram_username??u.telegram_username??'').trim().replace(/^@/,'');if(vk&&!/^https:\/\/(www\.)?vk\.com\/[A-Za-z0-9_.-]+\/?$/.test(vk))throw new HttpError(400,'Укажи ссылку вида https://vk.com/username');if(telegram&&!/^[A-Za-z0-9_]{5,32}$/.test(telegram))throw new HttpError(400,'Имя Telegram должно содержать 5–32 символа: латинские буквы, цифры или _');const rows=await db`UPDATE users SET display_name=${display},bio=${bio},nickname_color=${color},nickname_effect=${effect},avatar_frame=${frame},birth_date=${birth},vk_url=${vk||null},telegram_username=${telegram||null},updated_at=NOW() WHERE id=${u.id} RETURNING id,username,display_name,bio,nickname_color,nickname_effect,avatar_frame,birth_date,avatar_url,banner_url,vk_url,telegram_username`;await audit(u.id,'profile.update','user',u.id);return Response.json({user:rows[0]});}
 
  if(key==='profile/tracks'&&method==='GET'){
@@ -231,8 +236,11 @@ if(key==='players'&&method==='GET'){const q=(req.nextUrl.searchParams.get('q')||
   if(!/^[A-Za-z0-9_]{3,24}$/.test(username))throw new HttpError(400,'Некорректный ник');
   const rows=await db`SELECT id,username,display_name,bio,nickname_color,nickname_effect,avatar_frame,avatar_url,banner_url,vk_url,telegram_username,created_at FROM users WHERE username ILIKE ${username} LIMIT 1`;
   if(!rows.length)throw new HttpError(404,'Игрок не найден');
-  return Response.json({player:rows[0]});
- }
+  const player=rows[0];
+  const roles=await db`SELECT r.id,r.title,r.rank FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=${player.id} ORDER BY r.rank DESC`;
+  const privileges=await db`SELECT server_name,minecraft_username,product_name,quantity,status,starts_at,expires_at,created_at FROM privileges WHERE user_id=${player.id} AND status='active'  ORDER BY created_at DESC`;
+  return Response.json({player,roles,privileges});
+}
  if(key==='roles'&&method==='GET'){const u=await requireUser();const rows=await db`SELECT r.id,r.title,r.rank,EXISTS(SELECT 1 FROM user_roles ur WHERE ur.user_id=${u.id} AND ur.role_id=r.id) AS assigned FROM roles r ORDER BY r.rank DESC`;return Response.json({roles:rows});}
  if(key==='admin/users'&&method==='GET'){const actor=await requireUser();const privilegeStaff=!!actor.is_project_owner||!!(await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} AND role_id IN ('owner','deputy','management','curator','tech_admin','support') LIMIT 1`).length;if(!privilegeStaff&&!await hasPermission(actor.id,'admin.users')&&!await hasPermission(actor.id,'staff.roles.assign_limited')&&!await hasPermission(actor.id,'staff.salary.manage'))throw new HttpError(403,'Недостаточно прав');const q=(req.nextUrl.searchParams.get('q')||'').slice(0,50);const rows=await db`SELECT u.id,u.username,u.is_banned,u.donation_balance_rub_kopecks,u.hp_balance,u.created_at,COALESCE(json_agg(json_build_object('id',r.id,'title',r.title)) FILTER(WHERE r.id IS NOT NULL),'[]') roles FROM users u LEFT JOIN user_roles ur ON ur.user_id=u.id LEFT JOIN roles r ON r.id=ur.role_id WHERE u.username ILIKE ${'%'+q+'%'} GROUP BY u.id ORDER BY u.created_at DESC LIMIT 100`;return Response.json({users:rows});}
  if(key==='admin/roles'&&method==='POST'){
