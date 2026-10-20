@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { upload } from "@vercel/blob/client";
-import jsmediatags from "jsmediatags";
+import jsmediatags from "jsmediatags/dist/jsmediatags.min.js";
 
 type Track = {
   id: string;
