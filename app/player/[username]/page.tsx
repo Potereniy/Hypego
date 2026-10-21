@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
 import MusicPlayer from "./MusicPlayer";
-import ProfileVideoBackground from "./ProfileVideoBackground";
 
 type WallPost = {
   id: string;
@@ -46,12 +45,7 @@ export default function PlayerProfilePage() {
         ...data.player,
         roles: data.roles || [],
         privileges: data.privileges || [],
-        videoSettings: data.videoSettings || {
-          mode: "off",
-          selected_video_id: null,
-          interval_seconds: 30,
-        },
-      };
+        };
       })
       .then((p) => {
         if (active) setPlayer(p);
@@ -177,22 +171,7 @@ export default function PlayerProfilePage() {
             JSON.stringify(player.banner_url) + ")",
         } : undefined}
       >
-        <ProfileVideoBackground
-              mode={player.videoSettings.mode}
-              selectedVideoId={player.videoSettings.selected_video_id}
-              intervalSeconds={player.videoSettings.interval_seconds}
-              videos={(
-                Array.isArray(player.videoSettings.video_ids)
-                  ? player.videoSettings.video_ids
-                  : player.videoSettings.selected_video_id
-                    ? [player.videoSettings.selected_video_id]
-                    : []
-              ).map((id: string) => ({
-                id,
-                title: "Видеоэдит",
-                youtubeId: id,
-              }))}
-            />
+        
             <div className="publicProfileIdentity">
           <div className={`publicProfileAvatar avatar-frame-${player.avatar_frame||"none"}`}>
             {player.avatar_url

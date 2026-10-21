@@ -2,8 +2,7 @@
 import {useEffect,useRef,useState} from 'react';
 import { upload as uploadBlob } from '@vercel/blob/client';
 import ProfileMusicSettings from "./player/[username]/ProfileMusicSettings";
-import ProfileVideoSettings from "./player/[username]/ProfileVideoSettings";
-import OwnProfileVideoBackground from "./player/[username]/OwnProfileVideoBackground";
+
 import MusicPlayer from "./player/[username]/MusicPlayer";
 import TraineeApplications from './trainee-applications';
 type User={
@@ -340,7 +339,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
   {mode === 'login' ? 'Нет аккаунта? Создать' : 'Уже есть аккаунт? Войти'}
 </button></section>}
 {tab==='profile'&&user&&<section className="section profilePage">
-<OwnProfileVideoBackground />
+
 <div className="profileBanner profileBannerModern" style={{backgroundImage:user.banner_url?`linear-gradient(90deg,#090b12ee,#11152166),url(${user.banner_url})`:undefined}}>
   <div className={`avatar avatar-frame-${user.avatar_frame||"none"}`}>
     {user.avatar_url?<img src={user.avatar_url} alt="Аватар"/>:user.username.slice(0,1).toUpperCase()}
@@ -543,7 +542,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 <p className="tiny">Выбери изображения с устройства. После загрузки данные профиля обновятся.</p>
 </div>
 <ProfileMusicSettings username={user.username} />
-          <ProfileVideoSettings />
+
 <MusicPlayer username={user.username} />
 <div className="profileSettingsTip"><span>ⓘ</span><p>Имя, описание и цвет ника сохраняются кнопкой «Сохранить изменения». Аватар и баннер загружаются отдельно.</p></div>
 </div>

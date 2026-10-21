@@ -6,50 +6,10 @@
   overflow: hidden;
 }
 
-.profileBannerModern > .hypegoProfileVideoBackground {
-  z-index: 0;
-}
-
-.profileBannerModern > :not(.hypegoProfileVideoBackground) {
-  position: relative;
-  z-index: 1;
-}
-
 /* Полноэкранный видеофон страницы профиля */
 .profilePage {
   position: relative;
   isolation: isolate;
-}
-
-.profilePage > .hypegoProfileVideoBackground {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.profilePage > .hypegoProfileVideoBackground iframe {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 177.78vh;
-  height: 56.25vw;
-  min-width: 100%;
-  min-height: 100%;
-  transform: translate(-50%, -50%);
-  border: 0;
-  pointer-events: none;
-}
-
-.profilePage > .hypegoProfileVideoBackground .hypegoProfileVideoOverlay {
-  position: absolute;
-  inset: 0;
-}
-
-.profilePage > :not(.hypegoProfileVideoBackground) {
-  position: relative;
-  z-index: 1;
 }
 
 
@@ -60,202 +20,14 @@
   isolation: isolate;
 }
 
-.profilePage > .hypegoProfileVideoBackground {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  z-index: -1 !important;
-  overflow: hidden !important;
-  pointer-events: none !important;
-  background: #090b12;
-}
-
-.profilePage > .hypegoProfileVideoBackground .hypegoProfileVideoElement {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  min-width: 100vw !important;
-  min-height: 100vh !important;
-  max-width: none !important;
-  max-height: none !important;
-  border: 0 !important;
-  transform: translate(-50%, -50%) !important;
-  object-fit: cover !important;
-}
-
-.profilePage > .hypegoProfileVideoBackground iframe.hypegoProfileVideoElement {
-  width: 177.78vh !important;
-  height: 100vh !important;
-  min-width: 177.78vh !important;
-  min-height: 100vh !important;
-}
-
-.profilePage > .hypegoProfileVideoBackground .hypegoProfileVideoOverlay {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(5, 7, 13, .30),
-      rgba(5, 7, 13, .65)
-    ) !important;
-}
-
-.profilePage > :not(.hypegoProfileVideoBackground) {
-  position: relative;
-  z-index: 1;
-}
-
 @media (max-width: 700px) {
-  .profilePage > .hypegoProfileVideoBackground iframe.hypegoProfileVideoElement {
-    width: 177.78vh !important;
-    height: 100vh !important;
-  }
 }
 @media (max-width: 700px) {
-  .hypegoProfileVideoElement {
-    width: 100vw;
-    height: 100vh;
-  }
-
-  iframe.hypegoProfileVideoElement {
-    width: 177.78vh;
-    height: 100vh;
-  }
 }
 
 /* Финальный слой полноэкранного видеофона профиля */
 .profilePage {
   position: relative !important;
   isolation: isolate !important;
-  background: transparent !important;
-}
-
-.profilePage > .hypegoProfileVideoBackground {
-  z-index: 0 !important;
-}
-
-.profilePage > :not(.hypegoProfileVideoBackground) {
-  position: relative !important;
-  z-index: 1 !important;
-}
-
-/* Hypego: единый полноэкранный слой видео */
-.hypegoProfileVideoBackground {
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  z-index: 0 !important;
-  overflow: hidden !important;
-  pointer-events: none !important;
-  background: #090b12;
-}
-
-.hypegoProfileVideoBackground .hypegoProfileVideoElement {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  min-width: 100vw !important;
-  min-height: 100vh !important;
-  min-height: 100dvh !important;
-  max-width: none !important;
-  max-height: none !important;
-  border: 0 !important;
-  transform: translate(-50%, -50%) !important;
-}
-
-.hypegoProfileVideoBackground video.hypegoProfileVideoElement {
-  object-fit: cover !important;
-}
-
-.hypegoProfileVideoBackground iframe.hypegoProfileVideoElement {
-  width: 177.78vh !important;
-  height: 100vh !important;
-  min-width: 177.78vh !important;
-  min-height: 100vh !important;
-}
-
-.hypegoProfileVideoOverlay {
-  position: absolute !important;
-  inset: 0 !important;
-  background: linear-gradient(
-    180deg,
-    rgba(5, 7, 13, .30),
-    rgba(5, 7, 13, .68)
-  ) !important;
-}
-
-.profilePage {
-  position: relative !important;
-  isolation: isolate !important;
-  background: transparent !important;
-  z-index: 1 !important;
-}
-
-/* Hypego: video is the background of the entire profile page */
-.hypegoProfileVideoBackground {
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  z-index: 0 !important;
-  overflow: hidden !important;
-  pointer-events: none !important;
-  background: #090b12 !important;
-}
-
-.hypegoProfileVideoBackground .hypegoProfileVideoElement {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  width: 177.78vh !important;
-  height: 100vh !important;
-  min-width: 100vw !important;
-  min-height: 100vh !important;
-  min-height: 100dvh !important;
-  max-width: none !important;
-  max-height: none !important;
-  border: 0 !important;
-  transform: translate(-50%, -50%) !important;
-}
-
-.hypegoProfileVideoBackground video.hypegoProfileVideoElement {
-  width: 100vw !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  object-fit: cover !important;
-}
-
-.hypegoProfileVideoBackground iframe.hypegoProfileVideoElement {
-  width: 177.78vh !important;
-  height: 100vh !important;
-  min-width: 177.78vh !important;
-  min-height: 100vh !important;
-}
-
-.hypegoProfileVideoOverlay {
-  position: absolute !important;
-  inset: 0 !important;
-  background: rgba(5, 7, 13, 0.48) !important;
-}
-
-.profilePage {
-  position: relative !important;
-  z-index: 1 !important;
-  isolation: auto !important;
   background: transparent !important;
 }
