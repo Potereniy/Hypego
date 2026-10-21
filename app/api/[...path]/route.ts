@@ -22,35 +22,33 @@ async function route(req:NextRequest,{params}:{params:Promise<{path:string[]}>})
 
 if(key==='profile/video-upload'&&method==='POST'){
  const user=await requireUser();
+ if(!process.env.BLOB_READ_WRITE_TOKEN)
+  throw new HttpError(503,'Загрузка видео недоступна: настрой BLOB_READ_WRITE_TOKEN в Vercel');
 
- const body=await bodyJson(req);
-
- const token=await handleUpload({
-  body: body as Parameters<typeof handleUpload>[0]["body"],
+ const body=await req.json();
+ const result=await handleUpload({
+  body,
   request:req,
   onBeforeGenerateToken:async(pathname)=>{
-   if(!pathname.startsWith(`profile-videos/${user.id}/`)){
-    throw new Error('Недопустимый путь загрузки');
-   }
+   if(!/^profile-videos\/[A-Za-z0-9._-]+$/.test(pathname))
+    throw new HttpError(400,'Некорректное имя видео');
 
    return {
-    allowedContentTypes:[
-     'video/mp4',
-     'video/webm',
-     'video/quicktime'
-    ],
+    allowedContentTypes:['video/mp4','video/webm','video/quicktime'],
     maximumSizeInBytes:200*1024*1024,
     addRandomSuffix:true,
+    tokenPayload:JSON.stringify({userId:user.id})
    };
   },
-  onUploadCompleted:async({blob})=>{
+  onUploadCompleted:async({blob,tokenPayload})=>{
+   const payload=JSON.parse(tokenPayload||'{}');
+   if(payload.userId!==user.id)
+    throw new Error('Не удалось подтвердить владельца видео');
    console.log('Profile video uploaded:',blob.url);
-  },
+  }
  });
-
- return Response.json(token);
+ return Response.json(result);
 }
-
 if(key==='profile/video-settings'&&(method==='GET'||method==='PATCH')){
  const user=await requireUser();
 

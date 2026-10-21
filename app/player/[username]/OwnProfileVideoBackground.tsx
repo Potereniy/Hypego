@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import ProfileVideoBackground from "./ProfileVideoBackground";
 
 type Settings = {
@@ -24,9 +25,13 @@ export default function OwnProfileVideoBackground() {
     fetch("/api/profile/video-settings")
       .then(async (response) => {
         const data = await response.json();
+
         if (!response.ok) {
-          throw new Error(data.error || "Не удалось загрузить видеофон");
+          throw new Error(
+            data.error || "Не удалось загрузить видеофон"
+          );
         }
+
         return data.settings;
       })
       .then((value) => {
@@ -65,7 +70,7 @@ export default function OwnProfileVideoBackground() {
     };
   }, []);
 
-  return (
+  const background = (
     <ProfileVideoBackground
       mode={settings.mode}
       selectedVideoId={settings.selected_video_id}
@@ -93,4 +98,8 @@ export default function OwnProfileVideoBackground() {
       })}
     />
   );
+
+  return typeof document !== "undefined"
+    ? createPortal(background, document.body)
+    : null;
 }

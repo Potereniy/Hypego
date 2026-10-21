@@ -147,3 +147,115 @@
   position: relative !important;
   z-index: 1 !important;
 }
+
+/* Hypego: единый полноэкранный слой видео */
+.hypegoProfileVideoBackground {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  background: #090b12;
+}
+
+.hypegoProfileVideoBackground .hypegoProfileVideoElement {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-width: 100vw !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  border: 0 !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.hypegoProfileVideoBackground video.hypegoProfileVideoElement {
+  object-fit: cover !important;
+}
+
+.hypegoProfileVideoBackground iframe.hypegoProfileVideoElement {
+  width: 177.78vh !important;
+  height: 100vh !important;
+  min-width: 177.78vh !important;
+  min-height: 100vh !important;
+}
+
+.hypegoProfileVideoOverlay {
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(
+    180deg,
+    rgba(5, 7, 13, .30),
+    rgba(5, 7, 13, .68)
+  ) !important;
+}
+
+.profilePage {
+  position: relative !important;
+  isolation: isolate !important;
+  background: transparent !important;
+  z-index: 1 !important;
+}
+
+/* Hypego: video is the background of the entire profile page */
+.hypegoProfileVideoBackground {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  background: #090b12 !important;
+}
+
+.hypegoProfileVideoBackground .hypegoProfileVideoElement {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 177.78vh !important;
+  height: 100vh !important;
+  min-width: 100vw !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  border: 0 !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.hypegoProfileVideoBackground video.hypegoProfileVideoElement {
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  object-fit: cover !important;
+}
+
+.hypegoProfileVideoBackground iframe.hypegoProfileVideoElement {
+  width: 177.78vh !important;
+  height: 100vh !important;
+  min-width: 177.78vh !important;
+  min-height: 100vh !important;
+}
+
+.hypegoProfileVideoOverlay {
+  position: absolute !important;
+  inset: 0 !important;
+  background: rgba(5, 7, 13, 0.48) !important;
+}
+
+.profilePage {
+  position: relative !important;
+  z-index: 1 !important;
+  isolation: auto !important;
+  background: transparent !important;
+}
