@@ -26,7 +26,7 @@ if(key==='profile/video-upload'&&method==='POST'){
  const body=await bodyJson(req);
 
  const token=await handleUpload({
-  body,
+  body: body as Parameters<typeof handleUpload>[0]["body"],
   request:req,
   onBeforeGenerateToken:async(pathname)=>{
    if(!pathname.startsWith(`profile-videos/${user.id}/`)){
