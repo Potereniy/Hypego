@@ -1,0 +1,21 @@
+[33mcommit 6b88c6597ab7846d2543a63110d4902c68cc7dd9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: Potereniy <gradusvitc1@gmail.com>
+Date:   Sat Oct 17 01:26:05 2026 +0500
+
+    Fix email verification and SMTP error logging
+
+[1mdiff --git a/app/api/auth/resend-verification/route.ts b/app/api/auth/resend-verification/route.ts[m
+[1mindex 99a0a8b..926e091 100644[m
+[1m--- a/app/api/auth/resend-verification/route.ts[m
+[1m+++ b/app/api/auth/resend-verification/route.ts[m
+[36m@@ -79,8 +79,8 @@[m [mexport async function POST(req: NextRequest) {[m
+          <p><a href="${link}">Подтвердить email</a></p>[m
+          <p>Ссылка действует 60 минут.</p>`[m
+       );[m
+[31m-    } catch {[m
+[31m-      console.error('Resend verification email failed');[m
+[32m+[m[32m    } catch (error) {[m
+[32m+[m[32m      console.error('Resend verification email failed:', { message: (error as any)?.message, code: (error as any)?.code, command: (error as any)?.command, responseCode: (error as any)?.responseCode });[m
+       throw new HttpError([m
+         503,[m
+         'Не удалось отправить письмо. Проверь настройки SMTP в Vercel.'[m

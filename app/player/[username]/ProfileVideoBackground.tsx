@@ -7,7 +7,9 @@ export type ProfileVideoMode = "off" | "manual" | "auto";
 export type ProfileVideoItem = {
   id: string;
   title: string;
-  youtubeId: string;
+  youtubeId?: string;
+  videoUrl?: string;
+  type?: "youtube" | "upload";
 };
 
 type Props = {
@@ -46,27 +48,39 @@ export default function ProfileVideoBackground({
       ? videos[selectedIndex]
       : videos[index % videos.length];
 
-  if (!video?.youtubeId) return null;
+  if (!video) return null;
 
   return (
-    <div
-      aria-hidden="true"
-      className="hypegoProfileVideoBackground"
-    >
-      <iframe
-        key={video.youtubeId}
-        src={
-          "https://www.youtube-nocookie.com/embed/" +
-          encodeURIComponent(video.youtubeId) +
-          "?autoplay=1&mute=1&controls=0&loop=1&playlist=" +
-          encodeURIComponent(video.youtubeId) +
-          "&playsinline=1&rel=0"
-        }
-        title="Фоновый видеоэдит профиля"
-        allow="autoplay; encrypted-media; picture-in-picture"
-        referrerPolicy="strict-origin-when-cross-origin"
-        tabIndex={-1}
-      />
+    <div className="hypegoProfileVideoBackground" aria-hidden="true">
+      {video.type === "upload" && video.videoUrl ? (
+        <video
+          key={video.videoUrl}
+          className="hypegoProfileVideoElement"
+          src={video.videoUrl}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+        />
+      ) : video.youtubeId ? (
+        <iframe
+          key={video.youtubeId}
+          className="hypegoProfileVideoElement"
+          src={
+            "https://www.youtube-nocookie.com/embed/" +
+            encodeURIComponent(video.youtubeId) +
+            "?autoplay=1&mute=1&controls=0&loop=1&playlist=" +
+            encodeURIComponent(video.youtubeId) +
+            "&playsinline=1&rel=0"
+          }
+          title="Фоновый видеоэдит профиля"
+          allow="autoplay; encrypted-media; picture-in-picture"
+          referrerPolicy="strict-origin-when-cross-origin"
+          tabIndex={-1}
+        />
+      ) : null}
+
       <div className="hypegoProfileVideoOverlay" />
     </div>
   );

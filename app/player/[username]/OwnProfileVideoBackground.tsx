@@ -33,8 +33,14 @@ export default function OwnProfileVideoBackground() {
         if (!active || !value) return;
 
         const ids = Array.isArray(value.video_ids)
-          ? value.video_ids.filter((id: unknown): id is string =>
-              typeof id === "string" && /^[A-Za-z0-9_-]{11}$/.test(id)
+          ? value.video_ids.filter(
+              (id: unknown): id is string =>
+                typeof id === "string" &&
+                (
+                  /^yt:[A-Za-z0-9_-]{11}$/.test(id) ||
+                  /^file:https?:\/\//.test(id) ||
+                  /^[A-Za-z0-9_-]{11}$/.test(id)
+                )
             )
           : [];
 
@@ -64,11 +70,27 @@ export default function OwnProfileVideoBackground() {
       mode={settings.mode}
       selectedVideoId={settings.selected_video_id}
       intervalSeconds={settings.interval_seconds}
-      videos={settings.video_ids.map((id) => ({
-        id,
-        title: "Видеоэдит",
-        youtubeId: id,
-      }))}
+      videos={settings.video_ids.map((value) => {
+        if (value.startsWith("file:")) {
+          return {
+            id: value,
+            title: "Загруженный эдит",
+            videoUrl: value.slice(5),
+            type: "upload" as const,
+          };
+        }
+
+        const youtubeId = value.startsWith("yt:")
+          ? value.slice(3)
+          : value;
+
+        return {
+          id: value,
+          title: "YouTube эдит",
+          youtubeId,
+          type: "youtube" as const,
+        };
+      })}
     />
   );
 }

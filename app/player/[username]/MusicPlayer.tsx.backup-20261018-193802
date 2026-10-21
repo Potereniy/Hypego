@@ -1,0 +1,215 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+type Track = {
+  id: string;
+  title: string;
+  artist: string;
+  audio_url: string;
+  cover_url: string | null;
+};
+
+export default function MusicPlayer({ username }: { username: string }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [index, setIndex] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [current, setCurrent] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(0.8);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const track = tracks[index];
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    fetch("/api/profile/tracks?username=" + encodeURIComponent(username))
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Не удалось загрузить музыку");
+        return data.tracks as Track[];
+      })
+      .then((list) => {
+        if (!active) return;
+        setTracks(Array.isArray(list) ? list : []);
+        setError("");
+      })
+      .catch((e: Error) => {
+        if (active) setError(e.message || "Ошибка загрузки плейлиста");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [username]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !track) return;
+
+    audio.volume = volume;
+    setCurrent(0);
+    setDuration(0);
+    setPlaying(false);
+
+    // Пробуем запустить трек автоматически. Браузер может потребовать
+    // первое нажатие Play от посетителя.
+    const attempt = audio.play();
+    if (attempt) {
+      attempt.then(() => setPlaying(true)).catch(() => setPlaying(false));
+    }
+  }, [track?.id, volume]);
+
+  const togglePlay = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio || !track) return;
+    if (audio.paused) {
+      try {
+        await audio.play();
+        setPlaying(true);
+        setError("");
+      } catch {
+        setPlaying(false);
+        setError("Нажми Play ещё раз: браузер заблокировал автозапуск или ссылка недоступна.");
+      }
+    } else {
+      audio.pause();
+      setPlaying(false);
+    }
+  }, [track]);
+
+  const changeTrack = (next: number) => {
+    if (!tracks.length) return;
+    setIndex((next + tracks.length) % tracks.length);
+  };
+
+  const formatTime = (seconds: number) => {
+    if (!Number.isFinite(seconds)) return "0:00";
+    return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+  };
+
+  if (loading) {
+    return <section className="profileMusic"><div className="profileMusicLoading">Загружаем музыку…</div></section>;
+  }
+
+  if (!tracks.length) {
+    return (
+      <section className="profileMusic profileMusicEmpty">
+        <div className="profileMusicEyebrow">HYPEGO SOUND SYSTEM</div>
+        <h2>Музыка профиля</h2>
+        <p>Здесь пока нет треков. Владелец профиля сможет добавить их в настройках.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="profileMusic">
+      <audio
+        ref={audioRef}
+        src={track?.audio_url}
+        preload="metadata"
+        onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}
+        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => changeTrack(index + 1)}
+        onError={() => {
+          setPlaying(false);
+          setError("Не удалось воспроизвести трек. Проверь прямую ссылку на аудиофайл.");
+        }}
+      />
+
+      <div className="profileMusicHeading">
+        <div>
+          <div className="profileMusicEyebrow">HYPEGO SOUND SYSTEM</div>
+          <h2>Музыка профиля</h2>
+        </div>
+        <span className="profileMusicCount">{index + 1} / {tracks.length}</span>
+      </div>
+
+      <div className="profileMusicBody">
+        <div className={"profileVinyl " + (playing ? "isSpinning" : "")}>
+          <div className="profileVinylGrooves">
+            {track?.cover_url
+              ? <img className="profileVinylCover" src={track.cover_url} alt={"Обложка " + track.title} />
+              : <div className="profileVinylLabel">H+</div>}
+          </div>
+        </div>
+
+        <div className="profileMusicDetails">
+          <div className="profileMusicEyebrow">NOW PLAYING</div>
+          <h3 title={track?.title}>{track?.title}</h3>
+          <p>{track?.artist || "Неизвестный исполнитель"}</p>
+
+          <div className="profileMusicControls">
+            <button type="button" aria-label="Предыдущий трек" onClick={() => changeTrack(index - 1)}>|◀</button>
+            <button type="button" className="profileMusicPlay" aria-label={playing ? "Пауза" : "Воспроизвести"} onClick={togglePlay}>
+              {playing ? "Ⅱ" : "▶"}
+            </button>
+            <button type="button" aria-label="Следующий трек" onClick={() => changeTrack(index + 1)}>▶|</button>
+          </div>
+
+          <div className="profileMusicTimeline">
+            <span>{formatTime(current)}</span>
+            <input
+              aria-label="Позиция воспроизведения"
+              type="range"
+              min={0}
+              max={duration || 1}
+              step={1}
+              value={Math.min(current, duration || 1)}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                if (audioRef.current) audioRef.current.currentTime = value;
+                setCurrent(value);
+              }}
+            />
+            <span>{formatTime(duration)}</span>
+          </div>
+
+          <label className="profileMusicVolume">
+            <span>Громкость</span>
+            <input
+              aria-label="Громкость"
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={volume}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                setVolume(value);
+                if (audioRef.current) audioRef.current.volume = value;
+              }}
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="profileMusicPlaylist">
+        {tracks.map((item, i) => (
+          <button
+            type="button"
+            key={item.id}
+            className={"profileMusicTrack " + (i === index ? "active" : "")}
+            onClick={() => changeTrack(i)}
+          >
+            <span className="profileMusicTrackNumber">{i === index && playing ? "♫" : String(i + 1).padStart(2, "0")}</span>
+            <span className="profileMusicTrackText">
+              <strong>{item.title}</strong>
+              <small>{item.artist || "Неизвестный исполнитель"}</small>
+            </span>
+            <span className="profileMusicTrackAction">{i === index && playing ? "Ⅱ" : "▶"}</span>
+          </button>
+        ))}
+      </div>
+
+      {error && <p className="profileMusicError">{error}</p>}
+    </section>
+  );
+}

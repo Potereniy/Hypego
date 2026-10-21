@@ -19,11 +19,43 @@ async function route(req:NextRequest,{params}:{params:Promise<{path:string[]}>})
  const {path}=await params, key=path.join('/'), method=req.method, db=sql();
  if(key==='health'&&method==='GET') return Response.json({ok:true,service:'Hypego',database:'configured'});
 
+
+if(key==='profile/video-upload'&&method==='POST'){
+ const user=await requireUser();
+
+ const body=await bodyJson(req);
+
+ const token=await handleUpload({
+  body,
+  request:req,
+  onBeforeGenerateToken:async(pathname)=>{
+   if(!pathname.startsWith(`profile-videos/${user.id}/`)){
+    throw new Error('Недопустимый путь загрузки');
+   }
+
+   return {
+    allowedContentTypes:[
+     'video/mp4',
+     'video/webm',
+     'video/quicktime'
+    ],
+    maximumSizeInBytes:200*1024*1024,
+    addRandomSuffix:true,
+   };
+  },
+  onUploadCompleted:async({blob})=>{
+   console.log('Profile video uploaded:',blob.url);
+  },
+ });
+
+ return Response.json(token);
+}
+
 if(key==='profile/video-settings'&&(method==='GET'||method==='PATCH')){
  const user=await requireUser();
 
  if(method==='GET'){
-  const rows=await db`SELECT mode,selected_video_id,interval_seconds FROM profile_video_settings WHERE user_id=${user.id} LIMIT 1`;
+  const rows=await db`SELECT mode,selected_video_id,video_ids,interval_seconds FROM profile_video_settings WHERE user_id=${user.id} LIMIT 1`;
   return Response.json({settings:rows[0]||{mode:'off',selected_video_id:null,video_ids:[],interval_seconds:30}});
  }
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { upload as uploadBlob } from "@vercel/blob/client";
+
 import { useEffect, useState } from "react";
 
 type Mode = "off" | "manual" | "auto";
@@ -97,7 +99,53 @@ export default function ProfileVideoSettings() {
     setMessage("Эдит добавлен. Нажми «Сохранить настройки».");
   }
 
-  async function save() {
+  
+async function uploadVideo(file: File) {
+  const allowed = ["video/mp4", "video/webm", "video/quicktime"];
+
+  if (!allowed.includes(file.type)) {
+    setMessage("Разрешены только MP4, WebM и MOV.");
+    return;
+  }
+
+  if (file.size < 1 || file.size > 200 * 1024 * 1024) {
+    setMessage("Видео должно быть размером до 200 МБ.");
+    return;
+  }
+
+  setSaving(true);
+  setMessage("Загружаем видео…");
+
+  try {
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+    const blob = await uploadBlob(
+      "profile-videos/" + Date.now() + "-" + safeName,
+      file,
+      {
+        access: "public",
+        handleUploadUrl: "/api/profile/video-upload",
+      }
+    );
+
+    const videoId = "file:" + blob.url;
+
+    setSettings((current) => ({
+      ...current,
+      mode: current.mode === "off" ? "manual" : current.mode,
+      video_ids: [...new Set([...current.video_ids, videoId])],
+      selected_video_id: current.selected_video_id || videoId,
+    }));
+
+    setMessage("Видео загружено. Нажми «Сохранить настройки».");
+  } catch (error: any) {
+    setMessage(error.message || "Не удалось загрузить видео");
+  } finally {
+    setSaving(false);
+  }
+}
+
+async function save() {
     setSaving(true);
     setMessage("");
     try {
@@ -181,6 +229,36 @@ export default function ProfileVideoSettings() {
               placeholder="https://youtu.be/XXXXXXXXXXX"
             />
             <button type="button" onClick={addVideo}>Добавить</button>
+          </div>
+
+          <div style={{
+            marginTop: 12,
+            padding: 12,
+            border: "1px dashed #45405f",
+            borderRadius: 10,
+          }}>
+            <label style={{ display: "block", marginBottom: 8 }}>
+              Загрузить видео с устройства
+            </label>
+
+            <input
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime"
+              disabled={saving}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) uploadVideo(file);
+                e.currentTarget.value = "";
+              }}
+            />
+
+            <div style={{
+              marginTop: 6,
+              fontSize: 12,
+              opacity: .65,
+            }}>
+              MP4 / WebM / MOV, максимум 200 МБ
+            </div>
           </div>
 
           {settings.video_ids.length > 0 && (
