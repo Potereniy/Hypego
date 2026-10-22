@@ -1852,3 +1852,67 @@ outline-offset: 3px;
   transform: none;
 }
 
+
+/* HYPEGO — moderation status bar */
+.globalChatModerationBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 18px 12px;
+  padding: 12px 14px;
+  border: 1px solid #ff790055;
+  border-radius: 12px;
+  background: linear-gradient(110deg, #ff790014, #111214 75%);
+  box-shadow: inset 3px 0 0 #ff7900;
+}
+
+.globalChatModerationBar > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffb347;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .2px;
+}
+
+.globalChatModerationBar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 13px;
+  border: 1px solid #ff790066;
+  border-radius: 9px;
+  background: #17130f;
+  color: #ffc078;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+.globalChatModerationBar button:hover:not(:disabled) {
+  background: #ff790022;
+  border-color: #ff8a00;
+  transform: translateY(-1px);
+}
+
+.globalChatModerationBar button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 540px) {
+  .globalChatModerationBar {
+    margin: 0 12px 10px;
+    padding: 11px;
+  }
+
+  .globalChatModerationBar button {
+    width: 100%;
+  }
+}
