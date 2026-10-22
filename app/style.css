@@ -1101,3 +1101,625 @@ h2 em {
 .globalChatLogin{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:17px 22px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
 .globalChatLogin a{color:var(--accent2);text-decoration:none;font-weight:800}
 @media(max-width:540px){.globalChatTop{padding:15px}.globalChatMessages{padding:6px 14px;max-height:400px}.globalChatForm{padding:14px}.globalChatMessageMeta time{margin-left:0}.globalChatCount{font-size:9px}}
+
+/* HYPEGO THEME FIX: DARK + ORANGE */
+
+/* Социальные сети в профиле */
+.socialLinks a{
+  border-color:#ff7a0055;
+  color:#ffb36b;
+  background:#ff7a000d;
+  transition:background .2s,border-color .2s,color .2s;
+}
+.socialLinks a:hover{
+  background:#ff7a0022;
+  border-color:#ff7a00;
+  color:#fff;
+}
+
+/* Музыкальный плеер профиля */
+.profileMusic{
+  border-color:#ff7a0045;
+  background:
+    radial-gradient(ellipse at 15% 10%,#ff7a001c,transparent 45%),
+    linear-gradient(145deg,#191714,#0d0f13);
+  color:#f5f3ef;
+}
+.profileMusicEyebrow,
+.profileMusicCount,
+.profileMusicManagerItem>span{
+  color:#ff9b42;
+}
+.profileVinyl{
+  box-shadow:
+    0 0 0 7px #0a0c13,
+    0 0 0 8px #ff7a0070,
+    0 12px 35px #0008,
+    0 0 30px #ff7a0015;
+}
+.profileVinylGrooves{
+  background:linear-gradient(135deg,#ff9b42,#b94700);
+  box-shadow:0 0 0 2px #ffb36b55;
+}
+.profileMusicDetails>p,
+.profileMusicTimeline span,
+.profileMusicVolume,
+.profileMusicTrackText small{
+  color:#aaa8a1;
+}
+.profileMusicControls button{
+  border-color:#ffffff20;
+  background:#ffffff08;
+  color:#f1eee8;
+}
+.profileMusicControls button:hover{
+  border-color:#ff7a0080;
+  background:#ff7a001c;
+}
+.profileMusicControls .profileMusicPlay{
+  background:#ff7a00;
+  color:#17110b;
+  border:0;
+  box-shadow:0 0 22px #ff7a0038;
+}
+.profileMusicControls .profileMusicPlay:hover{
+  background:#ff962e;
+  box-shadow:0 0 25px #ff7a0055;
+}
+.profileMusic input[type="range"]{
+  accent-color:#ff7a00;
+}
+.profileMusicTrack{
+  border-color:#ffffff12;
+  background:#ffffff04;
+  color:#f0eee9;
+}
+.profileMusicTrack:hover,
+.profileMusicTrack.active{
+  border-color:#ff7a0085;
+  background:#ff7a0014;
+}
+.profileMusicTrackNumber,
+.profileMusicTrackAction{
+  color:#ff9b42;
+}
+.profileMusicEmbed,
+.profileMusicExternal{
+  border-color:#ff7a0045;
+}
+.profileMusicExternal a,
+.profileMusicError a{
+  color:#ffad5c;
+}
+.profileMusicYouTubeCard{
+  border-color:#ff7a0045;
+}
+.profileMusicYouTubeIcon{
+  background:#ff7a0018;
+}
+
+/* Состояния наведения и фокуса */
+.profileMusic button:focus-visible,
+.socialLinks a:focus-visible{
+  outline:2px solid #ff9b42;
+  outline-offset:3px;
+}
+
+/* HYPEGO: PROFILE WALL + RULES — DARK ORANGE THEME */
+
+/* Стена профиля */
+.profileWallForm {
+padding: 16px;
+border: 1px solid #ff7a0038;
+border-radius: 15px;
+background: linear-gradient(145deg, #191713, #0e1015);
+}
+
+.profileWallForm textarea {
+display: block;
+min-height: 100px;
+padding: 13px 14px;
+border: 1px solid #34302b;
+border-radius: 11px;
+background: #0b0c10;
+color: #f5f3ef;
+outline: none;
+transition: border-color .2s, box-shadow .2s;
+}
+
+.profileWallForm textarea:focus {
+border-color: #ff7a00;
+box-shadow: 0 0 0 3px #ff7a001c;
+}
+
+.profileWallForm textarea::placeholder {
+color: #77736c;
+}
+
+.profileWallFormBottom {
+flex-wrap: wrap;
+}
+
+.profileWallForm button,
+.profileWallForm .primary {
+border-radius: 10px;
+background: linear-gradient(110deg, #ff7a00, #ff9b35);
+color: #17100a;
+font-weight: 800;
+transition: filter .2s, transform .2s;
+}
+
+.profileWallForm button:hover,
+.profileWallForm .primary:hover {
+filter: brightness(1.12);
+transform: translateY(-1px);
+}
+
+.profileWallPosts {
+gap: 0;
+overflow: hidden;
+border: 1px solid #ffffff12;
+border-radius: 15px;
+background: linear-gradient(145deg, #141411, #0e1014);
+}
+
+.profileWallPost {
+padding: 17px;
+border-top: 1px solid #ffffff10;
+transition: background .2s;
+}
+
+.profileWallPost:first-child {
+border-top: 0;
+}
+
+.profileWallPost:hover {
+background: #ff7a0008;
+}
+
+.profileWallPostAvatar,
+.publicProfilePostAvatar {
+border: 1px solid #ff7a0066;
+background: linear-gradient(145deg, #38200e, #17120d);
+color: #ffad5c;
+box-shadow: 0 0 18px #ff7a000c;
+}
+
+.profileWallPostContent {
+color: #e9e6df;
+}
+
+.profileWallPostContent p {
+color: #dedbd4;
+line-height: 1.7;
+}
+
+.profileWallPostContent small {
+color: #a09a90;
+}
+
+.profileWallPost a {
+color: #ffad5c;
+}
+
+.profileWallPost button {
+transition: color .2s, background .2s, border-color .2s;
+}
+
+.profileWallPost button:hover {
+color: #ff9b35;
+}
+
+/* Пустая стена */
+.publicProfileEmptyWall {
+border-color: #ff7a0040;
+border-radius: 14px;
+background: #ff7a0006;
+}
+
+.publicProfileEmptyWall > span {
+color: #ff8c1a;
+text-shadow: 0 0 22px #ff7a0035;
+}
+
+.publicProfileEmptyWall strong {
+color: #f4f0e9;
+}
+
+.publicProfileEmptyWall p {
+color: #9c978e;
+}
+
+/* Карточки правил */
+.rule {
+position: relative;
+overflow: hidden;
+margin: 12px 0;
+border: 1px solid #ff7a002e;
+border-radius: 15px;
+background:
+radial-gradient(ellipse at 0% 0%, #ff7a000d, transparent 58%),
+linear-gradient(145deg, #191815, #101114);
+box-shadow: 0 10px 28px #0003;
+transition: border-color .2s, transform .2s, background .2s;
+}
+
+.rule:hover {
+border-color: #ff7a0075;
+background:
+radial-gradient(ellipse at 0% 0%, #ff7a0018, transparent 58%),
+linear-gradient(145deg, #1c1915, #101114);
+transform: translateY(-2px);
+}
+
+.rule h3 {
+color: #ffad5c;
+line-height: 1.5;
+}
+
+.rule p {
+color: #b4afa5;
+line-height: 1.85;
+}
+
+/* Оранжевый фокус клавиатуры */
+.profileWallForm button:focus-visible,
+.profileWallForm textarea:focus-visible,
+.profileWallPost button:focus-visible {
+outline: 2px solid #ff9b35;
+outline-offset: 3px;
+}
+
+
+/* ===== HYPEGO: WALL + RULES / DARK ORANGE ===== */
+:root {
+  --hypego-orange: #ff7a00;
+  --hypego-orange-light: #ffad5c;
+}
+
+/* Публичная стена профиля */
+.publicProfileWall {
+  border-color: #ff7a0038 !important;
+  background:
+    radial-gradient(ellipse at 0 0, #ff7a000d, transparent 55%),
+    linear-gradient(145deg, #171613, #0d0f13) !important;
+  border-radius: 17px !important;
+}
+
+.publicProfileWall .publicProfileSectionTitle h2 {
+  color: #f5f1e9 !important;
+}
+
+.publicProfileWall .publicProfileSectionTitle .eyebrow {
+  color: #ff8c1a !important;
+  letter-spacing: .16em;
+}
+
+.publicProfilePostCount {
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 9px;
+  border: 1px solid #ff7a0045 !important;
+  border-radius: 10px;
+  background: #ff7a0014 !important;
+  color: #ffad5c !important;
+  font-weight: 800;
+}
+
+.publicProfilePostForm {
+  padding: 15px;
+  border: 1px solid #ff7a0038 !important;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #1a1814, #101114) !important;
+}
+
+.publicProfilePostForm textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 94px;
+  padding: 13px 14px;
+  border: 1px solid #39342d !important;
+  border-radius: 11px;
+  background: #0b0c10 !important;
+  color: #f5f3ef !important;
+  outline: none;
+  resize: vertical;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.publicProfilePostForm textarea:focus {
+  border-color: #ff7a00 !important;
+  box-shadow: 0 0 0 3px #ff7a001c;
+}
+
+.publicProfilePostForm textarea::placeholder {
+  color: #77736c !important;
+}
+
+.publicProfileFormBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.publicProfileFormBottom > span {
+  color: #9b9489 !important;
+  font-size: 12px;
+}
+
+.publicProfilePostForm button.primary {
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: linear-gradient(110deg, #ff7a00, #ffad42) !important;
+  color: #17100a !important;
+  font-weight: 800;
+  box-shadow: 0 5px 18px #ff7a001c;
+  transition: filter .2s, transform .2s;
+}
+
+.publicProfilePostForm button.primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.publicProfilePostForm button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.publicProfileLoginHint {
+  padding: 15px;
+  border: 1px solid #ff7a0030 !important;
+  border-radius: 12px;
+  background: #ff7a0008 !important;
+}
+
+.publicProfileLoginHint > span {
+  color: #ff9b35 !important;
+}
+
+.publicProfileLoginHint a,
+.publicProfilePost a {
+  color: #ffad5c !important;
+}
+
+.publicProfileNotice {
+  padding: 10px 12px;
+  border: 1px solid #ff7a0038;
+  border-radius: 10px;
+  background: #ff7a000c;
+  color: #ffbd78 !important;
+}
+
+.publicProfileError {
+  color: #ff8b80 !important;
+}
+
+.publicProfileMuted {
+  color: #9b978e !important;
+}
+
+.publicProfilePosts {
+  overflow: hidden;
+  margin-top: 14px;
+  border: 1px solid #ffffff12 !important;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #151512, #0e1014) !important;
+}
+
+.publicProfilePost {
+  padding: 16px;
+  border-top: 1px solid #ffffff10 !important;
+  transition: background .2s;
+}
+
+.publicProfilePost:first-child {
+  border-top: 0 !important;
+}
+
+.publicProfilePost:hover {
+  background: #ff7a0008 !important;
+}
+
+.publicProfilePostAvatar {
+  overflow: hidden;
+  border: 1px solid #ff7a0066 !important;
+  background: linear-gradient(145deg, #38200e, #17120d) !important;
+  color: #ffad5c !important;
+  box-shadow: 0 0 18px #ff7a000c;
+}
+
+.publicProfilePostAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.publicProfilePostContent {
+  color: #e9e6df !important;
+}
+
+.publicProfilePostContent p {
+  color: #dedbd4 !important;
+  line-height: 1.7;
+}
+
+.publicProfilePostContent small {
+  color: #a09a90 !important;
+}
+
+.publicProfilePostHeader {
+  color: #f5f1e9 !important;
+}
+
+.publicProfilePost button:hover {
+  color: #ff9b35 !important;
+}
+
+.publicProfileEmptyWall {
+  margin: 12px;
+  padding: 24px 16px;
+  border: 1px dashed #ff7a0040 !important;
+  border-radius: 13px;
+  background: #ff7a0007 !important;
+  text-align: center;
+}
+
+.publicProfileEmptyWall > span {
+  color: #ff8c1a !important;
+  text-shadow: 0 0 22px #ff7a0035;
+}
+
+.publicProfileEmptyWall strong {
+  color: #f4f0e9 !important;
+}
+
+.publicProfileEmptyWall p {
+  color: #9c978e !important;
+}
+
+/* Публичный раздел правил — переопределяем фиолетовый inline-цвет */
+.rule {
+  border: 1px solid #ff7a0038 !important;
+  border-radius: 15px !important;
+  background:
+    radial-gradient(ellipse at 0 0, #ff7a000d, transparent 58%),
+    linear-gradient(145deg, #191815, #101114) !important;
+  box-shadow: 0 10px 28px #0003;
+  transition: border-color .2s, transform .2s, background .2s;
+}
+
+.rule:hover {
+  border-color: #ff7a0075 !important;
+  transform: translateY(-2px);
+}
+
+.rule > button {
+  color: #f5f1e9 !important;
+  transition: background .2s;
+}
+
+.rule > button[aria-expanded="true"] {
+  background: #ff7a0015 !important;
+}
+
+.rule > button strong {
+  color: #f5f1e9 !important;
+}
+
+.rule > button > span:first-child > span {
+  border: 1px solid #ff7a0038;
+  background: #ff7a0017 !important;
+  color: #ffad5c !important;
+}
+
+.rule > button > span:last-child {
+  color: #ff9b35 !important;
+}
+
+.rule > div[aria-hidden="false"] > div > div {
+  color: #c9c3b8 !important;
+}
+
+.rule h3 {
+  color: #ffad5c !important;
+}
+
+/* Редактор правил в панели управления */
+.section:has(> h2 em) .panel.form {
+  border: 1px solid #ff7a0030 !important;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #171613, #101114) !important;
+}
+
+.section:has(> h2 em) .panel.form h3 {
+  color: #ffad5c !important;
+}
+
+.section:has(> h2 em) .panel.form label {
+  color: #ded8ce;
+}
+
+.section:has(> h2 em) .panel.form input,
+.section:has(> h2 em) .panel.form textarea {
+  box-sizing: border-box;
+  border: 1px solid #39342d !important;
+  border-radius: 10px !important;
+  background: #0b0c10 !important;
+  color: #f5f3ef !important;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.section:has(> h2 em) .panel.form input:focus,
+.section:has(> h2 em) .panel.form textarea:focus {
+  border-color: #ff7a00 !important;
+  box-shadow: 0 0 0 3px #ff7a001c;
+}
+
+.section:has(> h2 em) .panel.form input::placeholder,
+.section:has(> h2 em) .panel.form textarea::placeholder {
+  color: #77736c !important;
+}
+
+.section:has(> h2 em) .panel.form .searchLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.section:has(> h2 em) .panel.form .searchLine .primary {
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: linear-gradient(110deg, #ff7a00, #ffad42) !important;
+  color: #17100a !important;
+  font-weight: 800;
+}
+
+.section:has(> h2 em) .panel.form .searchLine .outline {
+  border: 1px solid #ff7a0060 !important;
+  border-radius: 10px !important;
+  background: #ff7a000c !important;
+  color: #ffad5c !important;
+}
+
+.section:has(> h2 em) .panel.form .searchLine button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.publicProfilePostForm button:focus-visible,
+.publicProfilePostForm textarea:focus-visible,
+.rule button:focus-visible {
+  outline: 2px solid #ff9b35;
+  outline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .publicProfilePost {
+    padding: 12px;
+  }
+
+  .publicProfilePostForm {
+    padding: 11px;
+  }
+
+  .rule > button {
+    gap: 10px !important;
+    padding: 14px !important;
+  }
+
+  .rule > button > span:first-child {
+    gap: 10px !important;
+  }
+
+  .rule > div[aria-hidden="false"] > div > div {
+    padding: 0 14px 18px 58px !important;
+  }
+}

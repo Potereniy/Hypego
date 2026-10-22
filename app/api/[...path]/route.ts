@@ -593,22 +593,59 @@ if(key==='admin/punishments'&&method==='PATCH'){
 
 if(key==='global-chat'&&method==='GET'){
   let loggedIn=false;
+  let canModerate=false;
+  let chatBlocked=false;
+  let chatBlockedUntil=null;
+  let chatBlockReason=null;
+
   try {
-    await requireUser();
+    const u=await requireUser();
     loggedIn=true;
+    canModerate=await hasPermission(u.id,'global_chat.moderate');
+
+    const banRows=await db`
+      SELECT reason,expires_at
+      FROM global_chat_bans
+      WHERE user_id=${u.id}
+        AND revoked_at IS NULL
+        AND (expires_at IS NULL OR expires_at>NOW())
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+
+    if(banRows.length){
+      chatBlocked=true;
+      chatBlockedUntil=banRows[0].expires_at;
+      chatBlockReason=banRows[0].reason;
+    }
   } catch {}
 
   const rows=await db`
-    SELECT m.id,m.body,m.created_at,
-      u.username,u.display_name,u.avatar_url,u.nickname_color
+    SELECT
+      m.id,
+      m.body,
+      m.created_at,
+      m.user_id,
+      u.username,
+      u.display_name,
+      u.avatar_url,
+      u.nickname_color
     FROM global_chat_messages m
     JOIN users u ON u.id=m.user_id
+    WHERE m.deleted_at IS NULL
     ORDER BY m.created_at DESC
     LIMIT 100
   `;
 
   return Response.json(
-    {messages:rows.reverse(),loggedIn},
+    {
+      messages:rows.reverse(),
+      loggedIn,
+      canModerate,
+      chatBlocked,
+      chatBlockedUntil,
+      chatBlockReason
+    },
     {headers:{'Cache-Control':'no-store'}}
   );
 }
@@ -616,6 +653,181 @@ if(key==='global-chat'&&method==='GET'){
 if(key==='global-chat'&&method==='POST'){
   const u=await requireUser();
   const b=await bodyJson(req);
+  const action=String(b.action||'').trim();
+
+  if(action==='ban'){
+    const actor=await requirePermission('global_chat.moderate');
+    const targetId=String(b.user_id||'').trim();
+    const targetUsername=String(b.username||'').trim();
+    const reason=String(b.reason||'').trim().slice(0,500);
+    const rawDuration=b.duration_minutes;
+
+    if(!targetId&&!targetUsername){
+      throw new HttpError(400,'Не указан игрок для блокировки');
+    }
+
+    if(reason.length<3){
+      throw new HttpError(400,'Укажи причину блокировки');
+    }
+
+    let duration=null;
+
+    if(rawDuration!==undefined&&rawDuration!==null&&String(rawDuration).trim()!==''){
+      duration=Number(rawDuration);
+
+      if(!Number.isInteger(duration)||duration<0||duration>525600){
+        throw new HttpError(400,'Некорректная длительность блокировки');
+      }
+    }
+
+    const targetRows=targetId
+      ? await db`
+          SELECT id,username
+          FROM users
+          WHERE id=${targetId}
+          LIMIT 1
+        `
+      : await db`
+          SELECT id,username
+          FROM users
+          WHERE LOWER(username)=LOWER(${targetUsername})
+          LIMIT 1
+        `;
+
+    if(!targetRows.length){
+      throw new HttpError(404,'Игрок не найден');
+    }
+
+    const target=targetRows[0];
+
+    if(target.id===actor.id){
+      throw new HttpError(400,'Нельзя заблокировать самого себя');
+    }
+
+    const expiresAt=duration&&duration>0
+      ? new Date(Date.now()+duration*60*1000)
+      : null;
+
+    await db`
+      UPDATE global_chat_bans
+      SET revoked_at=NOW(),revoked_by=${actor.id}
+      WHERE user_id=${target.id}
+        AND revoked_at IS NULL
+        AND (expires_at IS NULL OR expires_at>NOW())
+    `;
+
+    const rows=await db`
+      INSERT INTO global_chat_bans(
+        user_id,
+        reason,
+        expires_at,
+        created_by
+      )
+      VALUES(
+        ${target.id},
+        ${reason},
+        ${expiresAt},
+        ${actor.id}
+      )
+      RETURNING id,user_id,reason,expires_at,created_at
+    `;
+
+    await audit(
+      actor.id,
+      'global_chat.ban',
+      'user',
+      target.id,
+      {
+        username:target.username,
+        duration_minutes:duration,
+        reason
+      }
+    );
+
+    return Response.json({
+      ok:true,
+      ban:rows[0]
+    },{
+      status:201
+    });
+  }
+
+  if(action==='unban'){
+    const actor=await requirePermission('global_chat.moderate');
+    const targetId=String(b.user_id||'').trim();
+    const targetUsername=String(b.username||'').trim();
+
+    if(!targetId&&!targetUsername){
+      throw new HttpError(400,'Не указан игрок для разблокировки');
+    }
+
+    const targetRows=targetId
+      ? await db`
+          SELECT id,username
+          FROM users
+          WHERE id=${targetId}
+          LIMIT 1
+        `
+      : await db`
+          SELECT id,username
+          FROM users
+          WHERE LOWER(username)=LOWER(${targetUsername})
+          LIMIT 1
+        `;
+
+    if(!targetRows.length){
+      throw new HttpError(404,'Игрок не найден');
+    }
+
+    const target=targetRows[0];
+
+    const rows=await db`
+      UPDATE global_chat_bans
+      SET revoked_at=NOW(),revoked_by=${actor.id}
+      WHERE user_id=${target.id}
+        AND revoked_at IS NULL
+        AND (expires_at IS NULL OR expires_at>NOW())
+      RETURNING id
+    `;
+
+    await audit(
+      actor.id,
+      'global_chat.unban',
+      'user',
+      target.id,
+      {
+        username:target.username,
+        revoked_count:rows.length
+      }
+    );
+
+    return Response.json({
+      ok:true,
+      revoked_count:rows.length
+    });
+  }
+
+  const banRows=await db`
+    SELECT reason,expires_at
+    FROM global_chat_bans
+    WHERE user_id=${u.id}
+      AND revoked_at IS NULL
+      AND (expires_at IS NULL OR expires_at>NOW())
+    ORDER BY created_at DESC
+    LIMIT 1
+  `;
+
+  if(banRows.length){
+    const expires=banRows[0].expires_at
+      ? new Date(banRows[0].expires_at).toLocaleString('ru-RU')
+      : 'навсегда';
+
+    throw new HttpError(
+      403,
+      `Чат заблокирован${banRows[0].reason?`: ${banRows[0].reason}`:''}. Срок: ${expires}.`
+    );
+  }
+
   const message=String(b.body||'').trim();
 
   if(!message||message.length>500){
@@ -635,6 +847,7 @@ if(key==='global-chat'&&method==='POST'){
 
   if(recent.length){
     const elapsed=Date.now()-new Date(recent[0].created_at).getTime();
+
     if(elapsed<3000){
       throw new HttpError(
         429,
@@ -649,9 +862,59 @@ if(key==='global-chat'&&method==='POST'){
     RETURNING id,body,created_at
   `;
 
-  await audit(u.id,'global_chat.message.send','global_chat_message',rows[0].id);
+  await audit(
+    u.id,
+    'global_chat.message.send',
+    'global_chat_message',
+    rows[0].id
+  );
 
-  return Response.json({message:rows[0]},{status:201});
+  return Response.json(
+    {message:rows[0]},
+    {status:201}
+  );
+}
+
+if(key==='global-chat'&&method==='DELETE'){
+  const actor=await requirePermission('global_chat.moderate');
+  const messageId=String(
+    req.nextUrl.searchParams.get('id')||''
+  ).trim();
+
+  if(!messageId){
+    throw new HttpError(400,'Не указан ID сообщения');
+  }
+
+  const rows=await db`
+    UPDATE global_chat_messages
+    SET
+      deleted_at=NOW(),
+      deleted_by=${actor.id}
+    WHERE id=${messageId}
+      AND deleted_at IS NULL
+    RETURNING id,user_id
+  `;
+
+  if(!rows.length){
+    throw new HttpError(
+      404,
+      'Сообщение не найдено или уже удалено'
+    );
+  }
+
+  await audit(
+    actor.id,
+    'global_chat.message.delete',
+    'global_chat_message',
+    rows[0].id,
+    {
+      message_owner_id:rows[0].user_id
+    }
+  );
+
+  return Response.json({
+    ok:true
+  });
 }
 
 if(key==='messages'&&method==='GET'){

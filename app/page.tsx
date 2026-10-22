@@ -255,6 +255,7 @@ useEffect(()=>{if(user&&tab==='friends')loadFriends()},[user,tab]);
 const isStaff=roles.some(r=>['owner','deputy','management','curator','tech_admin'].includes(r.id));
 const isPermanentOwner=Boolean(user?.is_project_owner)||String(user?.username||'').toLowerCase()==='kristu4ok';
 const canAccessAdmin=isPermanentOwner||roles.some(r=>['owner','deputy','management','curator','tech_admin','support'].includes(r.id));
+const canAccessAudit=isPermanentOwner||roles.some(r=>['owner','deputy','management','curator','tech_admin','support','moderator'].includes(r.id));
 const canAccessStaffShop=Boolean(user?.is_project_owner)||roles.some(r=>['trainee','moderator','support','tech_admin','curator','management','deputy','owner'].includes(r.id));
 const [drawerOpen,setDrawerOpen]=useState(false);
 const [friendData,setFriendData]=useState<any>({friends:[],incoming:[],outgoing:[]});
@@ -298,7 +299,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
   <span className="brandWord">
     <span className="brandHype">HYPE</span><span className="brandGo">GO</span>
   </span>
-</a><nav className="siteNav"><RconNavLink /><button type="button" onClick={()=>{setTab('home');setOpenNav('')}}>Главная</button><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='help'} onClick={()=>setOpenNav(openNav==='help'?'':'help')}>Справка⌄</button>{openNav==='help'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('news');setOpenNav('')}}>Новости</button><button type="button" onClick={()=>{setTab('rules');setOpenNav('')}}>Правила</button><button type="button" onClick={()=>{setTab('trainee');setOpenNav('')}}>Стажировка</button>{user&&<button type="button" onClick={()=>{setTab('support');setOpenNav('')}}>Техподдержка</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='shop'} onClick={()=>setOpenNav(openNav==='shop'?'':'shop')}>Магазин⌄</button>{openNav==='shop'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('shop');setStore('main');setOpenNav('')}}>Основной магазин</button>{canAccessStaffShop&&<button type="button" onClick={()=>{setTab('shop');setStore('staff');setOpenNav('')}}>Магазин персонала</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='community'} onClick={()=>setOpenNav(openNav==='community'?'':'community')}>Сообщество⌄</button>{openNav==='community'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('players');setOpenNav('')}}>Игроки</button><button type="button" onClick={()=>{setTab('groups');setOpenNav('')}}>Наказания</button>{user&&<button type="button" onClick={()=>{setTab('friends');setOpenNav('')}}>Друзья</button>}</div>}</div>{canAccessAdmin&&<button type="button" onClick={()=>{setTab('admin');setOpenNav('')}}>Управление</button>}</nav><div className="right">{user?<><div className="headerBalance"><small>БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} ₽</strong></div><div className="headerBalance headerHpBalance"><small>HYPE POINTS</small><strong>{Number(user.hp_balance||0).toLocaleString("ru-RU")} HP</strong></div><button type="button" className="accountTrigger" onClick={()=>setDrawerOpen(true)} aria-label="Открыть меню профиля"><span className="accountAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><span className="accountIdentity"><strong style={{color:user.nickname_color}}>{user.username}</strong><small>Мой аккаунт</small></span><span className="accountChevron">☰</span></button></>:<button className="primary" onClick={()=>setTab('auth')}>Войти</button>}</div></header>
+</a><nav className="siteNav"><RconNavLink /><button type="button" onClick={()=>{setTab('home');setOpenNav('')}}>Главная</button><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='help'} onClick={()=>setOpenNav(openNav==='help'?'':'help')}>Справка⌄</button>{openNav==='help'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('news');setOpenNav('')}}>Новости</button><button type="button" onClick={()=>{setTab('rules');setOpenNav('')}}>Правила</button><button type="button" onClick={()=>{setTab('trainee');setOpenNav('')}}>Стажировка</button>{user&&<button type="button" onClick={()=>{setTab('support');setOpenNav('')}}>Техподдержка</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='shop'} onClick={()=>setOpenNav(openNav==='shop'?'':'shop')}>Магазин⌄</button>{openNav==='shop'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('shop');setStore('main');setOpenNav('')}}>Основной магазин</button>{canAccessStaffShop&&<button type="button" onClick={()=>{setTab('shop');setStore('staff');setOpenNav('')}}>Магазин персонала</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='community'} onClick={()=>setOpenNav(openNav==='community'?'':'community')}>Сообщество⌄</button>{openNav==='community'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('players');setOpenNav('')}}>Игроки</button><button type="button" onClick={()=>{setTab('groups');setOpenNav('')}}>Наказания</button>{user&&<button type="button" onClick={()=>{setTab('friends');setOpenNav('')}}>Друзья</button>}</div>}</div>{canAccessAdmin&&<button type="button" onClick={()=>{setTab('admin');setOpenNav('')}}>Управление</button>}{canAccessAudit&&<button type="button" onClick={()=>{setTab('audit');setOpenNav('')}}>Журнал аудита</button>}</nav><div className="right">{user?<><div className="headerBalance"><small>БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} ₽</strong></div><div className="headerBalance headerHpBalance"><small>HYPE POINTS</small><strong>{Number(user.hp_balance||0).toLocaleString("ru-RU")} HP</strong></div><button type="button" className="accountTrigger" onClick={()=>setDrawerOpen(true)} aria-label="Открыть меню профиля"><span className="accountAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><span className="accountIdentity"><strong style={{color:user.nickname_color}}>{user.username}</strong><small>Мой аккаунт</small></span><span className="accountChevron">☰</span></button></>:<button className="primary" onClick={()=>setTab('auth')}>Войти</button>}</div></header>
 {drawerOpen&&user&&<div className="drawerLayer"><button type="button" className="drawerScrim" aria-label="Закрыть меню" onClick={()=>setDrawerOpen(false)}></button><aside className="profileDrawer" aria-label="Меню аккаунта"><div className="drawerTop"><span className="eyebrow">HYPEGO / ACCOUNT</span><button type="button" className="drawerClose" onClick={()=>setDrawerOpen(false)}>×</button></div><div className="drawerUser"><div className="drawerAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</div><div><strong style={{color:user.nickname_color}}>{user.display_name||user.username}</strong><small>@{user.username}</small></div></div><div className="drawerBalance"><small>ТВОЙ БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} <span>₽</span></strong><button type="button" className="outline" onClick={()=>{setTab('billing');setDrawerOpen(false)}}>＋ Пополнить баланс</button></div><div className="drawerLinks"><span className="drawerLabel">АККАУНТ</span><button type="button" onClick={()=>{setTab('profile');setDrawerOpen(false)}}>◈ <span>Профиль и настройки</span><b>›</b></button><button type="button" onClick={()=>{setTab('players');setDrawerOpen(false)}}>♙ <span>Игроки</span><b>›</b></button>
 <button type="button" onClick={()=>{setTab('friends');setDrawerOpen(false)}}>♧ <span>Друзья</span><b>›</b></button>
 <button type="button" onClick={()=>{setChatMode(true);setSelectedChat(null);setDrawerOpen(true);loadFriends()}}>✉ <span>Сообщения</span><b>›</b></button><RconDrawerEntry />
@@ -615,7 +616,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
   </article>
 </section>}
 
-{tab==='news'&&<News user={user} canPublish={isPermanentOwner||roles.some(r=>['owner','curator','tech_admin'].includes(r.id))} onNotice={setNotice}/>}{tab==='rules'&&<Rules/>}{tab==='support'&&user&&<SupportCenter user={user} onNotice={setNotice}/>}{tab==='groups'&&<Punishments user={user} roles={roles} onNotice={setNotice}/>}{tab==='players'&&<Players/>}{tab==='trainee'&&<TraineeApplications user={user} roles={roles} onNotice={setNotice}/ >}{tab==='admin'&&user&&canAccessAdmin&&<><PrivilegeManager onNotice={setNotice}/>{(isPermanentOwner||roles.some(r=>['owner','management','curator','tech_admin'].includes(r.id)))&&<Admin roles={roles} isPermanentOwner={isPermanentOwner} onNotice={setNotice}/ >}{(isPermanentOwner||roles.some(r=>r.id==='curator'))&&<RulesEditor onNotice={setNotice}/ >}{(isPermanentOwner||roles.some(r=>['owner','management','curator','tech_admin'].includes(r.id)))&&<ProductEditor onNotice={setNotice}/>}</>}
+{tab==='news'&&<News user={user} canPublish={isPermanentOwner||roles.some(r=>['owner','curator','tech_admin'].includes(r.id))} onNotice={setNotice}/>}{tab==='rules'&&<Rules/>}{tab==='support'&&user&&<SupportCenter user={user} onNotice={setNotice}/>}{tab==='groups'&&<Punishments user={user} roles={roles} onNotice={setNotice}/>}{tab==='players'&&<Players/>}{tab==='trainee'&&<TraineeApplications user={user} roles={roles} onNotice={setNotice}/ >}{tab==='audit'&&user&&canAccessAudit&&<AuditLog onNotice={setNotice}/ >}{tab==='admin'&&user&&canAccessAdmin&&<><PrivilegeManager onNotice={setNotice}/>{(isPermanentOwner||roles.some(r=>['owner','management','curator','tech_admin'].includes(r.id)))&&<Admin roles={roles} isPermanentOwner={isPermanentOwner} onNotice={setNotice}/ >}{(isPermanentOwner||roles.some(r=>r.id==='curator'))&&<RulesEditor onNotice={setNotice}/ >}{(isPermanentOwner||roles.some(r=>['owner','management','curator','tech_admin'].includes(r.id)))&&<ProductEditor onNotice={setNotice}/>}</>}
 {purchaseProduct&&<div className="purchaseLayer">
   <button type="button" className="purchaseScrim" aria-label="Закрыть панель покупки" onClick={()=>setPurchaseProduct(null)}></button>
   <section className="purchaseDrawer" role="dialog" aria-modal="true" aria-labelledby="purchaseTitle">
@@ -2001,6 +2002,54 @@ return <section className="section">
 
   </div>
 </section>
+}
+
+function AuditLog({onNotice}:{onNotice:(s:string)=>void}) {
+  const [logs,setLogs]=useState<any[]>([]);
+  const [busy,setBusy]=useState(false);
+
+  async function load() {
+    setBusy(true);
+    try {
+      const j=await api('admin/audit');
+      setLogs(Array.isArray(j.logs)?j.logs:[]);
+    } catch(e:any) {
+      onNotice(e.message||'Не удалось загрузить журнал аудита');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(()=>{load();},[]);
+
+  return <section className="section">
+    <div className="sectionHead">
+      <div>
+        <div className="eyebrow">HYPEGO SECURITY</div>
+        <h2>Журнал <em>аудита</em></h2>
+        <p className="muted">Последние 200 зарегистрированных событий системы.</p>
+      </div>
+      <button type="button" className="outline" onClick={load} disabled={busy}>
+        {busy?'Загрузка…':'Обновить'}
+      </button>
+    </div>
+    {logs.length===0
+      ? <p className="muted">{busy?'Загружаем события…':'Событий нет или журнал пока пуст.'}</p>
+      : <div className="userList">
+        {logs.map((item:any)=><article className="panel" key={String(item.id)} style={{marginBottom:12}}>
+          <div className="sectionHead">
+            <strong>{item.action||'Событие'}</strong>
+            <small>{item.created_at?new Date(item.created_at).toLocaleString('ru-RU'):'Дата неизвестна'}</small>
+          </div>
+          <p className="muted">Исполнитель: {item.actor_username||'Системное событие'}</p>
+          <p>Объект: {[item.target_type,item.target_id].filter(Boolean).join(' · ')||'Не указан'}</p>
+          {item.details!=null&&<details>
+            <summary>Подробности</summary>
+            <pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{typeof item.details==='string'?item.details:JSON.stringify(item.details,null,2)}</pre>
+          </details>}
+        </article>)}
+      </div>}
+  </section>;
 }
 
 function ProductEditor({onNotice}:{onNotice:(s:string)=>void}){
