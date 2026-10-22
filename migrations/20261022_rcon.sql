@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS rcon_action_logs (
   access_level SMALLINT NOT NULL CHECK (access_level BETWEEN 1 AND 5),
   details JSONB NOT NULL DEFAULT '{}'::jsonb,
   result TEXT NOT NULL DEFAULT 'blocked',
+  connection_status TEXT NOT NULL DEFAULT 'not_configured',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

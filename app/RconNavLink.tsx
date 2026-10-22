@@ -14,7 +14,7 @@ export default function RconNavLink() {
         return response.json();
       })
       .then(data => {
-        if (active) setVisible(Boolean(data?.access?.access_level || data?.canManageAccess));
+        if (active) { const level = Number(data?.access?.access_level ?? 0); setVisible(level >= 1 && level <= 5); }
       })
       .catch(() => {
         if (active) setVisible(false);

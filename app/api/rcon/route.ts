@@ -6,7 +6,6 @@ export const runtime = 'nodejs';
 
 const MANAGER_ROLES = [
   'owner',
-  'deputy',
   'management',
   'curator',
   'tech_admin',
@@ -18,10 +17,14 @@ const ACTION_LEVEL: Record<string, number> = {
   ban: 1,
   mute: 1,
   kick: 1,
+  pardon: 1,
+  unmute: 1,
   player_info: 2,
   privilege_restriction: 3,
+  report: 3,
+  unreport: 3,
   server_manage: 4,
-  critical_command: 6,
+  console_command: 5,
 };
 
 function responseError(error: unknown) {
@@ -82,18 +85,47 @@ export async function GET() {
         `
       : [];
 
+    const history = await db`
+      SELECT id, action, target_username, access_level, details, result, connection_status, created_at
+      FROM rcon_action_logs
+      WHERE actor_id = ${user.id}::uuid
+      ORDER BY created_at DESC
+      LIMIT 50
+    `;
+
     return NextResponse.json({
       access: rows[0] ?? null,
       canManageAccess: managers,
       accessList,
+      history,
       connection: 'not_configured',
       commandsEnabled: false,
       levels: [
-        { level: 1, title: 'Базовая модерация', actions: ['say', 'ban', 'mute', 'kick'] },
-        { level: 2, title: 'Информация об игроках', actions: ['player_info'] },
-        { level: 3, title: 'Расширенная модерация', actions: ['privilege_restriction'] },
-        { level: 4, title: 'Управление сервером', actions: ['server_manage'] },
-        { level: 5, title: 'Полный доступ', actions: ['Обычные команды уровней 1–4'] },
+        {
+          level: 1,
+          title: 'Только /say, /ban, /mute, /kick, /pardon, /unmute',
+          actions: ['say', 'ban', 'mute', 'kick', 'pardon', 'unmute'],
+        },
+        {
+          level: 2,
+          title: 'Все команды уровня 1 + информация об игроках',
+          actions: ['say', 'ban', 'mute', 'kick', 'pardon', 'unmute', 'player_info'],
+        },
+        {
+          level: 3,
+          title: 'Уровни 1–2 + временные ограничения',
+          actions: ['say', 'ban', 'mute', 'kick', 'pardon', 'unmute', 'player_info', 'privilege_restriction', 'report', 'unreport'],
+        },
+        {
+          level: 4,
+          title: 'Уровни 1–3 + расширенное управление сервером',
+          actions: ['say', 'ban', 'mute', 'kick', 'pardon', 'unmute', 'player_info', 'privilege_restriction', 'report', 'unreport', 'server_manage'],
+        },
+        {
+          level: 5,
+          title: 'Полный доступ ко всем командам и функциям сервера',
+          actions: ['all'],
+        },
       ],
     });
   } catch (error) {
@@ -216,7 +248,66 @@ export async function POST(request: NextRequest) {
     const targetUsername = String(body.username ?? '').trim().slice(0, 32);
     const details: Record<string, unknown> = {};
 
-    if (action === 'say') {
+    // Уровень 2: просмотр информации требует конкретного игрока.
+    if (action === 'player_info') {
+      if (!targetUsername) {
+        return NextResponse.json(
+          { error: 'Укажи ник игрока для просмотра информации' },
+          { status: 400 },
+        );
+      }
+      details.requestedInfo = true;
+    }
+
+    // Уровень 3: ограничение нельзя применять без указания игрока.
+    // Исполнение останется заблокированным до подключения Minecraft.
+    if (['privilege_restriction', 'report', 'unreport'].includes(action)) {
+      if (!targetUsername) {
+        return NextResponse.json(
+          { error: 'Укажи ник игрока для временного ограничения' },
+          { status: 400 },
+        );
+      }
+
+      if (action !== 'unreport') {
+        const reason = String(body.reason ?? '').trim().slice(0, 300);
+        if (!reason) {
+          return NextResponse.json(
+            { error: 'Укажи причину временного ограничения' },
+            { status: 400 },
+          );
+        }
+        details.reason = reason;
+      }
+
+      details.restrictionType = 'temporary';
+    }
+
+    // Уровень 4: требуем цель действия.
+    if (action === 'server_manage' && !targetUsername) {
+      return NextResponse.json(
+        { error: 'Укажи цель управления сервером' },
+        { status: 400 },
+      );
+    }
+
+    if (action === 'console_command') {
+      if (level < 5) {
+        return NextResponse.json(
+          { error: 'Полная консоль доступна только уровню 5' },
+          { status: 403 },
+        );
+      }
+
+      const command = String(body.command ?? '').trim();
+      if (!command || command.length > 500 || command.startsWith('/')) {
+        return NextResponse.json(
+          { error: 'Укажи команду консоли длиной от 1 до 500 символов без начального /' },
+          { status: 400 },
+        );
+      }
+      details.command = command;
+    } else if (action === 'say') {
       const message = String(body.message ?? '').trim();
       if (!message || message.length > 300) {
         return NextResponse.json(
@@ -225,7 +316,7 @@ export async function POST(request: NextRequest) {
         );
       }
       details.message = message;
-    } else if (['ban', 'mute', 'kick'].includes(action)) {
+    } else if (['ban', 'mute', 'kick', 'pardon', 'unmute'].includes(action)) {
       if (!targetUsername) {
         return NextResponse.json(
           { error: 'Укажи ник игрока' },
@@ -233,6 +324,13 @@ export async function POST(request: NextRequest) {
         );
       }
       details.reason = String(body.reason ?? '').trim().slice(0, 300);
+      if (action === 'report' && !details.reason) {
+        return NextResponse.json(
+          { error: 'Укажи причину временного ограничения' },
+          { status: 400 },
+        );
+      }
+      details.restrictionType = 'temporary';
     }
 
     await db`

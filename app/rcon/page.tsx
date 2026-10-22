@@ -55,6 +55,7 @@ export default function RconPage() {
   const [target, setTarget] = useState('');
   const [message, setMessage] = useState('');
   const [reason, setReason] = useState('');
+  const [command, setCommand] = useState('');
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -139,7 +140,7 @@ export default function RconPage() {
             </section>
             <section style={panelStyle}>
               <div style={{ color: '#a4a8bb', fontSize: 13 }}>Ваш уровень</div>
-              <h2 style={{ marginBottom: 5 }}>{currentLevel ? `${currentLevel} / 5` : 'Управление доступами'}</h2>
+              <h2 style={{ marginBottom: 5 }}>{currentLevel ? `${currentLevel} / 5` : data?.canManageAccess ? 'Нет личного уровня' : 'Не назначен'}</h2>
               <small style={{ color: '#a4a8bb' }}>
                 {data?.canManageAccess ? 'Можно управлять доступами' : 'Доступ выдан отдельно'}
               </small>
@@ -155,13 +156,18 @@ export default function RconPage() {
               <h2 style={{ marginTop: 0 }}>Команды</h2>
               <label>Действие
                 <select value={action} onChange={e => setAction(e.target.value)} style={inputStyle}>
-                  <option value="say">Сообщение в чат (/say)</option>
-                  <option value="ban">Бан игрока</option>
-                  <option value="mute">Мут игрока</option>
-                  <option value="kick">Кик игрока</option>
-                  <option value="player_info">Информация об игроке — уровень 2</option>
-                  <option value="privilege_restriction">Ограничение привилегии — уровень 3</option>
-                  <option value="server_manage">Управление сервером — уровень 4</option>
+                  <option value="say">/say — сообщение в чат сервера</option>
+                  <option value="ban">/ban — заблокировать игрока</option>
+                  <option value="mute">/mute — запретить писать в чат</option>
+                  <option value="kick">/kick — исключить игрока</option>
+                  <option value="pardon">/pardon — снять бан</option>
+                  <option value="unmute">/unmute — снять мут</option>
+                  {currentLevel >= 2 && <option value="player_info">Информация об игроке — уровень 2</option>}
+                  {currentLevel >= 3 && <option value="privilege_restriction">Временное ограничение — уровень 3</option>}
+                  {currentLevel >= 3 && <option value="report">/report — уровень 3</option>}
+                  {currentLevel >= 3 && <option value="unreport">/unreport — уровень 3</option>}
+                  {currentLevel >= 4 && <option value="server_manage">Управление сервером — уровень 4</option>}
+                  {currentLevel >= 5 && <option value="console_command">Полная консоль — уровень 5</option>}
                 </select>
               </label>
 
@@ -171,6 +177,12 @@ export default function RconPage() {
                     maxLength={300} rows={3} style={inputStyle}
                     placeholder="Сообщение для чата сервера" />
                 </label>
+              ) : action === 'console_command' ? (
+                <label style={{ display: 'block', marginTop: 14 }}>Команда консоли
+                  <textarea value={command} onChange={e => setCommand(e.target.value)}
+                    maxLength={500} rows={3} style={inputStyle}
+                    placeholder="Введите команду без начального /" />
+                </label>
               ) : (
                 <label style={{ display: 'block', marginTop: 14 }}>Ник игрока
                   <input value={target} onChange={e => setTarget(e.target.value)}
@@ -178,7 +190,7 @@ export default function RconPage() {
                 </label>
               )}
 
-              {['ban', 'mute', 'kick'].includes(action) && (
+              {['ban', 'mute', 'kick', 'privilege_restriction', 'report'].includes(action) && (
                 <label style={{ display: 'block', marginTop: 14 }}>Причина
                   <input value={reason} onChange={e => setReason(e.target.value)}
                     maxLength={300} style={inputStyle} placeholder="Причина наказания" />
@@ -191,14 +203,23 @@ export default function RconPage() {
                     setNotice('Введи сообщение');
                     return;
                   }
-                  if (action !== 'say' && !target.trim()) {
+                  if (action === 'console_command' && !command.trim()) {
+                    setNotice('Введи команду консоли');
+                    return;
+                  }
+                  if (!['say', 'console_command'].includes(action) && !target.trim()) {
                     setNotice('Введи ник игрока');
+                    return;
+                  }
+                  if (['report', 'privilege_restriction'].includes(action) && !reason.trim()) {
+                    setNotice('Укажи причину временного ограничения');
                     return;
                   }
                   if (!window.confirm('Отправить запрос? Если сервер не подключён, команда не выполнится.')) return;
                   void send({
                     action,
                     message: message.trim(),
+                    command: command.trim(),
                     username: target.trim(),
                     reason: reason.trim(),
                   });
@@ -220,11 +241,11 @@ export default function RconPage() {
                 </label>
                 <label style={{ display: 'block', marginTop: 14 }}>Уровень доступа
                   <select value={level} onChange={e => setLevel(e.target.value)} style={inputStyle}>
-                    <option value="1">1 — Чат и базовая модерация</option>
-                    <option value="2">2 — Информация об игроках</option>
-                    <option value="3">3 — Расширенная модерация</option>
-                    <option value="4">4 — Управление сервером</option>
-                    <option value="5">5 — Полный доступ</option>
+                    <option value="1">1 — /say, /ban, /mute, /kick, /pardon, /unmute</option>
+                    <option value="2">2 — Уровень 1 + информация об игроках</option>
+                    <option value="3">3 — Уровни 1–2 + временные ограничения</option>
+                    <option value="4">4 — Уровни 1–3 + управление сервером</option>
+                    <option value="5">5 — Полный доступ ко всем командам сервера</option>
                   </select>
                 </label>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>

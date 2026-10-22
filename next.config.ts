@@ -2,6 +2,7 @@ import path from 'node:path';
 import type { NextConfig } from 'next';
 
 const config: NextConfig = {
+  outputFileTracingRoot: process.cwd(),
   poweredByHeader: false,
 
   webpack(webpackConfig) {
