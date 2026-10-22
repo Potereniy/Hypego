@@ -46,18 +46,18 @@ function responseError(error: unknown) {
 
 async function getManager(db: ReturnType<typeof sql>, userId: string) {
   const rows = await db`
-    SELECT (
-      EXISTS (
-        SELECT 1 FROM users
-        WHERE id = ${userId}::uuid AND is_project_owner = TRUE
-      )
-      OR EXISTS (
-        SELECT 1 FROM user_roles
-        WHERE user_id = ${userId}::uuid
-          AND role_id IN ('owner', 'management', 'curator', 'tech_admin', 'support')
-      )
+    SELECT EXISTS (
+      SELECT 1
+      FROM user_roles ur
+      JOIN roles r ON r.id = ur.role_id
+      WHERE ur.user_id = ${userId}::uuid
+        AND (
+          r.is_project_owner = TRUE
+          OR ur.role_id = ANY(${MANAGER_ROLES}::text[])
+        )
     ) AS allowed
   `;
+
   const allowed = rows[0]?.allowed;
   return allowed === true || allowed === 't';
 }
