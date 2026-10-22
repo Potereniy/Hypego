@@ -1723,3 +1723,132 @@ outline-offset: 3px;
     padding: 0 14px 18px 58px !important;
   }
 }
+
+/* HYPEGO — black & orange theme overrides */
+:root {
+  --accent: #ff7900;
+  --accent2: #ffb347;
+}
+
+.primary {
+  background: linear-gradient(110deg, #ff8a00, #ff5e00) !important;
+  border-color: #ff7900 !important;
+  color: #fff !important;
+}
+
+.primary:hover {
+  filter: brightness(1.1);
+}
+
+.profileBannerModern {
+  background-color: #111214 !important;
+  background-image: radial-gradient(ellipse at 80% 20%, #ff790022, transparent 48%) !important;
+}
+
+.profileBannerModern .avatar {
+  border-color: #ff8a00 !important;
+  box-shadow: 0 0 25px #ff790033 !important;
+  background: linear-gradient(135deg, #ff8a00, #24201b) !important;
+}
+
+.profileEditButton {
+  border-color: #ff790066 !important;
+  color: #ffad42 !important;
+  background: #ff790010 !important;
+}
+
+.profileEditButton:hover {
+  background: #ff790022 !important;
+  border-color: #ff8a00 !important;
+}
+
+.profileBadges span,
+.profileRoleList > span {
+  background: #ff790012 !important;
+  border-color: #ff790055 !important;
+  color: #ffd0a0 !important;
+}
+
+.profileContentGrid > .panel,
+.profileSettingsCard {
+  background: linear-gradient(145deg, #171717, #0e0f11) !important;
+  border-color: #ff790025 !important;
+}
+
+.profileCardIcon {
+  border-color: #ff790044 !important;
+  background: #ff790014 !important;
+  color: #ff9a2f !important;
+}
+
+.profilePreview {
+  border-color: #ff790044 !important;
+  background: #101112 !important;
+}
+
+.publicProfileBanner {
+  border-color: #ff790044 !important;
+  background-color: #111214 !important;
+  background-image:
+    radial-gradient(ellipse at 85% 15%, #ff790022, transparent 45%),
+    linear-gradient(120deg, #20170f, #101214) !important;
+}
+
+.publicProfileAvatar {
+  border-color: #ff9a2f !important;
+  background: linear-gradient(135deg, #ff8a00, #24201b) !important;
+  box-shadow: 0 0 25px #ff790033 !important;
+}
+
+.publicProfileCard {
+  border-color: #ff790025 !important;
+}
+
+.globalChatMessageModeration {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.globalChatMessageModeration button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid #ff790055;
+  border-radius: 9px;
+  background: #17130f;
+  color: #ffbd80;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+.globalChatMessageModeration button:first-child {
+  border-color: #ff6b354d;
+  background: #ff57220d;
+  color: #ff987a;
+}
+
+.globalChatMessageModeration button:last-child {
+  border-color: #ff790055;
+  background: #ff790012;
+  color: #ffb347;
+}
+
+.globalChatMessageModeration button:hover:not(:disabled) {
+  background: #ff790022;
+  border-color: #ff8a00;
+  transform: translateY(-1px);
+}
+
+.globalChatMessageModeration button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none;
+}
+
