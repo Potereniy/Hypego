@@ -1105,7 +1105,61 @@ function News({user,canPublish,onNotice}:{user:User|null,canPublish:boolean,onNo
   </section>;
 }
 
-function Rules(){const [rules,setRules]=useState<any[]>([]);useEffect(()=>{api('rules').then(j=>setRules(j.rules||[])).catch(()=>setRules([]))},[]);return <section className="section"><div className="eyebrow">SURVIVE WITH RESPECT</div><h2>Правила <em>проекта</em></h2>{rules.length?rules.map(r=><article className="rule" key={r.id}><h3>{r.title}</h3><p>{r.body}</p></article>):<div className="panel"><p>Правила пока не опубликованы. После первого входа владельца добавьте их через панель управления.</p></div>}</section>}
+function Rules(){
+  const [rules,setRules]=useState<any[]>([]);
+  const [activeRule,setActiveRule]=useState<string|null>(null);
+  const [loading,setLoading]=useState(true);
+
+  useEffect(()=>{
+    api('rules')
+      .then(j=>{
+        const items=Array.isArray(j.rules)?j.rules:[];
+        setRules(items);
+        if(items.length)setActiveRule(String(items[0].id??0));
+      })
+      .catch(()=>setRules([]))
+      .finally(()=>setLoading(false));
+  },[]);
+
+  return <section className="section">
+    <div className="eyebrow">SURVIVE WITH RESPECT</div>
+    <h2>Правила <em>проекта</em></h2>
+    <p className="muted">Выбери раздел, чтобы прочитать правила.</p>
+
+    {loading?<div className="panel"><p>Загрузка правил…</p></div>:
+    rules.length?
+      <div style={{display:'grid',gap:12,maxWidth:900}}>
+        {rules.map((r,i)=>{
+          const id=String(r.id??i);
+          const opened=activeRule===id;
+          const panelId='rule-panel-'+id.replace(/[^a-zA-Z0-9_-]/g,'-');
+          return <article className="rule" key={id}
+            style={{padding:0,overflow:'hidden',border:'1px solid var(--border,rgba(167,139,250,.25))',borderRadius:14,background:'var(--panel,rgba(255,255,255,.02))'}}>
+            <button type="button"
+              aria-expanded={opened}
+              aria-controls={panelId}
+              onClick={()=>setActiveRule(opened?null:id)}
+              style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,width:'100%',padding:'18px 20px',border:0,background:opened?'rgba(139,92,246,.10)':'transparent',color:'inherit',textAlign:'left',cursor:'pointer'}}>
+              <span style={{display:'flex',alignItems:'center',gap:14,minWidth:0}}>
+                <span style={{display:'grid',placeItems:'center',flexShrink:0,width:34,height:34,borderRadius:10,background:'rgba(139,92,246,.16)',color:'#b9a0ff',fontWeight:800}}>{String(i+1).padStart(2,'0')}</span>
+                <strong>{r.title}</strong>
+              </span>
+              <span aria-hidden="true" style={{flexShrink:0,color:'#b9a0ff',fontSize:20,transition:'transform .25s ease',transform:opened?'rotate(180deg)':'rotate(0deg)'}}>⌄</span>
+            </button>
+            <div id={panelId} aria-hidden={!opened}
+              style={{display:'grid',gridTemplateRows:opened?'1fr':'0fr',transition:'grid-template-rows .28s ease'}}>
+              <div style={{overflow:'hidden',minHeight:0}}>
+                <div style={{padding:'0 22px 22px 68px',lineHeight:1.8,whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>
+                  {r.body}
+                </div>
+              </div>
+            </div>
+          </article>;
+        })}
+      </div>
+    :<div className="panel"><p>Правила пока не опубликованы. Добавь их через панель управления.</p></div>}
+  </section>;
+}
 
 function ProfileWall({userId}:{userId:string}) {
   const [posts,setPosts] = useState<any[]>([]);
