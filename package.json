@@ -8,7 +8,8 @@
     "start": "next start",
     "db:init": "node scripts/init-db.mjs",
     "admin:create": "node scripts/create-admin.mjs",
-    "db:migrate:rcon": "node scripts/migrate-rcon.mjs"
+    "db:migrate:rcon": "node scripts/migrate-rcon.mjs",
+    "db:migrate:global-chat": "node scripts/migrate-global-chat.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",

@@ -571,6 +571,70 @@ if(key==='admin/punishments'&&method==='PATCH'){
  if(key==='admin/punishments'&&method==='POST'){const actor=await requirePermission('punishments.manage'),b=await bodyJson(req),username=String(b.username||'').trim(),kind=String(b.kind||''),reason=String(b.reason||'').trim().slice(0,500),expires=b.expires_at||null;if(!/^[A-Za-z0-9_]{3,24}$/.test(username)||!['warn','mute','ban','unban','unmute'].includes(kind)||reason.length<3)throw new HttpError(400,'Проверь ник, тип наказания и причину');const rows=await db`INSERT INTO punishments(target_username,kind,reason,actor_id,expires_at) VALUES(${username},${kind},${reason},${actor.id},${expires}) RETURNING *`;await audit(actor.id,'punishment.create','punishment',rows[0].id,{username,kind});return Response.json({punishment:rows[0]},{status:201});}
  if(key==='admin/audit'&&method==='GET'){await requirePermission('audit.view');const rows=await db`SELECT a.id,a.action,a.target_type,a.target_id,a.details,a.created_at,u.username actor_username FROM audit_logs a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.created_at DESC LIMIT 200`;return Response.json({logs:rows});}
 
+
+if(key==='global-chat'&&method==='GET'){
+  let loggedIn=false;
+  try {
+    await requireUser();
+    loggedIn=true;
+  } catch {}
+
+  const rows=await db`
+    SELECT m.id,m.body,m.created_at,
+      u.username,u.display_name,u.avatar_url,u.nickname_color
+    FROM global_chat_messages m
+    JOIN users u ON u.id=m.user_id
+    ORDER BY m.created_at DESC
+    LIMIT 100
+  `;
+
+  return Response.json(
+    {messages:rows.reverse(),loggedIn},
+    {headers:{'Cache-Control':'no-store'}}
+  );
+}
+
+if(key==='global-chat'&&method==='POST'){
+  const u=await requireUser();
+  const b=await bodyJson(req);
+  const message=String(b.body||'').trim();
+
+  if(!message||message.length>500){
+    throw new HttpError(
+      400,
+      'Сообщение должно содержать от 1 до 500 символов'
+    );
+  }
+
+  const recent=await db`
+    SELECT created_at
+    FROM global_chat_messages
+    WHERE user_id=${u.id}
+    ORDER BY created_at DESC
+    LIMIT 1
+  `;
+
+  if(recent.length){
+    const elapsed=Date.now()-new Date(recent[0].created_at).getTime();
+    if(elapsed<3000){
+      throw new HttpError(
+        429,
+        'Не отправляй сообщения слишком часто. Подожди пару секунд.'
+      );
+    }
+  }
+
+  const rows=await db`
+    INSERT INTO global_chat_messages(user_id,body)
+    VALUES(${u.id},${message})
+    RETURNING id,body,created_at
+  `;
+
+  await audit(u.id,'global_chat.message.send','global_chat_message',rows[0].id);
+
+  return Response.json({message:rows[0]},{status:201});
+}
+
 if(key==='messages'&&method==='GET'){
   const u=await requireUser();
   const otherId=String(req.nextUrl.searchParams.get('user_id')||'');
