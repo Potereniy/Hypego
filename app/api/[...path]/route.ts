@@ -296,6 +296,95 @@ if(key==='admin/salary'&&method==='POST'){
   await audit(actor.id,'staff.salary.change','user',target,{amount,reason});
   return Response.json({ok:true,balance:result[0].hp_balance});
 }
+
+ if(key==='news'&&method==='GET'){
+   const posts=await db`
+     SELECT n.id,n.title,n.body,n.media,n.created_at,n.updated_at,
+            u.username,u.display_name
+     FROM news_posts n JOIN users u ON u.id=n.author_id
+     ORDER BY n.created_at DESC LIMIT 200`;
+   return Response.json({posts});
+ }
+ if(key==='news/upload'&&method==='POST'){
+   const actor=await requireUser();
+   const allowed=await db`
+     SELECT 1 FROM users u LEFT JOIN user_roles r ON r.user_id=u.id
+     WHERE u.id=${actor.id}
+       AND (u.is_project_owner=TRUE OR lower(u.username)='kristu4ok'
+            OR r.role_id IN ('owner','curator','tech_admin'))
+     LIMIT 1`;
+   if(!allowed.length)throw new HttpError(403,'Публиковать новости могут только владелец, куратор и техадмин');
+   if(!process.env.BLOB_READ_WRITE_TOKEN)throw new HttpError(503,'Загрузка файлов недоступна: настрой BLOB_READ_WRITE_TOKEN в Vercel');
+   const body=await req.json();
+   const result=await handleUpload({
+     body,request:req,
+     onBeforeGenerateToken:async(pathname)=>{
+       if(!/^news-[a-zA-Z0-9._-]+$/.test(pathname))throw new HttpError(400,'Некорректное имя файла');
+       return {
+         allowedContentTypes:['image/jpeg','image/png','image/webp','image/gif','image/avif','video/mp4','video/webm','video/quicktime','video/ogg'],
+         maximumSizeInBytes:200*1024*1024,
+         addRandomSuffix:true,
+         tokenPayload:JSON.stringify({userId:actor.id})
+       };
+     },
+     onUploadCompleted:async({blob,tokenPayload})=>{
+       const payload=JSON.parse(tokenPayload||'{}');
+       if(!payload.userId)throw new Error('Не удалось определить автора загрузки');
+       await audit(payload.userId,'news.media.upload','news_media',blob.pathname,{url:blob.url});
+     }
+   });
+   return Response.json(result);
+ }
+ if(key==='news'&&(method==='POST'||method==='PATCH'||method==='DELETE')){
+   const actor=await requireUser();
+   const allowed=await db`
+     SELECT 1 FROM users u LEFT JOIN user_roles r ON r.user_id=u.id
+     WHERE u.id=${actor.id}
+       AND (u.is_project_owner=TRUE OR lower(u.username)='kristu4ok'
+            OR r.role_id IN ('owner','curator','tech_admin'))
+     LIMIT 1`;
+   if(!allowed.length)throw new HttpError(403,'Публиковать новости могут только владелец, куратор и техадмин');
+   if(method==='DELETE'){
+     const url=new URL(req.url),id=String(url.searchParams.get('id')||'');
+     if(!id)throw new HttpError(400,'Не указан ID новости');
+     const rows=await db`DELETE FROM news_posts WHERE id=${id} RETURNING id`;
+     if(!rows.length)throw new HttpError(404,'Новость не найдена');
+     await audit(actor.id,'news.delete','news_post',id);
+     return Response.json({ok:true});
+   }
+   const b=await bodyJson(req);
+   const title=String(b.title||'').trim();
+   const body=String(b.body??'');
+   const media=Array.isArray(b.media)?b.media:[];
+   if(!title)throw new HttpError(400,'Укажи заголовок новости');
+   if(title.length>300)throw new HttpError(400,'Заголовок не должен превышать 300 символов');
+   if(media.length>30)throw new HttpError(400,'Можно прикрепить не более 30 файлов');
+   for(const m of media){
+     if(!m||typeof m.url!=='string'||!/^https:\/\//i.test(m.url)||
+       !['image/jpeg','image/png','image/webp','image/gif','image/avif','video/mp4','video/webm','video/quicktime','video/ogg'].includes(String(m.contentType||''))){
+       throw new HttpError(400,'Некорректное вложение новости');
+     }
+   }
+   if(method==='POST'){
+     const rows=await db`
+       INSERT INTO news_posts(author_id,title,body,media)
+       VALUES(${actor.id},${title},${body},${JSON.stringify(media)}::jsonb)
+       RETURNING id,title,body,media,created_at,updated_at`;
+     await audit(actor.id,'news.create','news_post',rows[0].id);
+     return Response.json({post:rows[0]},{status:201});
+   }
+   const url=new URL(req.url),id=String(url.searchParams.get('id')||b.id||'');
+   if(!id)throw new HttpError(400,'Не указан ID новости');
+   const rows=await db`
+     UPDATE news_posts SET title=${title},body=${body},
+       media=${JSON.stringify(media)}::jsonb,updated_at=NOW()
+     WHERE id=${id}
+     RETURNING id,title,body,media,created_at,updated_at`;
+   if(!rows.length)throw new HttpError(404,'Новость не найдена');
+   await audit(actor.id,'news.update','news_post',id);
+   return Response.json({post:rows[0]});
+ }
+
  if(key==='admin/rules'&&method==='GET'){const rows=await db`SELECT id,title,body,sort_order,updated_at FROM rules ORDER BY sort_order,id`;return Response.json({rules:rows});}
  if(key==='admin/rules'&&method==='PUT'){const actor=await requireUser();if(!await hasPermission(actor.id,'rules.edit')||(!(await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} AND role_id='curator' LIMIT 1`).length && !(await db`SELECT 1 FROM users WHERE id=${actor.id} AND is_project_owner=TRUE LIMIT 1`).length))throw new HttpError(403,'Недостаточно прав для изменения правил');const b=await bodyJson(req),rules=Array.isArray(b.rules)?b.rules:[];if(rules.length>100)throw new HttpError(400,'Слишком много правил');for(let i=0;i<rules.length;i++){const r=rules[i],title=String(r.title||'').trim().slice(0,150),body=String(r.body||'').trim().slice(0,5000);if(!title||!body)continue;if(r.id)await db`UPDATE rules SET title=${title},body=${body},sort_order=${i},updated_by=${actor.id},updated_at=NOW() WHERE id=${r.id}`;else await db`INSERT INTO rules(title,body,sort_order,updated_by) VALUES(${title},${body},${i},${actor.id})`;}await audit(actor.id,'rules.update','rules',undefined,{count:rules.length});return Response.json({ok:true});}
  if(key==='rules'&&method==='GET'){const rows=await db`SELECT id,title,body,sort_order,updated_at FROM rules ORDER BY sort_order,id`;return Response.json({rules:rows});}
@@ -620,6 +709,36 @@ if(key==='admin/privileges'&&method==='POST'){
  if(!allowed.length)throw new HttpError(403,'Нет права выдавать Minecraft-привилегии и кейсы');
 
  const b=await bodyJson(req);
+
+ if(b.action==='revoke'||b.action==='restrict'){
+  const pid=String(b.privilege_id||'');
+  if(!/^[0-9a-f-]{36}$/i.test(pid))
+   throw new HttpError(400,'Некорректный ID выдачи');
+  const existing=await db`SELECT id,status FROM privileges WHERE id=${pid} LIMIT 1`;
+  if(!existing.length)throw new HttpError(404,'Выдача не найдена');
+  if(existing[0].status!=='active')
+   throw new HttpError(400,'Управлять можно только активной привилегией');
+  const reason=String(b.reason||'').trim().slice(0,500)||null;
+  if(b.action==='revoke'){
+   const rows=await db`
+    UPDATE privileges SET status='revoked',revoked_at=NOW(),
+     revoked_by=${actor.id},revocation_reason=${reason}
+    WHERE id=${pid} AND status='active' RETURNING *`;
+   if(!rows.length)throw new HttpError(409,'Выдача уже изменена');
+   await audit(actor.id,'privilege.revoke','privilege',pid,{reason});
+   return Response.json({privilege:rows[0],message:'Привилегия отозвана.'});
+  }
+  const days=Number(b.days);
+  if(!Number.isInteger(days)||days<1||days>365)
+   throw new HttpError(400,'Срок ограничения должен быть от 1 до 365 дней');
+  const rows=await db`
+   UPDATE privileges SET restricted_until=NOW()+(${days} * INTERVAL '1 day'),
+    restriction_reason=${reason},restricted_by=${actor.id}
+   WHERE id=${pid} AND status='active' RETURNING *`;
+  if(!rows.length)throw new HttpError(409,'Выдача уже изменена');
+  await audit(actor.id,'privilege.restrict','privilege',pid,{days,reason});
+  return Response.json({privilege:rows[0],message:'Ограничение установлено на '+days+' дн.'});
+ }
  const target=String(b.user_id||'');
  const productId=String(b.product_id||'');
  const quantity=Number(b.quantity);

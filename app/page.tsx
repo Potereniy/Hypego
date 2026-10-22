@@ -41,7 +41,7 @@ async function load(){try{const j=await api('me');setUser(j.user);setRoles(j.rol
 async function loadProducts(s=store){try{const j=await api('products?store='+s);setProducts(j.products||[])}catch(e:any){setNotice(e.message)}}
 const routeKeyRef=useRef('home|overview|main'),skipRoutePushRef=useRef(false);
 useEffect(()=>{
-  const allowed=['home','shop','rules','players','groups','trainee','profile','profile-settings','billing','friends','admin','support','auth'];
+  const allowed=['home','shop','news','rules','players','groups','trainee','profile','profile-settings','billing','friends','admin','support','auth'];
   const readRoute=()=>{
     const params=new URLSearchParams(window.location.search);
     const requested=params.get('tab')||'home';
@@ -295,11 +295,11 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
   <span className="brandWord">
     <span className="brandHype">HYPE</span><span className="brandGo">GO</span>
   </span>
-</a><nav className="siteNav"><button type="button" onClick={()=>{setTab('home');setOpenNav('')}}>Главная</button><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='community'} onClick={()=>setOpenNav(openNav==='community'?'':'community')}>Сообщество⌄</button>{openNav==='community'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('players');setOpenNav('')}}>Игроки</button><button type="button" onClick={()=>{setTab('groups');setOpenNav('')}}>Наказания</button>{user&&<button type="button" onClick={()=>{setTab('friends');setOpenNav('')}}>Друзья</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='shop'} onClick={()=>setOpenNav(openNav==='shop'?'':'shop')}>Магазин⌄</button>{openNav==='shop'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('shop');setStore('main');setOpenNav('')}}>Основной магазин</button>{canAccessStaffShop&&<button type="button" onClick={()=>{setTab('shop');setStore('staff');setOpenNav('')}}>Магазин персонала</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='help'} onClick={()=>setOpenNav(openNav==='help'?'':'help')}>Справка⌄</button>{openNav==='help'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('rules');setOpenNav('')}}>Правила</button><button type="button" onClick={()=>{setTab('trainee');setOpenNav('')}}>Стажировка</button>{user&&<button type="button" onClick={()=>{setTab('support');setOpenNav('')}}>Техподдержка</button>}</div>}</div>{canAccessAdmin&&<button type="button" onClick={()=>{setTab('admin');setOpenNav('')}}>Управление</button>}</nav><div className="right">{user?<><div className="headerBalance"><small>БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} ₽</strong></div><div className="headerBalance headerHpBalance"><small>HYPE POINTS</small><strong>{Number(user.hp_balance||0).toLocaleString("ru-RU")} HP</strong></div><button type="button" className="accountTrigger" onClick={()=>setDrawerOpen(true)} aria-label="Открыть меню профиля"><span className="accountAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><span className="accountIdentity"><strong style={{color:user.nickname_color}}>{user.username}</strong><small>Мой аккаунт</small></span><span className="accountChevron">☰</span></button></>:<button className="primary" onClick={()=>setTab('auth')}>Войти</button>}</div></header>
+</a><nav className="siteNav"><button type="button" onClick={()=>{setTab('home');setOpenNav('')}}>Главная</button><button type="button" onClick={()=>{setTab('news');setOpenNav('')}}>Новости</button><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='community'} onClick={()=>setOpenNav(openNav==='community'?'':'community')}>Сообщество⌄</button>{openNav==='community'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('players');setOpenNav('')}}>Игроки</button><button type="button" onClick={()=>{setTab('groups');setOpenNav('')}}>Наказания</button>{user&&<button type="button" onClick={()=>{setTab('friends');setOpenNav('')}}>Друзья</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='shop'} onClick={()=>setOpenNav(openNav==='shop'?'':'shop')}>Магазин⌄</button>{openNav==='shop'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('shop');setStore('main');setOpenNav('')}}>Основной магазин</button>{canAccessStaffShop&&<button type="button" onClick={()=>{setTab('shop');setStore('staff');setOpenNav('')}}>Магазин персонала</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='help'} onClick={()=>setOpenNav(openNav==='help'?'':'help')}>Справка⌄</button>{openNav==='help'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('rules');setOpenNav('')}}>Правила</button><button type="button" onClick={()=>{setTab('trainee');setOpenNav('')}}>Стажировка</button>{user&&<button type="button" onClick={()=>{setTab('support');setOpenNav('')}}>Техподдержка</button>}</div>}</div>{canAccessAdmin&&<button type="button" onClick={()=>{setTab('admin');setOpenNav('')}}>Управление</button>}</nav><div className="right">{user?<><div className="headerBalance"><small>БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} ₽</strong></div><div className="headerBalance headerHpBalance"><small>HYPE POINTS</small><strong>{Number(user.hp_balance||0).toLocaleString("ru-RU")} HP</strong></div><button type="button" className="accountTrigger" onClick={()=>setDrawerOpen(true)} aria-label="Открыть меню профиля"><span className="accountAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><span className="accountIdentity"><strong style={{color:user.nickname_color}}>{user.username}</strong><small>Мой аккаунт</small></span><span className="accountChevron">☰</span></button></>:<button className="primary" onClick={()=>setTab('auth')}>Войти</button>}</div></header>
 {drawerOpen&&user&&<div className="drawerLayer"><button type="button" className="drawerScrim" aria-label="Закрыть меню" onClick={()=>setDrawerOpen(false)}></button><aside className="profileDrawer" aria-label="Меню аккаунта"><div className="drawerTop"><span className="eyebrow">HYPEGO / ACCOUNT</span><button type="button" className="drawerClose" onClick={()=>setDrawerOpen(false)}>×</button></div><div className="drawerUser"><div className="drawerAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</div><div><strong style={{color:user.nickname_color}}>{user.display_name||user.username}</strong><small>@{user.username}</small></div></div><div className="drawerBalance"><small>ТВОЙ БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} <span>₽</span></strong><button type="button" className="outline" onClick={()=>{setTab('billing');setDrawerOpen(false)}}>＋ Пополнить баланс</button></div><div className="drawerLinks"><span className="drawerLabel">АККАУНТ</span><button type="button" onClick={()=>{setTab('profile');setDrawerOpen(false)}}>◈ <span>Профиль и настройки</span><b>›</b></button><button type="button" onClick={()=>{setTab('players');setDrawerOpen(false)}}>♙ <span>Игроки</span><b>›</b></button>
 <button type="button" onClick={()=>{setTab('friends');setDrawerOpen(false)}}>♧ <span>Друзья</span><b>›</b></button>
 <button type="button" onClick={()=>{setChatMode(true);setSelectedChat(null);setDrawerOpen(true);loadFriends()}}>✉ <span>Сообщения</span><b>›</b></button>
-<button type="button" onClick={()=>{setTab('trainee');setDrawerOpen(false)}}>✧ <span>Стажировка</span><b>›</b></button><button type="button" onClick={()=>{setTab('shop');setStore('main');setDrawerOpen(false)}}>◇ <span>Магазин</span><b>›</b></button><button type="button" onClick={()=>{setTab('rules');setDrawerOpen(false)}}>≡ <span>Правила и справка</span><b>›</b></button>{canAccessAdmin&&<><span className="drawerLabel">ПЕРСОНАЛ</span><button type="button" onClick={()=>{setTab('admin');setDrawerOpen(false)}}>⌘ <span>Панель управления</span><b>›</b></button></>}<span className="drawerLabel">СЕАНС</span><button type="button" className="drawerLogout" onClick={()=>{setDrawerOpen(false);logout()}}>↪ <span>Выйти из аккаунта</span></button></div>{chatMode&&<section className="drawerChat">
+<button type="button" onClick={()=>{setTab('trainee');setDrawerOpen(false)}}>✧ <span>Стажировка</span><b>›</b></button><button type="button" onClick={()=>{setTab('shop');setStore('main');setDrawerOpen(false)}}>◇ <span>Магазин</span><b>›</b></button><button type="button" onClick={()=>{setTab('news');setDrawerOpen(false)}}>▤ <span>Новости</span><b>›</b></button><button type="button" onClick={()=>{setTab('rules');setDrawerOpen(false)}}>≡ <span>Правила и справка</span><b>›</b></button>{canAccessAdmin&&<><span className="drawerLabel">ПЕРСОНАЛ</span><button type="button" onClick={()=>{setTab('admin');setDrawerOpen(false)}}>⌘ <span>Панель управления</span><b>›</b></button></>}<span className="drawerLabel">СЕАНС</span><button type="button" className="drawerLogout" onClick={()=>{setDrawerOpen(false);logout()}}>↪ <span>Выйти из аккаунта</span></button></div>{chatMode&&<section className="drawerChat">
 <div className="profileCardHeading">
 <div><div className="eyebrow">HYPEGO MESSAGES</div><h3>{selectedChat?'Переписка':'Твои диалоги'}</h3></div>
 <button type="button" className="outline" onClick={()=>{setChatMode(false);setSelectedChat(null)}}>Закрыть</button>
@@ -612,7 +612,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
   </article>
 </section>}
 
-{tab==='rules'&&<Rules/>}{tab==='support'&&user&&<SupportCenter user={user} onNotice={setNotice}/>}{tab==='groups'&&<Punishments user={user} roles={roles} onNotice={setNotice}/>}{tab==='players'&&<Players/>}{tab==='trainee'&&<TraineeApplications user={user} roles={roles} onNotice={setNotice}/ >}{tab==='admin'&&user&&canAccessAdmin&&<><PrivilegeManager onNotice={setNotice}/>{(isPermanentOwner||roles.some(r=>['owner','management','curator','tech_admin'].includes(r.id)))&&<Admin roles={roles} isPermanentOwner={isPermanentOwner} onNotice={setNotice}/ >}{(isPermanentOwner||roles.some(r=>r.id==='curator'))&&<RulesEditor onNotice={setNotice}/ >}{(isPermanentOwner||roles.some(r=>['owner','management','curator','tech_admin'].includes(r.id)))&&<ProductEditor onNotice={setNotice}/>}</>}
+{tab==='news'&&<News user={user} canPublish={isPermanentOwner||roles.some(r=>['owner','curator','tech_admin'].includes(r.id))} onNotice={setNotice}/>}{tab==='rules'&&<Rules/>}{tab==='support'&&user&&<SupportCenter user={user} onNotice={setNotice}/>}{tab==='groups'&&<Punishments user={user} roles={roles} onNotice={setNotice}/>}{tab==='players'&&<Players/>}{tab==='trainee'&&<TraineeApplications user={user} roles={roles} onNotice={setNotice}/ >}{tab==='admin'&&user&&canAccessAdmin&&<><PrivilegeManager onNotice={setNotice}/>{(isPermanentOwner||roles.some(r=>['owner','management','curator','tech_admin'].includes(r.id)))&&<Admin roles={roles} isPermanentOwner={isPermanentOwner} onNotice={setNotice}/ >}{(isPermanentOwner||roles.some(r=>r.id==='curator'))&&<RulesEditor onNotice={setNotice}/ >}{(isPermanentOwner||roles.some(r=>['owner','management','curator','tech_admin'].includes(r.id)))&&<ProductEditor onNotice={setNotice}/>}</>}
 {purchaseProduct&&<div className="purchaseLayer">
   <button type="button" className="purchaseScrim" aria-label="Закрыть панель покупки" onClick={()=>setPurchaseProduct(null)}></button>
   <section className="purchaseDrawer" role="dialog" aria-modal="true" aria-labelledby="purchaseTitle">
@@ -918,6 +918,117 @@ function ServerStatus() {
       </div>
     </section>
   );
+}
+
+function News({user,canPublish,onNotice}:{user:User|null,canPublish:boolean,onNotice:(s:string)=>void}){
+  const [posts,setPosts]=useState<any[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [editing,setEditing]=useState<string|null>(null);
+  const [title,setTitle]=useState('');
+  const [body,setBody]=useState('');
+  const [media,setMedia]=useState<any[]>([]);
+  const [files,setFiles]=useState<File[]>([]);
+  const [showEditor,setShowEditor]=useState(false);
+
+  async function load(){
+    try{const j=await api('news');setPosts(j.posts||[]);}
+    catch(e:any){onNotice(e.message||'Не удалось загрузить новости');}
+    finally{setLoading(false);}
+  }
+  useEffect(()=>{load();},[]);
+
+  function reset(){
+    setEditing(null);setTitle('');setBody('');setMedia([]);setFiles([]);setShowEditor(false);
+  }
+  function startEdit(p:any){
+    setEditing(p.id);setTitle(p.title||'');setBody(p.body||'');
+    setMedia(Array.isArray(p.media)?p.media:[]);setFiles([]);setShowEditor(true);
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  async function save(e:any){
+    e.preventDefault();
+    if(!title.trim()){onNotice('Укажи заголовок новости');return;}
+    if(!user){onNotice('Войди в аккаунт, чтобы публиковать новости');return;}
+    setSaving(true);
+    try{
+      const uploaded=[...media];
+      for(const file of files){
+        if(file.size>200*1024*1024)throw new Error('Файл больше 200 МБ: '+file.name);
+        if(!file.type.startsWith('image/')&&!['video/mp4','video/webm','video/quicktime','video/ogg'].includes(file.type))
+          throw new Error('Поддерживаются изображения и видео MP4, WebM, MOV, OGG');
+        const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+        const result=await uploadBlob('news-'+Date.now()+'-'+Math.random().toString(36).slice(2)+'-'+safeName,file,{
+          access:'public',
+          handleUploadUrl:'/api/news/upload',
+          clientPayload:JSON.stringify({})
+        });
+        uploaded.push({url:result.url,pathname:result.pathname,name:file.name,contentType:file.type});
+      }
+      const payload={title:title.trim(),body,media:uploaded};
+      await api(editing?'news?id='+encodeURIComponent(editing):'news',{
+        method:editing?'PATCH':'POST',body:JSON.stringify(payload)
+      });
+      onNotice(editing?'Новость обновлена':'Новость опубликована');
+      reset();setLoading(true);await load();
+    }catch(e:any){onNotice(e.message||'Не удалось сохранить новость');}
+    finally{setSaving(false);}
+  }
+  async function remove(p:any){
+    if(!confirm('Удалить новость «'+p.title+'»?'))return;
+    try{
+      await api('news?id='+encodeURIComponent(p.id),{method:'DELETE'});
+      setPosts(old=>old.filter(x=>x.id!==p.id));onNotice('Новость удалена');
+    }catch(e:any){onNotice(e.message||'Не удалось удалить новость');}
+  }
+
+  return <section className="section">
+    <div className="eyebrow">HYPEGO NETWORK / UPDATES</div>
+    <h2>Новости <em>проекта</em></h2>
+    <p className="muted">События, обновления и важные объявления Hypego.</p>
+    {canPublish&&<div className="panel" style={{margin:'20px 0'}}>
+      {!showEditor?<button className="primary" type="button" onClick={()=>{reset();setShowEditor(true);}}>＋ Добавить новость</button>:
+      <form className="form" onSubmit={save}>
+        <label>Заголовок
+          <input value={title} onChange={e=>setTitle(e.target.value)} required placeholder="Заголовок публикации"/>
+        </label>
+        <label>Текст публикации
+          <textarea value={body} onChange={e=>setBody(e.target.value)} rows={10} placeholder="Расскажи, что нового в Hypego…" style={{minHeight:220,whiteSpace:'pre-wrap'}}/>
+        </label>
+        <label>Изображения и видео
+          <input type="file" multiple accept="image/*,video/mp4,video/webm,video/quicktime,video/ogg"
+            onChange={e=>setFiles(Array.from(e.target.files||[]))}/>
+        </label>
+        {files.length>0&&<p className="muted">Новых файлов: {files.length}. Максимум 200 МБ на файл.</p>}
+        {media.length>0&&<div className="featureGrid">{media.map((m:any,i:number)=><article className="feature" key={m.url||i}>
+          <p>{m.name||'Прикреплённый файл'}</p>
+          <button type="button" className="outline" onClick={()=>setMedia(old=>old.filter((_:any,j:number)=>j!==i))}>Убрать вложение</button>
+        </article>)}</div>}
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          <button className="primary" disabled={saving}>{saving?'Сохраняем…':editing?'Сохранить изменения':'Опубликовать'}</button>
+          <button type="button" className="outline" disabled={saving} onClick={reset}>Отмена</button>
+        </div>
+      </form>}
+    </div>}
+    {loading?<p>Загружаем новости…</p>:posts.length===0?<div className="panel"><p>Пока новостей нет. Загляни сюда позже!</p></div>:
+      <div className="newsList" style={{display:'grid',gap:20}}>
+        {posts.map((p:any)=><article className="panel" key={p.id} style={{padding:20,overflowWrap:'anywhere'}}>
+          <div className="eyebrow">{p.created_at?new Date(p.created_at).toLocaleString('ru-RU'):''}</div>
+          <h3>{p.title}</h3>
+          <p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{p.body}</p>
+          {Array.isArray(p.media)&&p.media.map((m:any,i:number)=><div key={m.url||i} style={{marginTop:12}}>
+            {String(m.contentType||'').startsWith('video/')?
+              <video controls preload="metadata" src={m.url} style={{width:'100%',maxHeight:520,borderRadius:12}}/>:
+              <a href={m.url} target="_blank" rel="noreferrer"><img src={m.url} alt={m.name||'Изображение к новости'} loading="lazy" style={{width:'100%',maxHeight:600,objectFit:'contain',borderRadius:12}}/></a>}
+          </div>)}
+          <p className="muted">Автор: {p.display_name||p.username||'Hypego'}</p>
+          {canPublish&&<div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+            <button type="button" className="outline" onClick={()=>startEdit(p)}>Редактировать</button>
+            <button type="button" className="outline" onClick={()=>remove(p)}>Удалить</button>
+          </div>}
+        </article>)}
+      </div>}
+  </section>;
 }
 
 function Rules(){const [rules,setRules]=useState<any[]>([]);useEffect(()=>{api('rules').then(j=>setRules(j.rules||[])).catch(()=>setRules([]))},[]);return <section className="section"><div className="eyebrow">SURVIVE WITH RESPECT</div><h2>Правила <em>проекта</em></h2>{rules.length?rules.map(r=><article className="rule" key={r.id}><h3>{r.title}</h3><p>{r.body}</p></article>):<div className="panel"><p>Правила пока не опубликованы. После первого входа владельца добавьте их через панель управления.</p></div>}</section>}
@@ -1320,6 +1431,30 @@ useEffect(()=>{
   }
 },[kind,catalog,productId]);
 
+async function managePrivilege(id:string,action:'revoke'|'restrict',days=1){
+  const reason=window.prompt(action==='revoke'?'Причина отзыва привилегии:':'Причина ограничения привилегии:');
+  if(reason===null)return;
+  if(!reason.trim()){onNotice('Укажи причину действия.');return}
+  if(action==='restrict'){
+    const raw=window.prompt('На сколько дней ограничить привилегию? (1–365)','7');
+    if(raw===null)return;
+    if(!/^[0-9]+$/.test(raw)||Number(raw)<1||Number(raw)>365){
+      onNotice('Срок должен быть от 1 до 365 дней.');return
+    }
+    days=Number(raw);
+  }
+  if(action==='revoke'&&!window.confirm('Отозвать привилегию навсегда?'))return;
+  setBusy(true);
+  try{
+    const j=await api('admin/privileges',{
+      method:'POST',
+      body:JSON.stringify({action,privilege_id:id,days,reason:reason.trim()})
+    });
+    onNotice(j.message||'Действие выполнено.');
+    await loadPrivileges();
+  }catch(e:any){onNotice(e.message)}
+  finally{setBusy(false)}
+}
 async function issue(){
   const count=Number(quantity);
   if(!target){onNotice('Сначала выбери игрока.');return}
@@ -1405,6 +1540,15 @@ return <div className="panel form">
     {items.map((x:any)=><div className="userRow" key={x.id}>
       <strong>{x.product_name||'Товар'} × {x.quantity||1}</strong>
       <small>Аккаунт: {x.account_username||x.user_id} · Minecraft: {x.minecraft_username} · Статус: {x.status}</small>
+      {x.restricted_until&&new Date(x.restricted_until).getTime()>Date.now()&&
+        <small>Ограничено до: {new Date(x.restricted_until).toLocaleString('ru-RU')} · {x.restriction_reason||'Без причины'}</small>}
+      {x.revocation_reason&&<small>Причина отзыва: {x.revocation_reason}</small>}
+      {x.status==='active'&&<div className="rowBetween">
+        <button className="outline" type="button" disabled={busy}
+          onClick={()=>managePrivilege(x.id,'restrict')}>Ограничить</button>
+        <button className="outline" type="button" disabled={busy}
+          onClick={()=>managePrivilege(x.id,'revoke')}>Забрать навсегда</button>
+      </div>}
     </div>)}
   </div>}
   <p className="tiny">Статус active означает, что выдача записана в базе Hypego. Для автоматического применения на Minecraft-сервере необходима настроенная интеграция с сервером.</p>
