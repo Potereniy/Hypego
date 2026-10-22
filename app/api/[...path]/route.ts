@@ -15,6 +15,25 @@ const allowedByCurator=['trainee','moderator','support'];
 const seedProducts=[
  ['opka','⚡ ОПКА','privilege','main',0,'Игровая привилегия ОПКА'],['opka-deputy','👑 Заместитель','rank','main',75,'ОПКА: Заместитель. Осталось 1 место.'],['chief-admin','📈 Гл. Администратор','rank','main',75,'Главный администратор'],['administrator','🚀 Администратор','rank','main',70,'Администратор проекта'],['developer','🔥 Разработчик','privilege','main',75,'Привилегия разработчика'],['chief-console','😎 Гл.Консоль','privilege','main',70,'Главная консоль'],['console','📱 Консоль','privilege','main',70,'Доступ к консоли'],['owner-rank','Владелец','privilege','main',50,'Игровая привилегия «Владелец»; не роль владельца сайта'],['creator','Создатель','privilege','main',50,'Привилегия создателя'],['operator','Оператор','privilege','main',50,'Оператор сервера'],['anti-griefer','Анти-Грифер','privilege','main',50,'Защита от гриферов'],['support-rank','Поддержка','privilege','main',50,'Игровая привилегия поддержки'],['helper','Хелпер','privilege','main',50,'Помощник сервера'],['admin-rank','Админ','privilege','main',50,'Игровая привилегия администратора'],['moderator-rank','Модератор','privilege','main',50,'Игровая привилегия модератора'],['creative','Креатив','privilege','main',50,'Режим креатива'],['premium','Премиум','privilege','main',50,'Премиум'],['vip','Вип','privilege','main',50,'VIP'],['fly','Флай','privilege','main',50,'Полёт'],['donate','Донат','privilege','main',0,'Донат-привилегия'],['beta-tester','❗ БЕТА-ТЕСТЕР [NEW]','privilege','main',0,'Статус бета-тестера'],['best-player','⚡ Статус ★ Лучший игрок ★','privilege','main',0,'Статус лучшего игрока'],['mvp-plus-plus','🪎 MVP++','privilege','main',0,'MVP++'],['mvp-plus','🍯 MVP+','privilege','main',0,'MVP+'],['mvp','🎗 MVP','privilege','main',0,'MVP'],['max-money','Максимальное количество денег','economy','main',0,'До 18 квинтиллионов игровой валюты'],['wipe-100b','Сохранение валюты после вайпа 100.000.000.000$','economy','main',0,'Сохранение игровой валюты после вайпа'],['wipe-100m','Сохранение валюты после вайпа 100.000.000$','economy','main',0,'Сохранение игровой валюты после вайпа'],['unlock-all','Разблокировка всего','economy','main',0,'Разблокировка доступного контента'],['unlock-console','Разблокировка консоли','economy','main',0,'Разблокировка консоли'],['unlock-privilege','Разблокировка привилегии','economy','main',0,'Разблокировка привилегии'],['unban','Разбан по нику','service','main',0,'Заявка на снятие бана'],['unmute','Размут','service','main',0,'Заявка на снятие мута'],['mega-box','Мега-Ящик','consumable','main',0,'Мега-ящик'],['title-box','Титул-Ящик','consumable','main',0,'Ящик титулов'],['companion-box','Компаньон-Ящик','consumable','main',0,'Ящик компаньонов'],['pet-box','Питомец-Ящик','consumable','main',0,'Ящик питомцев'],['hologram-box','Голограмм-Ящик','consumable','main',0,'Ящик голограмм'],['staff-deputy','Заместитель (персонал)','rank','staff',0,'Магазин персонала',true],['staff-chief-admin','Гл. Администратор (персонал)','rank','staff',0,'Магазин персонала',true],['staff-admin','Администратор (персонал)','rank','staff',0,'Магазин персонала',true],['staff-console','Консоль (персонал)','privilege','staff',0,'Магазин персонала',true],['staff-chief-console','Гл.Консоль (персонал)','privilege','staff',0,'Магазин персонала',true],['staff-owner','Владелец (игровая привилегия, персонал)','privilege','staff',0,'Не является ролью владельца проекта',true],['staff-creator','Создатель (персонал)','privilege','staff',0,'Магазин персонала',true],['staff-pet-box','Пет кейс','consumable','staff',0,'Магазин персонала',true],['staff-hologram-box','Голограм кейс','consumable','staff',0,'Магазин персонала',true],['staff-companion-box','Компаньон кейс','consumable','staff',0,'Магазин персонала',true],['staff-title-box','Титул кейс','consumable','staff',0,'Магазин персонала',true],['staff-mega-box','Мега ящик','consumable','staff',0,'Магазин персонала',true],['staff-unmute','Размут (персонал)','service','staff',0,'Магазин персонала',true],['staff-unban','Разбан (персонал)','service','staff',0,'Магазин персонала',true]
 ];
+function cleanTicketAttachments(value:any):{url:string;name:string;type:string;size:number}[]{
+ if(!Array.isArray(value))return [];
+ if(value.length>5)throw new HttpError(400,'Можно прикрепить не больше 5 файлов');
+ const allowed=new Set(['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm','video/quicktime']);
+ return value.map((a:any)=>{
+  if(!a||typeof a.url!=='string'||typeof a.type!=='string'||!allowed.has(a.type))throw new HttpError(400,'Некорректное вложение');
+  let url:URL;
+  try{url=new URL(a.url)}catch{throw new HttpError(400,'Некорректная ссылка на файл')}
+  if(url.protocol!=='https:'||!url.hostname.endsWith('.public.blob.vercel-storage.com'))throw new HttpError(400,'Недопустимый адрес вложения');
+  const size=Number(a.size);
+const max=a.type.startsWith('image/')?15*1024*1024:200*1024*1024;
+if(!Number.isFinite(size)||size<1||size>max)throw new HttpError(400,a.type.startsWith('image/')?'Изображение должно быть не больше 15 МБ':'Видео должно быть не больше 200 МБ');
+  return {url:url.toString(),name:String(a.name||'Файл').slice(0,200),type:a.type,size};
+ });
+}
+function encodeTicketAttachments(attachments:{url:string;name:string;type:string;size:number}[]){
+ return attachments.length?'\n\n[[HYPEGO_ATTACHMENTS:'+JSON.stringify(attachments)+']]':'';
+}
+
 async function route(req:NextRequest,{params}:{params:Promise<{path:string[]}>}) {
  const {path}=await params, key=path.join('/'), method=req.method, db=sql();
  if(key==='health'&&method==='GET') return Response.json({ok:true,service:'Hypego',database:'configured'});
@@ -664,6 +683,35 @@ if(key==='messages'&&method==='POST'){
 if(key==='wall'&&method==='GET'){const profileId=req.nextUrl.searchParams.get('user_id');if(!profileId)throw new HttpError(400,'Нужен user_id');const rows=await db`SELECT w.id,w.body,w.created_at,u.username,u.display_name,u.avatar_url,u.nickname_color,u.nickname_effect,u.avatar_frame FROM wall_posts w JOIN users u ON u.id=w.author_id WHERE w.profile_user_id=${profileId} ORDER BY w.created_at DESC LIMIT 100`;return Response.json({posts:rows});}
  if(key==='wall'&&method==='POST'){const u=await requireUser(),b=await bodyJson(req),profileId=String(b.user_id||'').trim(),body=String(b.body||'').trim().slice(0,500);if(!profileId)throw new HttpError(400,'Нужен профиль');if(body.length<1)throw new HttpError(400,'Сообщение пустое');const target=await db`SELECT id::text AS id FROM users WHERE id::text=${profileId} LIMIT 1`;if(!target.length)throw new HttpError(404,'Профиль не найден');const rows=await db`INSERT INTO wall_posts(profile_user_id,author_id,body) VALUES(${target[0].id},${u.id},${body}) RETURNING *`;await audit(u.id,'wall.post','user',target[0].id);return Response.json({post:rows[0]},{status:201});}
  
+if(key==='ticket-attachment/upload'&&method==='POST'){
+ const u=await requireUser();
+ if(!process.env.BLOB_READ_WRITE_TOKEN)throw new HttpError(503,'Загрузка недоступна: настрой BLOB_READ_WRITE_TOKEN в Vercel');
+ const body=await req.json();
+ const result=await handleUpload({
+  body,
+  request:req,
+  onBeforeGenerateToken:async(pathname,clientPayload)=>{
+   if(!/^support-[a-zA-Z0-9._-]+$/.test(pathname))throw new HttpError(400,'Некорректное имя файла');
+   let payload:any={};
+   try{payload=JSON.parse(clientPayload||'{}')}catch{throw new HttpError(400,'Некорректные данные загрузки')}
+   const allowedTypes=['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm','video/quicktime'];
+   if(payload.type&&!allowedTypes.includes(payload.type))throw new HttpError(400,'Формат файла не поддерживается');
+   return {
+    allowedContentTypes:allowedTypes,
+    maximumSizeInBytes:200*1024*1024,
+    addRandomSuffix:true,
+    tokenPayload:JSON.stringify({userId:String(u.id)})
+   };
+  },
+  onUploadCompleted:async({blob,tokenPayload})=>{
+   const payload=JSON.parse(tokenPayload||'{}');
+   if(!payload.userId)throw new Error('Не удалось определить автора загрузки');
+   await audit(payload.userId,'ticket.attachment.upload','support_attachment',blob.pathname,{url:blob.url,contentType:blob.contentType});
+  }
+ });
+ return Response.json(result);
+}
+
 if(key==='tickets'&&method==='POST'){
  const u=await requireUser(),b=await bodyJson(req);
  const subject=String(b.subject||'').trim().slice(0,120);
@@ -672,8 +720,10 @@ if(key==='tickets'&&method==='POST'){
  const categories=['account','payments','privileges','server','player_complaint','staff_complaint','other'];
  if(subject.length<3||body.length<5)throw new HttpError(400,'Заполни тему и сообщение');
  if(!categories.includes(category))throw new HttpError(400,'Неизвестная категория');
- const rows=await db`INSERT INTO tickets(user_id,subject,body,category) VALUES(${u.id},${subject},${body},${category}) RETURNING *`;
- await db`INSERT INTO ticket_messages(ticket_id,sender_id,body) VALUES(${rows[0].id},${u.id},${body})`;
+ const attachments=cleanTicketAttachments(b.attachments);
+ const storedBody=body+encodeTicketAttachments(attachments);
+ const rows=await db`INSERT INTO tickets(user_id,subject,body,category) VALUES(${u.id},${subject},${storedBody},${category}) RETURNING *`;
+ await db`INSERT INTO ticket_messages(ticket_id,sender_id,body) VALUES(${rows[0].id},${u.id},${storedBody})`;
  await audit(u.id,'ticket.create','ticket',rows[0].id,{category,subject});
  return Response.json({ticket:rows[0]},{status:201});
 }
@@ -703,11 +753,13 @@ if(key==='ticket-messages'&&(method==='GET'||method==='POST')){
   return Response.json({ticket:tickets[0],messages,staff});
  }
  const body=String(b.body||'').trim().slice(0,4000);
- if(!body)throw new HttpError(400,'Напиши сообщение');
+ const attachments=cleanTicketAttachments(b.attachments);
+ if(!body&&!attachments.length)throw new HttpError(400,'Напиши сообщение или прикрепи файл');
+ const storedBody=body+encodeTicketAttachments(attachments);
  const tickets=staff?await db`SELECT * FROM tickets WHERE id=${ticketId} LIMIT 1`:await db`SELECT * FROM tickets WHERE id=${ticketId} AND user_id=${u.id} LIMIT 1`;
  if(!tickets.length)throw new HttpError(404,'Обращение не найдено');
  if(tickets[0].status==='closed'&&!staff)throw new HttpError(400,'Обращение закрыто');
- const rows=await db`INSERT INTO ticket_messages(ticket_id,sender_id,body) VALUES(${ticketId},${u.id},${body}) RETURNING *`;
+ const rows=await db`INSERT INTO ticket_messages(ticket_id,sender_id,body) VALUES(${ticketId},${u.id},${storedBody}) RETURNING *`;
  await db`UPDATE tickets SET status=CASE WHEN status='closed' AND ${staff} THEN status WHEN status='closed' THEN 'open' ELSE status END,closed_at=CASE WHEN status='closed' AND ${staff} THEN closed_at ELSE NULL END,updated_at=NOW() WHERE id=${ticketId}`;
  await audit(u.id,'ticket.message','ticket',ticketId,{message_id:rows[0].id});
  return Response.json({message:rows[0]},{status:201});

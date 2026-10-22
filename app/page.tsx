@@ -659,6 +659,9 @@ function SupportCenter({user,onNotice}:{user:any,onNotice:(s:string)=>void}) {
  const [draft,setDraft]=useState('');
  const [target,setTarget]=useState('');
  const [busy,setBusy]=useState(false);
+ const [newAttachments,setNewAttachments]=useState<File[]>([]);
+ const [replyAttachments,setReplyAttachments]=useState<File[]>([]);
+ const [uploadingFiles,setUploadingFiles]=useState(false);
 
  const categoryNames:Record<string,string>={
   account:'Аккаунт',payments:'Платежи',privileges:'Привилегии',
@@ -669,6 +672,50 @@ function SupportCenter({user,onNotice}:{user:any,onNotice:(s:string)=>void}) {
   open:'Открыто',in_progress:'В работе',closed:'Закрыто'
  };
  const selected=tickets.find(t=>t.id===selectedId);
+ function parseSupportBody(value:any){
+  let text=String(value||'');
+  let attachments:any[]=[];
+  const marker='\n\n[[HYPEGO_ATTACHMENTS:';
+  const index=text.lastIndexOf(marker);
+  if(index>=0&&text.endsWith(']]')){
+   try{
+    attachments=JSON.parse(text.slice(index+marker.length,-2));
+    if(!Array.isArray(attachments))attachments=[];
+    text=text.slice(0,index);
+   }catch{}
+  }
+  return {text,attachments};
+ }
+
+ async function uploadSupportFiles(files:File[]){
+  const allowed=['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm','video/quicktime'];
+  if(files.length>5)throw new Error('Можно прикрепить не больше 5 файлов');
+  const uploaded=[];
+  for(const file of files){
+   if(!allowed.includes(file.type))throw new Error('Формат файла не поддерживается');
+   const max=file.type.startsWith('image/')?15*1024*1024:200*1024*1024;
+   if(file.size<1||file.size>max)throw new Error(file.type.startsWith('image/')?'Изображение должно быть не больше 15 МБ':'Видео должно быть не больше 200 МБ');
+   const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(-150)||'file';
+   const blob=await uploadBlob('support-'+Date.now()+'-'+safeName,file,{
+    access:'public',
+    handleUploadUrl:'/api/ticket-attachment/upload',
+    clientPayload:JSON.stringify({type:file.type})
+   });
+   uploaded.push({url:blob.url,name:file.name,type:file.type,size:file.size});
+  }
+  return uploaded;
+ }
+
+ function chooseSupportFiles(e:any,setFiles:(files:File[])=>void){
+  const files=Array.from(e.target.files||[]) as File[];
+  if(files.length>5){
+   onNotice('Можно прикрепить не больше 5 файлов');
+   e.target.value='';
+   return;
+  }
+  setFiles(files);
+ }
+
 
  async function loadTickets(){
   try{
@@ -700,33 +747,41 @@ function SupportCenter({user,onNotice}:{user:any,onNotice:(s:string)=>void}) {
   if(busy)return;
   setBusy(true);
   try{
+   setUploadingFiles(true);
+   const attachments=await uploadSupportFiles(newAttachments);
    const r=await api('tickets',{
     method:'POST',
-    body:JSON.stringify({subject,body,category})
+    body:JSON.stringify({subject,body,category,attachments})
    });
    setSubject('');
    setBody('');
+   setNewAttachments([]);
+   setUploadingFiles(false);
    await loadTickets();
    setSelectedId(r.ticket.id);
    onNotice('Обращение создано');
   }catch(err:any){onNotice(err.message||'Не удалось создать обращение');}
-  finally{setBusy(false);}
+  finally{setBusy(false);setUploadingFiles(false);}
  }
 
  async function sendMessage(e:any){
   e.preventDefault();
-  if(!selectedId||!draft.trim()||busy)return;
+  if(!selectedId||(!draft.trim()&&!replyAttachments.length)||busy)return;
   setBusy(true);
   try{
+   setUploadingFiles(true);
+   const attachments=await uploadSupportFiles(replyAttachments);
    await api('ticket-messages',{
     method:'POST',
-    body:JSON.stringify({ticket_id:selectedId,body:draft})
+    body:JSON.stringify({ticket_id:selectedId,body:draft,attachments})
    });
    setDraft('');
+   setReplyAttachments([]);
+   setUploadingFiles(false);
    await loadMessages(selectedId);
    await loadTickets();
   }catch(err:any){onNotice(err.message||'Не удалось отправить сообщение');}
-  finally{setBusy(false);}
+  finally{setBusy(false);setUploadingFiles(false);}
  }
 
  async function ticketAction(action:string,assigned_to?:string){
@@ -782,7 +837,11 @@ function SupportCenter({user,onNotice}:{user:any,onNotice:(s:string)=>void}) {
       <label>Сообщение
        <textarea required minLength={5} maxLength={4000} value={body} onChange={e=>setBody(e.target.value)} placeholder="Что произошло? Что ты уже пробовал?"/>
       </label>
-      <button className="primary" disabled={busy} type="submit">{busy?'Отправка…':'Создать обращение'}</button>
+      <label>Вложения (до 5 файлов)
+            <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" onChange={e=>chooseSupportFiles(e,setNewAttachments)}/>
+          </label>
+          {newAttachments.length>0&&<p className="muted">{newAttachments.map(f=>f.name).join(' · ')}</p>}
+          <button className="primary" disabled={busy||uploadingFiles} type="submit">{uploadingFiles?'Загрузка файлов…':busy?'Отправка…':'Создать обращение'}</button>
      </form>
     </>:selected?<>
      <div className="supportConversationHead">
@@ -804,13 +863,25 @@ function SupportCenter({user,onNotice}:{user:any,onNotice:(s:string)=>void}) {
      <div className="supportMessages">
       {messages.map((m:any)=><div key={m.id} className={'supportMessage '+(m.sender_id===user.id?'mine':'')}>
        <div className="supportMessageMeta"><strong>{m.sender_username|| (m.sender_id===user.id?'Вы':'Участник')}</strong><time>{m.created_at?new Date(m.created_at).toLocaleString('ru-RU'):''}</time></div>
-       <p>{m.body}</p>
+       <p>{parseSupportBody(m.body).text}</p>
+          {parseSupportBody(m.body).attachments.map((a:any)=><div className="supportAttachment" key={a.url}>
+            {String(a.type||'').startsWith('image/')?
+              <a href={a.url} target="_blank" rel="noreferrer"><img src={a.url} alt={a.name||'Вложение'} style={{display:'block',maxWidth:'100%',maxHeight:360,borderRadius:12,objectFit:'contain'}}/></a>:
+              String(a.type||'').startsWith('video/')?
+              <video src={a.url} controls preload="metadata" style={{display:'block',width:'100%',maxWidth:560,maxHeight:360,borderRadius:12}}/>:
+              <a href={a.url} target="_blank" rel="noreferrer">{a.name||'Открыть файл'}</a>}
+            <small>{a.name||'Вложение'}</small>
+          </div>)}
       </div>)}
       {!messages.length&&<p className="muted">Сообщений пока нет.</p>}
      </div>
      {selected.status!=='closed'||staff?<form className="supportReply" onSubmit={sendMessage}>
       <textarea required maxLength={4000} value={draft} onChange={e=>setDraft(e.target.value)} placeholder="Напиши сообщение…"/>
-      <button className="primary" disabled={busy||!draft.trim()} type="submit">Отправить</button>
+      <label className="supportAttachPicker">Прикрепить файлы (до 5)
+  <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" onChange={e=>chooseSupportFiles(e,setReplyAttachments)}/>
+</label>
+{replyAttachments.length>0&&<p className="muted">{replyAttachments.map(f=>f.name).join(' · ')}</p>}
+<button className="primary" disabled={busy||(!draft.trim()&&!replyAttachments.length)} type="submit">{uploadingFiles?'Загрузка файлов…':'Отправить'}</button>
      </form>:<p className="muted">Обращение закрыто. Если проблема осталась, создай новое.</p>}
     </>:<p className="muted">Выбери обращение из списка.</p>}
    </div>
