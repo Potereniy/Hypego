@@ -301,45 +301,6 @@ export default function TraineeApplications({ user, roles, onNotice }: Props) {
         </div>
       )}
 
-      {user && curator && (
-        <div className="panel traineePublicPanel">
-          <div className="traineePublicHeader">
-            <div>
-              <h3>Заявки игроков</h3>
-              <p className="muted">Открой заявку, чтобы прочитать сообщения и принять решение.</p>
-            </div>
-          </div>
-
-          {privateList.length === 0 ? (
-            <p className="muted">Заявок пока нет.</p>
-          ) : (
-            <div className="traineeApplicationList">
-              {privateList.map(a => (
-                <button
-                  type="button"
-                  className="traineeApplicationRow"
-                  key={a.id}
-                  onClick={() => setSelectedApplication(a)}
-                >
-                  <div className="traineeApplicationAvatar">
-                    <span>{(a.display_name || a.account_username || a.minecraft_username || '?').charAt(0).toUpperCase()}</span>
-                  </div>
-                  <div className="traineeApplicationIdentity">
-                    <strong>{a.display_name || a.account_username || a.minecraft_username}</strong>
-                    <span>@{a.account_username || 'игрок'}</span>
-                    <small>{a.minecraft_username}</small>
-                  </div>
-                  <div className={'traineeApplicationStatus status-' + a.status}>
-                    {statusText[a.status] || a.status}
-                  </div>
-                  <div className="traineeApplicationArrow">›</div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
       <div className="panel traineePublicPanel">
         <div className="traineePublicHeader">
           <div>
