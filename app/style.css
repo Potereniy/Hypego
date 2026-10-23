@@ -2222,3 +2222,113 @@ outline-offset: 3px;
     max-height: calc(100vh - 20px);
   }
 }
+
+/* HYPEGO — trainee application modal and private chat */
+.traineeSubmitBar {
+  display: flex;
+  justify-content: flex-start;
+  margin: 18px 0;
+}
+
+.traineeChat {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #292b30;
+}
+
+.traineeChat h3 {
+  margin: 0 0 14px;
+}
+
+.traineeChatMessages {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid #292b30;
+  border-radius: 12px;
+  background: #0b0c0e;
+}
+
+.traineeChatMessage {
+  max-width: 92%;
+  align-self: flex-start;
+  padding: 11px 13px;
+  border: 1px solid #303238;
+  border-radius: 12px 12px 12px 4px;
+  background: #151619;
+}
+
+.traineeChatMessage.mine {
+  align-self: flex-end;
+  border-color: #ff790055;
+  border-radius: 12px 12px 4px 12px;
+  background: #ff790012;
+}
+
+.traineeChatMessageHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.traineeChatMessageHeader strong {
+  color: #ffb347;
+  font-size: 12px;
+}
+
+.traineeChatMessageHeader time {
+  color: #858891;
+  font-size: 10px;
+}
+
+.traineeChatMessage p {
+  margin: 0;
+  color: #e1e2e5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.traineeChatForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.traineeChatForm textarea {
+  width: 100%;
+  min-height: 84px;
+  resize: vertical;
+}
+
+.traineeDecisionActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #292b30;
+}
+
+.traineeDecisionActions > button {
+  flex: 1;
+}
+
+@media (max-width: 650px) {
+  .traineeChatMessage {
+    max-width: 100%;
+  }
+
+  .traineeDecisionActions {
+    flex-direction: column;
+  }
+
+  .traineeDecisionActions > button {
+    width: 100%;
+  }
+}

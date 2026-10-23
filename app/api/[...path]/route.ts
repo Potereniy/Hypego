@@ -1176,6 +1176,69 @@ if(key==='admin/privileges'&&method==='GET'){
  return Response.json({privileges:rows});
 }
 
+
+ if(key==='trainee-applications/messages'&&(method==='GET'||method==='POST')){
+   const actor=await requireUser();
+   let id='';
+   let message='';
+   if(method==='GET'){
+     id=String(req.nextUrl.searchParams.get('id')||'');
+   }else{
+     const b=await bodyJson(req);
+     id=String(b.id||'');
+     message=String(b.message||'').trim();
+   }
+   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))
+     throw new HttpError(400,'Некорректный ID заявки');
+
+   if(method==='POST'&&(message.length<1||message.length>2000))
+     throw new HttpError(400,'Сообщение должно содержать от 1 до 2000 символов');
+
+   const apps=await db`
+     SELECT id,user_id,status
+     FROM trainee_applications
+     WHERE id=${id}
+     LIMIT 1
+   `;
+   if(!apps.length)throw new HttpError(404,'Заявка не найдена');
+
+   const isOwner=apps[0].user_id===actor.id;
+   const curator=await db`
+     SELECT 1 FROM user_roles
+     WHERE user_id=${actor.id} AND role_id='curator'
+     LIMIT 1
+   `;
+   if(!isOwner&&!curator.length)
+     throw new HttpError(403,'Нет доступа к переписке этой заявки');
+
+   if(method==='POST'){
+     const rows=await db`
+       INSERT INTO trainee_application_messages(application_id,user_id,message)
+       SELECT a.id, ${actor.id}, ${message}
+       FROM trainee_applications a
+       WHERE a.id=${id} AND a.status='pending'
+       RETURNING id,application_id,user_id,message,created_at
+     `;
+     if(!rows.length)
+       throw new HttpError(409,'Чат закрыт: заявка уже рассмотрена');
+     return Response.json({message:rows[0]},{status:201});
+   }
+
+   const rows=await db`
+     SELECT m.id,m.application_id,m.user_id,m.message,m.created_at,
+            u.username,u.display_name,u.avatar_url
+     FROM trainee_application_messages m
+     JOIN users u ON u.id=m.user_id
+     WHERE m.application_id=${id}
+     ORDER BY m.created_at ASC,m.id ASC
+     LIMIT 500
+   `;
+   return Response.json({
+     messages:rows,
+     chatOpen:apps[0].status==='pending'
+   });
+ }
+
  if(key==='trainee-applications'&&method==='GET'){
    const rows=await db`
      SELECT
