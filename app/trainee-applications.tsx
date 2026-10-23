@@ -42,6 +42,8 @@ export default function TraineeApplications({ user, roles, onNotice }: Props) {
   const [motivation, setMotivation] = useState('');
   const [additional, setAdditional] = useState('');
   const [comments, setComments] = useState<Record<string, string>>({});
+  const [publicFilter, setPublicFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [selectedApplication, setSelectedApplication] = useState<any | null>(null);
 
   async function refresh() {
     setLoading(true);
@@ -128,22 +130,149 @@ export default function TraineeApplications({ user, roles, onNotice }: Props) {
         Подай заявку на вступление в команду проекта. Решение принимает куратор.
       </p>
 
-      <div className="panel">
-        <h3>Статус заявок</h3>
-        {loading ? <p>Загрузка…</p> : publicList.length === 0 ? (
-          <p className="muted">Заявок пока нет.</p>
-        ) : (
-          <div className="playerGrid">
-            {publicList.map(a => (
-              <article className="player" key={a.id}>
-                <strong>{a.minecraft_username}</strong>
-                <span>{statusText[a.status] || a.status}</span>
-                <small>{new Date(a.created_at).toLocaleDateString('ru-RU')}</small>
-              </article>
-            ))}
+      <div className="panel traineePublicPanel">
+        <div className="traineePublicHeader">
+          <div>
+            <h3>Заявки на стажировку</h3>
+            <p className="muted">Здесь можно посмотреть заявки других игроков и взять их за пример.</p>
           </div>
-        )}
+        </div>
+
+        <div className="traineeApplicationFilters">
+          {([
+            ['all', 'Все'],
+            ['pending', 'На рассмотрении'],
+            ['approved', 'Принятые'],
+            ['rejected', 'Отклонённые'],
+          ] as const).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={publicFilter === value ? 'active' : ''}
+              onClick={() => setPublicFilter(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {loading ? <p>Загрузка…</p> : (() => {
+          const filtered = publicList.filter(a =>
+            publicFilter === 'all' ? true : a.status === publicFilter
+          );
+
+          if (filtered.length === 0) {
+            return <p className="muted">В этом разделе заявок пока нет.</p>;
+          }
+
+          return (
+            <div className="traineeApplicationList">
+              {filtered.map(a => (
+                <button
+                  type="button"
+                  className="traineeApplicationRow"
+                  key={a.id}
+                  onClick={() => setSelectedApplication(a)}
+                >
+                  <div className="traineeApplicationAvatar">
+                    {a.avatar_url ? (
+                      <img src={a.avatar_url} alt="" />
+                    ) : (
+                      <span>{(a.display_name || a.account_username || a.minecraft_username || '?').charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
+
+                  <div className="traineeApplicationIdentity">
+                    <strong style={{ color: a.nickname_color || undefined }}>
+                      {a.display_name || a.account_username || a.minecraft_username}
+                    </strong>
+                    <span>@{a.account_username || a.minecraft_username}</span>
+                    <small>Заявка на стажировку</small>
+                  </div>
+
+                  <div className={'traineeApplicationStatus status-' + a.status}>
+                    {statusText[a.status] || a.status}
+                  </div>
+
+                  <div className="traineeApplicationArrow">›</div>
+                </button>
+              ))}
+            </div>
+          );
+        })()}
       </div>
+
+      {selectedApplication && (
+        <div
+          className="traineeApplicationOverlay"
+          role="presentation"
+          onClick={() => setSelectedApplication(null)}
+        >
+          <div
+            className="panel traineeApplicationModal"
+            role="dialog"
+            aria-modal="true"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="traineeApplicationModalHeader">
+              <div className="traineeApplicationProfile">
+                <div className="traineeApplicationAvatar large">
+                  {selectedApplication.avatar_url ? (
+                    <img src={selectedApplication.avatar_url} alt="" />
+                  ) : (
+                    <span>{(selectedApplication.display_name || selectedApplication.account_username || selectedApplication.minecraft_username || '?').charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                <div>
+                  <h3 style={{ color: selectedApplication.nickname_color || undefined }}>
+                    {selectedApplication.display_name || selectedApplication.account_username || selectedApplication.minecraft_username}
+                  </h3>
+                  <span>@{selectedApplication.account_username || selectedApplication.minecraft_username}</span>
+                  <small>Заявка на стажировку</small>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="outline traineeApplicationClose"
+                onClick={() => setSelectedApplication(null)}
+              >
+                Закрыть
+              </button>
+            </div>
+
+            <div className="traineeApplicationModalStatus">
+              <span className={'traineeApplicationStatus status-' + selectedApplication.status}>
+                {statusText[selectedApplication.status] || selectedApplication.status}
+              </span>
+              <span className="muted">
+                Подана {new Date(selectedApplication.created_at).toLocaleDateString('ru-RU')}
+              </span>
+            </div>
+
+            <div className="traineeApplicationDetails">
+              <div>
+                <span>Ник Minecraft</span>
+                <strong>{selectedApplication.minecraft_username}</strong>
+              </div>
+              <div>
+                <span>Опыт</span>
+                <p>{selectedApplication.experience}</p>
+              </div>
+              <div>
+                <span>Почему хочет попасть в команду</span>
+                <p>{selectedApplication.motivation}</p>
+              </div>
+              {selectedApplication.additional_info && (
+                <div>
+                  <span>Дополнительная информация</span>
+                  <p>{selectedApplication.additional_info}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {!user && <p className="notice">Войди в аккаунт, чтобы подать заявку.</p>}
 

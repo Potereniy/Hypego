@@ -1177,7 +1177,25 @@ if(key==='admin/privileges'&&method==='GET'){
 }
 
  if(key==='trainee-applications'&&method==='GET'){
-   const rows=await db`SELECT id,minecraft_username,status,created_at,reviewed_at FROM trainee_applications ORDER BY created_at DESC LIMIT 200`;
+   const rows=await db`
+     SELECT
+       a.id,
+       a.minecraft_username,
+       a.status,
+       a.experience,
+       a.motivation,
+       a.additional_info,
+       a.created_at,
+       a.reviewed_at,
+       u.username AS account_username,
+       u.display_name,
+       u.avatar_url,
+       u.nickname_color
+     FROM trainee_applications a
+     JOIN users u ON u.id=a.user_id
+     ORDER BY a.created_at DESC
+     LIMIT 200
+   `;
    return Response.json({applications:rows});
  }
  if(key==='trainee-applications/mine'&&method==='GET'){
