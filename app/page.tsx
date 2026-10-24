@@ -1244,8 +1244,149 @@ function ProfileWall({userId}:{userId:string}) {
   </article>;
 }
 
-function Players(){const [q,setQ]=useState(''),[players,setPlayers]=useState<any[]>([]);async function search(){try{setPlayers((await api('players?q='+encodeURIComponent(q))).players||[])}catch{setPlayers([])}}useEffect(()=>{search()},[]);return <section className="section"><div className="eyebrow">COMMUNITY</div><h2>Игроки <em>Hypego</em></h2><div className="searchLine"><input placeholder="Найти игрока по нику" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==='Enter'&&search()}/><button className="primary" onClick={search}>Поиск</button></div><div className="playerGrid">{players.map(p=><article className={"player "+(p.is_chsp?"chspPlayer":"")} key={p.id} role="link" tabIndex={0} style={{cursor:"pointer"}} onClick={()=>window.location.href="/player/"+encodeURIComponent(p.username)} onKeyDown={e=>{if(e.key==="Enter")window.location.href="/player/"+encodeURIComponent(p.username)}}><div className={`avatar smallAvatar avatar-frame-${p.avatar_frame||"none"}`}>{p.avatar_url?<img src={p.avatar_url} alt=""/>:p.username.slice(0,1).toUpperCase()}</div><strong className={`nickname-effect-${p.nickname_effect||"none"}`} style={{color:p.nickname_color,textDecoration:p.is_chsp?"line-through":undefined}}>{p.display_name||p.username}</strong><span>@{p.username}</span>{p.is_chsp&&<small className="chspBadge">ЧСП</small>}</article>)}</div></section>}
+function Players(){
+  const [q,setQ]=useState('');
+  const [players,setPlayers]=useState<any[]>([]);
+  const [role,setRole]=useState('');
+  const [filterOpen,setFilterOpen]=useState(false);
+  const [loading,setLoading]=useState(false);
 
+  const roleOptions=[
+    {id:'',title:'Все игроки'},
+    {id:'player',title:'Игроки'},
+    {id:'trainee',title:'Стажёры'},
+    {id:'moderator',title:'Модераторы'},
+    {id:'support',title:'Тех. поддержка'},
+    {id:'tech_admin',title:'Тех. админы'},
+    {id:'curator',title:'Кураторы'},
+    {id:'management',title:'Руководство'},
+    {id:'deputy',title:'Заместители (ОПКА)'},
+    {id:'owner',title:'Владельцы проекта'}
+  ];
+
+  async function search(){
+    setLoading(true);
+    try{
+      const params=new URLSearchParams();
+      if(q.trim())params.set('q',q.trim());
+      if(role)params.set('role',role);
+
+      const j=await api('players'+(params.toString()?'?'+params.toString():''));
+      setPlayers(Array.isArray(j.players)?j.players:[]);
+    }catch{
+      setPlayers([]);
+    }finally{
+      setLoading(false);
+    }
+  }
+
+  useEffect(()=>{search()},[role]);
+
+  return <section className="section">
+    <div className="eyebrow">COMMUNITY</div>
+    <h2>Игроки <em>Hypego</em></h2>
+
+    <div className="playersToolbar">
+      <div className="searchLine playersSearch">
+        <input
+          placeholder="Найти игрока по нику"
+          value={q}
+          onChange={e=>setQ(e.target.value)}
+          onKeyDown={e=>e.key==='Enter'&&search()}
+        />
+        <button className="primary" onClick={search}>Поиск</button>
+      </div>
+
+      <div className="playerFilterWrap">
+        <button
+          type="button"
+          className={"outline playerFilterButton"+(role?" active":"")}
+          onClick={()=>setFilterOpen(v=>!v)}
+        >
+          ⚙ Фильтр{role?" · 1":""}
+        </button>
+
+        {filterOpen&&
+          <div className="playerFilterMenu">
+            {roleOptions.map(item=>
+              <button
+                type="button"
+                key={item.id||'all'}
+                className={role===item.id?"selected":""}
+                onClick={()=>{
+                  setRole(item.id);
+                  setFilterOpen(false);
+                }}
+              >
+                <span>{item.title}</span>
+                {role===item.id&&<b>✓</b>}
+              </button>
+            )}
+          </div>
+        }
+      </div>
+    </div>
+
+    <div className="playerList">
+      {loading&&<div className="panel playerListState">Загружаем игроков…</div>}
+
+      {!loading&&!players.length&&
+        <div className="panel playerListState">
+          Игроки по этому запросу не найдены.
+        </div>
+      }
+
+      {!loading&&players.map(p=>{
+        const primaryRole=Array.isArray(p.roles)&&p.roles.length
+          ? p.roles[0]
+          : null;
+
+        const roleTitle=primaryRole?.title||'Игрок';
+
+        return <article
+          className={"playerListRow "+(p.is_chsp?"chspPlayer":"")}
+          key={p.id}
+          role="link"
+          tabIndex={0}
+          onClick={()=>window.location.href="/player/"+encodeURIComponent(p.username)}
+          onKeyDown={e=>{
+            if(e.key==="Enter"||e.key===" "){
+              e.preventDefault();
+              window.location.href="/player/"+encodeURIComponent(p.username);
+            }
+          }}
+        >
+          <div className={`avatar smallAvatar avatar-frame-${p.avatar_frame||"none"}`}>
+            {p.avatar_url
+              ? <img src={p.avatar_url} alt=""/>
+              : String(p.display_name||p.username||"?").slice(0,1).toUpperCase()}
+          </div>
+
+          <div className="playerListIdentity">
+            <strong
+              className={`nickname-effect-${p.nickname_effect||"none"}`}
+              style={{
+                color:p.nickname_color||undefined,
+                textDecoration:p.is_chsp?"line-through":undefined
+              }}
+            >
+              {p.display_name||p.username}
+            </strong>
+
+            <span>@{p.username}</span>
+          </div>
+
+          <div className="playerListRole">
+            <span>{roleTitle}</span>
+            {p.is_chsp&&<small className="chspBadge">ЧСП</small>}
+          </div>
+
+          <div className="playerListArrow">›</div>
+        </article>
+      })}
+    </div>
+  </section>
+}
 function RulesEditor({onNotice}:{onNotice:(s:string)=>void}) {
   const [rules,setRules]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);

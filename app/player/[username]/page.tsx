@@ -28,6 +28,60 @@ export default function PlayerProfilePage() {
   const [error, setError] = useState("");
   const [wallError, setWallError] = useState("");
   const [notice, setNotice] = useState("");
+  const [friendStatus, setFriendStatus] = useState<"none"|"outgoing"|"incoming"|"accepted">("none");
+  const [friendBusy, setFriendBusy] = useState(false);
+
+  useEffect(() => {
+    if (!viewer?.id || !player?.id || viewer.id === player.id) return;
+
+    fetch("/api/friends/search?q=" + encodeURIComponent(player.username))
+      .then(async (r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const found = data?.players?.find((p: any) => p.id === player.id);
+        setFriendStatus(found?.friendship_status || "none");
+      })
+      .catch(() => setFriendStatus("none"));
+  }, [viewer?.id, player?.id, player?.username]);
+
+  async function handleFriendAction() {
+    if (!viewer) {
+      setNotice("Войди в аккаунт, чтобы добавлять игроков в друзья.");
+      return;
+    }
+
+    if (!player?.id || viewer.id === player.id) return;
+    setFriendBusy(true);
+    setNotice("");
+
+    try {
+      if (friendStatus === "incoming") {
+        const r = await fetch("/api/friends/respond", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({user_id: player.id, action:"accept"}),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || "Не удалось принять заявку");
+        setFriendStatus("accepted");
+        setNotice("Заявка в друзья принята.");
+      } else if (friendStatus === "none") {
+        const r = await fetch("/api/friends/request", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({user_id: player.id}),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || "Не удалось отправить заявку");
+        setFriendStatus("outgoing");
+        setNotice(data.message || "Заявка в друзья отправлена.");
+      }
+    } catch (e: any) {
+      setNotice(e.message || "Не удалось изменить статус дружбы.");
+    } finally {
+      setFriendBusy(false);
+    }
+  }
+
 
   useEffect(() => {
     let active = true;
@@ -185,6 +239,24 @@ export default function PlayerProfilePage() {
               {displayName}
             </h1>
             <p>@{player.username}</p>
+
+            {viewer && viewer.id !== player.id && (
+              <button
+                type="button"
+                className="outline publicProfileFriendButton"
+                onClick={handleFriendAction}
+                disabled={friendBusy || friendStatus === "accepted" || friendStatus === "outgoing"}
+              >
+                {friendStatus === "accepted"
+                  ? "✓ В друзьях"
+                  : friendStatus === "outgoing"
+                    ? "⌛ Заявка отправлена"
+                    : friendStatus === "incoming"
+                      ? "✓ Принять заявку"
+                      : "＋ Добавить в друзья"}
+              </button>
+            )}
+
             <div className="publicProfileBadges">
               <span>✦ Игрок Hypego</span>
               <span>◷ С нами с {player.created_at
