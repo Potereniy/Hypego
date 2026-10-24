@@ -2354,3 +2354,59 @@ outline-offset: 3px;
     width: 100%;
   }
 }
+
+
+/* HYPEGO: Emoji and GIF tools */
+.emojiGifTools {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+.emojiGifButtons,
+.emojiGifUrlRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.emojiGifUrlRow input {
+  flex: 1 1 180px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--line, #34302b);
+  border-radius: 9px;
+  background: #0b0c10;
+  color: inherit;
+}
+.emojiGifTools button { cursor: pointer; }
+.emojiGifGrid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(30px, 1fr));
+  gap: 5px;
+  padding: 9px;
+  border: 1px solid #ff7a0038;
+  border-radius: 10px;
+  background: #101116;
+}
+.emojiGifGrid button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 7px;
+  background: #ffffff0b;
+  font-size: 20px;
+}
+.emojiGifGrid button:hover { background: #ff7a0025; }
+.emojiGifError { margin: 0; color: #fca5a5; font-size: 12px; }
+.chatGif {
+  display: block;
+  max-width: min(100%, 360px);
+  max-height: 320px;
+  margin: 8px 0;
+  border-radius: 10px;
+  object-fit: contain;
+}
+@media (max-width: 420px) {
+  .emojiGifGrid { grid-template-columns: repeat(6, minmax(30px, 1fr)); }
+}

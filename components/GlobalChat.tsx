@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { EmojiGifTools } from './EmojiGifTools';
+import MessageBody from './MessageBody';
 
 type Message = {
   id: string;
@@ -409,7 +411,7 @@ export default function GlobalChat() {
                     </time>
                   </div>
 
-                  <p>{message.body}</p>
+                  <p><MessageBody body={message.body} /></p>
 
                   {canModerate && (
                     <div className="globalChatMessageModeration">
@@ -464,6 +466,7 @@ export default function GlobalChat() {
               rows={2}
               required
             />
+            <EmojiGifTools value={draft} onChange={setDraft} maxLength={500} />
 
             <div className="globalChatFormBottom">
               <span>

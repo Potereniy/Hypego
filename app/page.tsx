@@ -8,6 +8,8 @@ import ProfileMusicSettings from "./player/[username]/ProfileMusicSettings";
 import MusicPlayer from "./player/[username]/MusicPlayer";
 import TraineeApplications from './trainee-applications';
 import GlobalChat from '../components/GlobalChat';
+import { EmojiGifTools } from '../components/EmojiGifTools';
+import MessageBody from '../components/MessageBody';
 type User={
   is_project_owner?:boolean;
   id:string;
@@ -318,12 +320,13 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 <div className="drawerChatHistory" aria-live="polite">
 {chatLoading?<p>Загружаем сообщения…</p>:chatMessages.length===0?<p>Начни переписку первым!</p>:chatMessages.map((m:any)=><article key={m.id} className="feature" style={{marginBottom:8,overflowWrap:'anywhere'}}>
 <strong>{m.sender_id===user.id?'Ты':m.sender_display_name||m.sender_username||selectedChat.username}</strong>
-<p style={{whiteSpace:'pre-wrap'}}>{m.body}</p>
+<p style={{whiteSpace:'pre-wrap'}}><MessageBody body={m.body} /></p>
 <small>{m.created_at?new Date(m.created_at).toLocaleString('ru-RU'):''}</small>
 </article>)}
 </div>
 <form className="form" onSubmit={sendDirectMessage}>
 <textarea value={chatDraft} onChange={e=>setChatDraft(e.target.value)} maxLength={2000} placeholder="Напиши сообщение…" required/>
+  <EmojiGifTools value={chatDraft} onChange={setChatDraft} maxLength={2000} />
 <button className="primary" disabled={chatSending||!chatDraft.trim()||chatLoading}>{chatSending?'Отправляем…':'Отправить'}</button>
 </form>
 </>}
@@ -1215,6 +1218,7 @@ function ProfileWall({userId}:{userId:string}) {
     <form onSubmit={sendMessage} className="profileWallForm">
       <textarea value={message} onChange={e=>setMessage(e.target.value)}
         maxLength={500} rows={3} placeholder="Оставить сообщение на своей стене..." />
+      <EmojiGifTools value={message} onChange={setMessage} maxLength={500} />
       <div className="profileWallFormBottom">
         <small>{message.length}/500</small>
         <button type="submit" className="primary" disabled={!message.trim()||sending}>
@@ -1235,7 +1239,7 @@ function ProfileWall({userId}:{userId:string}) {
               style={{color:post.nickname_color||undefined}}>
               {post.display_name||post.username}
             </strong>
-            <p>{post.body}</p>
+            <p><MessageBody body={post.body} /></p>
             <small>{post.created_at ? new Date(post.created_at).toLocaleString() : ''}</small>
           </div>
         </div>
