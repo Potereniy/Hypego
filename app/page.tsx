@@ -41,7 +41,36 @@ function productPriceLabel(p:Product){
   return p.store==='staff'?n+' HP':(n/100).toFixed(2)+' ₽';
 }
 async function api(url:string,init?:RequestInit){const r=await fetch('/api/'+url,{...init,headers:{'Content-Type':'application/json',...(init?.headers||{})}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Ошибка запроса');return j;}
+function AvatarVisual({className='', frame='none', src, fallback='H'}:{className?:string;frame?:string;src?:string|null;fallback?:string}) {
+  const hasMask = [
+    'anime_shadow_hood',
+    'anime_demon_king',
+    'anime_cyber_ronin',
+    'mlbb_abyss',
+    'mlbb_shadow_assassin',
+    'crysis_nanosuit',
+    'metro_ranger',
+    'stalker_monolith',
+    'minecraft_warden',
+    'cs2_tactical',
+    'cs2_ace'
+  ].includes(frame);
+
+  return (
+    <div className={`${className} avatar-frame-${frame}`}>
+      {src ? <img src={src} alt="Аватар"/> : fallback}
+      {frame === 'anime_shadow_hood' && hasMask && (
+        <span className="shadow-mask" aria-hidden="true"/>
+      )}
+      {hasMask && frame !== 'anime_shadow_hood' && (
+        <span className={`themed-mask themed-mask-${frame}`} aria-hidden="true"/>
+      )}
+    </div>
+  );
+}
+
 export default function Home(){const [user,setUser]=useState<User|null>(null),[roles,setRoles]=useState<any[]>([]),[privileges,setPrivileges]=useState<any[]>([]),[products,setProducts]=useState<Product[]>([]),[tab,setTab]=useState('home'),[profileSection,setProfileSection]=useState('overview'),[openNav,setOpenNav]=useState(''),[store,setStore]=useState('main'),[routeReady,setRouteReady]=useState(false),[login,setLogin]=useState(''),[password,setPassword]=useState(''),[email,setEmail]=useState(''),[mode,setMode]=useState('login'),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[purchaseProduct,setPurchaseProduct]=useState<Product|null>(null),[purchaseNickname,setPurchaseNickname]=useState(''),[purchaseQuantity,setPurchaseQuantity]=useState('1'),[display,setDisplay]=useState(''),[bio,setBio]=useState(''),[color,setColor]=useState('#a78bfa'),[nicknameEffect,setNicknameEffect]=useState('none'),[avatarFrame,setAvatarFrame]=useState('none'),[vkUrl,setVkUrl]=useState(''),[telegramUsername,setTelegramUsername]=useState(''),[target,setTarget]=useState(''),[currency,setCurrency]=useState('KZT'),[amount,setAmount]=useState('1000'),[challengeId,setChallengeId]=useState(''),[loginCode,setLoginCode]=useState(''),[forgotMode,setForgotMode]=useState(false),[forgotEmail,setForgotEmail]=useState('');
+
 async function load(){try{const j=await api('me');setUser(j.user);setRoles(j.roles||[]);setPrivileges(j.privileges||[]);setDisplay(j.user.display_name||j.user.username);setBio(j.user.bio||'');setColor(j.user.nickname_color||'#a78bfa');setNicknameEffect(j.user.nickname_effect||'none');setAvatarFrame(j.user.avatar_frame||'none');setVkUrl(j.user.vk_url||'');setTelegramUsername(j.user.telegram_username||'');return j.user as User;}catch{setUser(null);setRoles([]);setPrivileges([]);return null;}}
 async function loadProducts(s=store){try{const j=await api('products?store='+s);setProducts(j.products||[])}catch(e:any){setNotice(e.message)}}
 const routeKeyRef=useRef('home|overview|main'),skipRoutePushRef=useRef(false);
@@ -301,8 +330,8 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
   <span className="brandWord">
     <span className="brandHype">HYPE</span><span className="brandGo">GO</span>
   </span>
-</a><nav className="siteNav"><RconNavLink /><button type="button" onClick={()=>{setTab('home');setOpenNav('')}}>Главная</button><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='help'} onClick={()=>setOpenNav(openNav==='help'?'':'help')}>Справка⌄</button>{openNav==='help'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('news');setOpenNav('')}}>Новости</button><button type="button" onClick={()=>{setTab('rules');setOpenNav('')}}>Правила</button><button type="button" onClick={()=>{setTab('trainee');setOpenNav('')}}>Стажировка</button>{user&&<button type="button" onClick={()=>{setTab('support');setOpenNav('')}}>Техподдержка</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='shop'} onClick={()=>setOpenNav(openNav==='shop'?'':'shop')}>Магазин⌄</button>{openNav==='shop'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('shop');setStore('main');setOpenNav('')}}>Основной магазин</button>{canAccessStaffShop&&<button type="button" onClick={()=>{setTab('shop');setStore('staff');setOpenNav('')}}>Магазин персонала</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='community'} onClick={()=>setOpenNav(openNav==='community'?'':'community')}>Сообщество⌄</button>{openNav==='community'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('players');setOpenNav('')}}>Игроки</button><button type="button" onClick={()=>{setTab('groups');setOpenNav('')}}>Наказания</button>{user&&<button type="button" onClick={()=>{setTab('friends');setOpenNav('')}}>Друзья</button>}</div>}</div>{canAccessAdmin&&<button type="button" onClick={()=>{setTab('admin');setOpenNav('')}}>Управление</button>}{canAccessAudit&&<button type="button" onClick={()=>{setTab('audit');setOpenNav('')}}>Журнал аудита</button>}</nav><div className="right">{user?<><div className="headerBalance"><small>БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} ₽</strong></div><div className="headerBalance headerHpBalance"><small>HYPE POINTS</small><strong>{Number(user.hp_balance||0).toLocaleString("ru-RU")} HP</strong></div><button type="button" className="accountTrigger" onClick={()=>setDrawerOpen(true)} aria-label="Открыть меню профиля"><span className="accountAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><span className="accountIdentity"><strong style={{color:user.nickname_color}}>{user.username}</strong><small>Мой аккаунт</small></span><span className="accountChevron">☰</span></button></>:<button className="primary" onClick={()=>setTab('auth')}>Войти</button>}</div></header>
-{drawerOpen&&user&&<div className="drawerLayer"><button type="button" className="drawerScrim" aria-label="Закрыть меню" onClick={()=>setDrawerOpen(false)}></button><aside className="profileDrawer" aria-label="Меню аккаунта"><div className="drawerTop"><span className="eyebrow">HYPEGO / ACCOUNT</span><button type="button" className="drawerClose" onClick={()=>setDrawerOpen(false)}>×</button></div><div className="drawerUser"><div className="drawerAvatar">{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</div><div><strong style={{color:user.nickname_color}}>{user.display_name||user.username}</strong><small>@{user.username}</small></div></div><div className="drawerBalance"><small>ТВОЙ БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} <span>₽</span></strong><button type="button" className="outline" onClick={()=>{setTab('billing');setDrawerOpen(false)}}>＋ Пополнить баланс</button></div><div className="drawerLinks"><span className="drawerLabel">АККАУНТ</span><button type="button" onClick={()=>{setTab('profile');setDrawerOpen(false)}}>◈ <span>Профиль и настройки</span><b>›</b></button><button type="button" onClick={()=>{setTab('players');setDrawerOpen(false)}}>♙ <span>Игроки</span><b>›</b></button>
+</a><nav className="siteNav"><RconNavLink /><button type="button" onClick={()=>{setTab('home');setOpenNav('')}}>Главная</button><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='help'} onClick={()=>setOpenNav(openNav==='help'?'':'help')}>Справка⌄</button>{openNav==='help'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('news');setOpenNav('')}}>Новости</button><button type="button" onClick={()=>{setTab('rules');setOpenNav('')}}>Правила</button><button type="button" onClick={()=>{setTab('trainee');setOpenNav('')}}>Стажировка</button>{user&&<button type="button" onClick={()=>{setTab('support');setOpenNav('')}}>Техподдержка</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='shop'} onClick={()=>setOpenNav(openNav==='shop'?'':'shop')}>Магазин⌄</button>{openNav==='shop'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('shop');setStore('main');setOpenNav('')}}>Основной магазин</button>{canAccessStaffShop&&<button type="button" onClick={()=>{setTab('shop');setStore('staff');setOpenNav('')}}>Магазин персонала</button>}</div>}</div><div className="navGroup"><button type="button" className="navGroupTrigger" aria-expanded={openNav==='community'} onClick={()=>setOpenNav(openNav==='community'?'':'community')}>Сообщество⌄</button>{openNav==='community'&&<div className="navDropdown"><button type="button" onClick={()=>{setTab('players');setOpenNav('')}}>Игроки</button><button type="button" onClick={()=>{setTab('groups');setOpenNav('')}}>Наказания</button>{user&&<button type="button" onClick={()=>{setTab('friends');setOpenNav('')}}>Друзья</button>}</div>}</div>{canAccessAdmin&&<button type="button" onClick={()=>{setTab('admin');setOpenNav('')}}>Управление</button>}{canAccessAudit&&<button type="button" onClick={()=>{setTab('audit');setOpenNav('')}}>Журнал аудита</button>}</nav><div className="right">{user?<><div className="headerBalance"><small>БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} ₽</strong></div><div className="headerBalance headerHpBalance"><small>HYPE POINTS</small><strong>{Number(user.hp_balance||0).toLocaleString("ru-RU")} HP</strong></div><button type="button" className="accountTrigger" onClick={()=>setDrawerOpen(true)} aria-label="Открыть меню профиля"><AvatarVisual className="accountAvatar" frame={user.avatar_frame||"none"} src={user.avatar_url} fallback={(user.username||"H").slice(0,1).toUpperCase()} /><span className="accountIdentity"><strong style={{color:user.nickname_color}}>{user.username}</strong><small>Мой аккаунт</small></span><span className="accountChevron">☰</span></button></>:<button className="primary" onClick={()=>setTab('auth')}>Войти</button>}</div></header>
+{drawerOpen&&user&&<div className="drawerLayer"><button type="button" className="drawerScrim" aria-label="Закрыть меню" onClick={()=>setDrawerOpen(false)}></button><aside className="profileDrawer" aria-label="Меню аккаунта"><div className="drawerTop"><span className="eyebrow">HYPEGO / ACCOUNT</span><button type="button" className="drawerClose" onClick={()=>setDrawerOpen(false)}>×</button></div><div className="drawerUser"><AvatarVisual className="drawerAvatar" frame={user.avatar_frame||"none"} src={user.avatar_url} fallback={(user.username||"H").slice(0,1).toUpperCase()} /><div><strong style={{color:user.nickname_color}}>{user.display_name||user.username}</strong><small>@{user.username}</small></div></div><div className="drawerBalance"><small>ТВОЙ БАЛАНС</small><strong>{(Number(user.donation_balance_rub_kopecks||0)/100).toFixed(2)} <span>₽</span></strong><button type="button" className="outline" onClick={()=>{setTab('billing');setDrawerOpen(false)}}>＋ Пополнить баланс</button></div><div className="drawerLinks"><span className="drawerLabel">АККАУНТ</span><button type="button" onClick={()=>{setTab('profile');setDrawerOpen(false)}}>◈ <span>Профиль и настройки</span><b>›</b></button><button type="button" onClick={()=>{setTab('players');setDrawerOpen(false)}}>♙ <span>Игроки</span><b>›</b></button>
 <button type="button" onClick={()=>{setTab('friends');setDrawerOpen(false)}}>♧ <span>Друзья</span><b>›</b></button>
 <button type="button" onClick={()=>{setChatMode(true);setSelectedChat(null);setDrawerOpen(true);loadFriends()}}>✉ <span>Сообщения</span><b>›</b></button><RconDrawerEntry />
 <button type="button" onClick={()=>{setTab('trainee');setDrawerOpen(false)}}>✧ <span>Стажировка</span><b>›</b></button><button type="button" onClick={()=>{setTab('shop');setStore('main');setDrawerOpen(false)}}>◇ <span>Магазин</span><b>›</b></button><button type="button" onClick={()=>{setTab('rules');setDrawerOpen(false)}}>≡ <span>Правила и справка</span><b>›</b></button>{canAccessAdmin&&<><span className="drawerLabel">ПЕРСОНАЛ</span><button type="button" onClick={()=>{setTab('admin');setDrawerOpen(false)}}>⌘ <span>Панель управления</span><b>›</b></button></>}<span className="drawerLabel">СЕАНС</span><button type="button" className="drawerLogout" onClick={()=>{setDrawerOpen(false);logout()}}>↪ <span>Выйти из аккаунта</span></button></div>{chatMode&&<section className="drawerChat">
@@ -348,9 +377,12 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 {tab==='profile'&&user&&<section className="section profilePage">
 
 <div className="profileBanner profileBannerModern" style={{backgroundImage:user.banner_url?`linear-gradient(90deg,#090b12ee,#11152166),url(${user.banner_url})`:undefined}}>
-  <div className={`avatar avatar-frame-${user.avatar_frame||"none"}`}>
-    {user.avatar_url?<img src={user.avatar_url} alt="Аватар"/>:user.username.slice(0,1).toUpperCase()}
-  </div>
+  <AvatarVisual
+    className="avatar"
+    frame={user.avatar_frame||"none"}
+    src={user.avatar_url}
+    fallback={user.username.slice(0,1).toUpperCase()}
+  />
 
   <div className="profileBannerIdentity">
     <div className="eyebrow"><span className="pulse"/> HYPEGO / PROFILE</div>
@@ -538,8 +570,47 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
 <option value="rgb">RGB — переливы</option>
 <option value="pulse">Пульсирующий неон</option>
 <option value="cosmic">Космическая энергия</option>
-</select></label>
-<div className="profilePreview"><span className={`accountAvatar avatar-frame-${avatarFrame}`}>{user.avatar_url?<img src={user.avatar_url} alt=""/>:(user.username||'H').slice(0,1).toUpperCase()}</span><div><small>ПРЕДПРОСМОТР НИКА</small><strong className={`nickname-effect-${nicknameEffect}`} style={{color}}>{display||user.username}</strong><span>@{user.username}</span></div></div>
+<optgroup label="Anime">
+<option value="anime_shadow_hood">Anime — Shadow Hood</option>
+<option value="anime_demon_king">Anime — Demon King</option>
+<option value="anime_kitsune">Anime — Kitsune Spirit</option>
+<option value="anime_cyber_ronin">Anime — Cyber Ronin</option>
+</optgroup>
+<optgroup label="Mobile Legends: Bang Bang">
+<option value="mlbb_abyss">MLBB — Abyss Predator</option>
+<option value="mlbb_dragon">MLBB — Eternal Dragon</option>
+<option value="mlbb_celestial">MLBB — Celestial Legend</option>
+<option value="mlbb_shadow_assassin">MLBB — Shadow Assassin</option>
+</optgroup>
+<optgroup label="Crysis">
+<option value="crysis_nanosuit">Crysis — Nano Suit</option>
+<option value="crysis_armor">Crysis — Maximum Armor</option>
+<option value="crysis_cloak">Crysis — Predator Cloak</option>
+</optgroup>
+<optgroup label="Metro">
+<option value="metro_ranger">Metro — Ranger</option>
+<option value="metro_tunnel">Metro — Dark Tunnel</option>
+<option value="metro_nosalis">Metro — Nosalis Hunter</option>
+</optgroup>
+<optgroup label="S.T.A.L.K.E.R.">
+<option value="stalker_exoskeleton">S.T.A.L.K.E.R. — Exoskeleton</option>
+<option value="stalker_zone">S.T.A.L.K.E.R. — Zone</option>
+<option value="stalker_monolith">S.T.A.L.K.E.R. — Monolith</option>
+<option value="stalker_emission">S.T.A.L.K.E.R. — Emission</option>
+</optgroup>
+<optgroup label="Minecraft">
+<option value="minecraft_netherite">Minecraft — Netherite</option>
+<option value="minecraft_warden">Minecraft — Warden</option>
+<option value="minecraft_ender">Minecraft — Ender Dragon</option>
+<option value="minecraft_wither">Minecraft — Wither King</option>
+</optgroup>
+<optgroup label="Counter-Strike 2">
+<option value="cs2_tactical">CS2 — Tactical Elite</option>
+<option value="cs2_redline">CS2 — Redline</option>
+<option value="cs2_smoke">CS2 — Smoke Breach</option>
+<option value="cs2_ace">CS2 — Ace Operator</option>
+</optgroup></select></label>
+<div className="profilePreview"><AvatarVisual className="accountAvatar" frame={avatarFrame} src={user.avatar_url} fallback={(user.username||"H").slice(0,1).toUpperCase()} /><div><small>ПРЕДПРОСМОТР НИКА</small><strong className={`nickname-effect-${nicknameEffect}`} style={{color}}>{display||user.username}</strong><span>@{user.username}</span></div></div>
 <button className="primary big" disabled={busy}>{busy?'Сохраняем…':'Сохранить изменения'}</button>
 </form>
 <div className="profileSettingsSide">
@@ -574,7 +645,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
     </form>
     {friendResults.length>0&&<div className="featureGrid">
       {friendResults.map((p:any)=><article className="feature" key={p.id}>
-        <div className="accountAvatar">{p.avatar_url?<img src={p.avatar_url} alt=""/>:(p.username||'?').slice(0,1).toUpperCase()}</div>
+        <AvatarVisual className="accountAvatar" frame={p.avatar_frame||"none"} src={p.avatar_url} fallback={(p.username||"?").slice(0,1).toUpperCase()} />
         <h3 style={{color:p.nickname_color||'inherit'}}>{p.display_name||p.username}</h3>
         <p>@{p.username}</p>
         {p.friendship_status==='accepted'?<span>✓ Уже в друзьях</span>:
@@ -590,7 +661,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
     <article className="panel">
       <div className="eyebrow">INCOMING</div><h3>Входящие заявки ({friendData.incoming.length})</h3>
       {friendData.incoming.length===0?<p className="muted">Новых заявок нет.</p>:friendData.incoming.map((p:any)=><div className="profilePreview" key={p.id}>
-        <div className="accountAvatar">{p.avatar_url?<img src={p.avatar_url} alt=""/>:(p.username||'?').slice(0,1).toUpperCase()}</div>
+        <AvatarVisual className="accountAvatar" frame={p.avatar_frame||"none"} src={p.avatar_url} fallback={(p.username||"?").slice(0,1).toUpperCase()} />
         <div><strong>{p.display_name||p.username}</strong><span>@{p.username}</span></div>
         <button className="primary" onClick={()=>respondFriend(p.id,'accept')}>Принять</button>
         <button className="outline" onClick={()=>respondFriend(p.id,'reject')}>Отклонить</button>
@@ -599,7 +670,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
     <article className="panel">
       <div className="eyebrow">OUTGOING</div><h3>Исходящие заявки ({friendData.outgoing.length})</h3>
       {friendData.outgoing.length===0?<p className="muted">Отправленных заявок нет.</p>:friendData.outgoing.map((p:any)=><div className="profilePreview" key={p.id}>
-        <div className="accountAvatar">{p.avatar_url?<img src={p.avatar_url} alt=""/>:(p.username||'?').slice(0,1).toUpperCase()}</div>
+        <AvatarVisual className="accountAvatar" frame={p.avatar_frame||"none"} src={p.avatar_url} fallback={(p.username||"?").slice(0,1).toUpperCase()} />
         <div><strong>{p.display_name||p.username}</strong><span>@{p.username}</span></div>
         <span className="muted">Ожидает ответа</span>
       </div>)}
@@ -610,7 +681,7 @@ return <main><header className="top"><a className="brand" href="#" onClick={()=>
     <div className="eyebrow">FRIENDS LIST</div><h3>Мои друзья ({friendData.friends.length})</h3>
     {friendData.friends.length===0?<p className="muted">Пока нет друзей. Найди игроков и отправь им заявку.</p>:<div className="featureGrid">
       {friendData.friends.map((p:any)=><article className="feature" key={p.id}>
-        <div className="accountAvatar">{p.avatar_url?<img src={p.avatar_url} alt=""/>:(p.username||'?').slice(0,1).toUpperCase()}</div>
+        <AvatarVisual className="accountAvatar" frame={p.avatar_frame||"none"} src={p.avatar_url} fallback={(p.username||"?").slice(0,1).toUpperCase()} />
         <h3 style={{color:p.nickname_color||'inherit'}}>{p.display_name||p.username}</h3>
         <p>@{p.username}</p>
         <button className="outline" onClick={()=>removeFriend(p.id)}>Удалить из друзей</button>
@@ -1231,9 +1302,7 @@ function ProfileWall({userId}:{userId:string}) {
       posts.length===0 ? <p className="profileWallEmpty">Пока сообщений нет. Здесь появятся записи на стене.</p> :
       <div className="profileWallPosts">{posts.map((post:any)=>
         <div className="profileWallPost" key={post.id}>
-          <div className={'avatar smallAvatar avatar-frame-'+(post.avatar_frame||'none')}>
-            {post.avatar_url ? <img src={post.avatar_url} alt="" /> : (post.display_name||post.username||'?').slice(0,1).toUpperCase()}
-          </div>
+          <AvatarVisual className="avatar smallAvatar" frame={post.avatar_frame||"none"} src={post.avatar_url} fallback={(post.display_name||post.username||"?").slice(0,1).toUpperCase()} />
           <div className="profileWallPostContent">
             <strong className={'nickname-effect-'+(post.nickname_effect||'none')}
               style={{color:post.nickname_color||undefined}}>
@@ -1360,11 +1429,7 @@ function Players(){
             }
           }}
         >
-          <div className={`avatar smallAvatar avatar-frame-${p.avatar_frame||"none"}`}>
-            {p.avatar_url
-              ? <img src={p.avatar_url} alt=""/>
-              : String(p.display_name||p.username||"?").slice(0,1).toUpperCase()}
-          </div>
+          <AvatarVisual className="avatar smallAvatar" frame={p.avatar_frame||"none"} src={p.avatar_url} fallback={String(p.display_name||p.username||"?").slice(0,1).toUpperCase()} />
 
           <div className="playerListIdentity">
             <strong

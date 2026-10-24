@@ -2410,3 +2410,1570 @@ outline-offset: 3px;
 @media (max-width: 420px) {
   .emojiGifGrid { grid-template-columns: repeat(6, minmax(30px, 1fr)); }
 }
+
+
+/* HYPEGO THEMATIC FRAMES V3 */
+
+/* Anime — Shadow Hood */
+.accountAvatar.avatar-frame-anime_shadow_hood {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(275 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(275 95% 60% / .9),
+    0 0 18px hsl(275 95% 50% / .7),
+    inset 0 0 12px hsl(275 95% 55% / .4);
+  animation: hypego-anime_shadow_hood 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-anime_shadow_hood {
+  from {
+    filter: drop-shadow(0 0 2px hsl(275 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(275 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* Anime — Demon King */
+.accountAvatar.avatar-frame-anime_demon_king {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(0 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(0 95% 60% / .9),
+    0 0 18px hsl(0 95% 50% / .7),
+    inset 0 0 12px hsl(0 95% 55% / .4);
+  animation: hypego-anime_demon_king 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-anime_demon_king {
+  from {
+    filter: drop-shadow(0 0 2px hsl(0 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(0 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* Anime — Kitsune Spirit */
+.accountAvatar.avatar-frame-anime_kitsune {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(155 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(155 95% 60% / .9),
+    0 0 18px hsl(155 95% 50% / .7),
+    inset 0 0 12px hsl(155 95% 55% / .4);
+  animation: hypego-anime_kitsune 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-anime_kitsune {
+  from {
+    filter: drop-shadow(0 0 2px hsl(155 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(155 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* Anime — Cyber Ronin */
+.accountAvatar.avatar-frame-anime_cyber_ronin {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(190 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(190 95% 60% / .9),
+    0 0 18px hsl(190 95% 50% / .7),
+    inset 0 0 12px hsl(190 95% 55% / .4);
+  animation: hypego-anime_cyber_ronin 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-anime_cyber_ronin {
+  from {
+    filter: drop-shadow(0 0 2px hsl(190 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(190 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* MLBB — Abyss Predator */
+.accountAvatar.avatar-frame-mlbb_abyss {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(280 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(280 95% 60% / .9),
+    0 0 18px hsl(280 95% 50% / .7),
+    inset 0 0 12px hsl(280 95% 55% / .4);
+  animation: hypego-mlbb_abyss 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-mlbb_abyss {
+  from {
+    filter: drop-shadow(0 0 2px hsl(280 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(280 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* MLBB — Eternal Dragon */
+.accountAvatar.avatar-frame-mlbb_dragon {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(30 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(30 95% 60% / .9),
+    0 0 18px hsl(30 95% 50% / .7),
+    inset 0 0 12px hsl(30 95% 55% / .4);
+  animation: hypego-mlbb_dragon 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-mlbb_dragon {
+  from {
+    filter: drop-shadow(0 0 2px hsl(30 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(30 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* MLBB — Celestial Legend */
+.accountAvatar.avatar-frame-mlbb_celestial {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(195 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(195 95% 60% / .9),
+    0 0 18px hsl(195 95% 50% / .7),
+    inset 0 0 12px hsl(195 95% 55% / .4);
+  animation: hypego-mlbb_celestial 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-mlbb_celestial {
+  from {
+    filter: drop-shadow(0 0 2px hsl(195 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(195 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* MLBB — Shadow Assassin */
+.accountAvatar.avatar-frame-mlbb_shadow_assassin {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(260 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(260 95% 60% / .9),
+    0 0 18px hsl(260 95% 50% / .7),
+    inset 0 0 12px hsl(260 95% 55% / .4);
+  animation: hypego-mlbb_shadow_assassin 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-mlbb_shadow_assassin {
+  from {
+    filter: drop-shadow(0 0 2px hsl(260 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(260 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* Crysis — Nano Suit */
+.accountAvatar.avatar-frame-crysis_nanosuit {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(180 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(180 95% 60% / .9),
+    0 0 18px hsl(180 95% 50% / .7),
+    inset 0 0 12px hsl(180 95% 55% / .4);
+  animation: hypego-crysis_nanosuit 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-crysis_nanosuit {
+  from {
+    filter: drop-shadow(0 0 2px hsl(180 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(180 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* Crysis — Maximum Armor */
+.accountAvatar.avatar-frame-crysis_armor {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(210 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(210 95% 60% / .9),
+    0 0 18px hsl(210 95% 50% / .7),
+    inset 0 0 12px hsl(210 95% 55% / .4);
+  animation: hypego-crysis_armor 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-crysis_armor {
+  from {
+    filter: drop-shadow(0 0 2px hsl(210 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(210 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* Crysis — Predator Cloak */
+.accountAvatar.avatar-frame-crysis_cloak {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(270 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(270 95% 60% / .9),
+    0 0 18px hsl(270 95% 50% / .7),
+    inset 0 0 12px hsl(270 95% 55% / .4);
+  animation: hypego-crysis_cloak 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-crysis_cloak {
+  from {
+    filter: drop-shadow(0 0 2px hsl(270 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(270 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* Metro — Ranger */
+.accountAvatar.avatar-frame-metro_ranger {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(35 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(35 95% 60% / .9),
+    0 0 18px hsl(35 95% 50% / .7),
+    inset 0 0 12px hsl(35 95% 55% / .4);
+  animation: hypego-metro_ranger 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-metro_ranger {
+  from {
+    filter: drop-shadow(0 0 2px hsl(35 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(35 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* Metro — Dark Tunnel */
+.accountAvatar.avatar-frame-metro_tunnel {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(120 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(120 95% 60% / .9),
+    0 0 18px hsl(120 95% 50% / .7),
+    inset 0 0 12px hsl(120 95% 55% / .4);
+  animation: hypego-metro_tunnel 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-metro_tunnel {
+  from {
+    filter: drop-shadow(0 0 2px hsl(120 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(120 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* Metro — Nosalis Hunter */
+.accountAvatar.avatar-frame-metro_nosalis {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(10 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(10 95% 60% / .9),
+    0 0 18px hsl(10 95% 50% / .7),
+    inset 0 0 12px hsl(10 95% 55% / .4);
+  animation: hypego-metro_nosalis 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-metro_nosalis {
+  from {
+    filter: drop-shadow(0 0 2px hsl(10 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(10 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* S.T.A.L.K.E.R. — Exoskeleton */
+.accountAvatar.avatar-frame-stalker_exoskeleton {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(145 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(145 95% 60% / .9),
+    0 0 18px hsl(145 95% 50% / .7),
+    inset 0 0 12px hsl(145 95% 55% / .4);
+  animation: hypego-stalker_exoskeleton 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-stalker_exoskeleton {
+  from {
+    filter: drop-shadow(0 0 2px hsl(145 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(145 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* S.T.A.L.K.E.R. — Zone */
+.accountAvatar.avatar-frame-stalker_zone {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(100 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(100 95% 60% / .9),
+    0 0 18px hsl(100 95% 50% / .7),
+    inset 0 0 12px hsl(100 95% 55% / .4);
+  animation: hypego-stalker_zone 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-stalker_zone {
+  from {
+    filter: drop-shadow(0 0 2px hsl(100 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(100 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* S.T.A.L.K.E.R. — Monolith */
+.accountAvatar.avatar-frame-stalker_monolith {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(220 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(220 95% 60% / .9),
+    0 0 18px hsl(220 95% 50% / .7),
+    inset 0 0 12px hsl(220 95% 55% / .4);
+  animation: hypego-stalker_monolith 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-stalker_monolith {
+  from {
+    filter: drop-shadow(0 0 2px hsl(220 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(220 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* S.T.A.L.K.E.R. — Emission */
+.accountAvatar.avatar-frame-stalker_emission {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(300 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(300 95% 60% / .9),
+    0 0 18px hsl(300 95% 50% / .7),
+    inset 0 0 12px hsl(300 95% 55% / .4);
+  animation: hypego-stalker_emission 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-stalker_emission {
+  from {
+    filter: drop-shadow(0 0 2px hsl(300 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(300 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* Minecraft — Netherite */
+.accountAvatar.avatar-frame-minecraft_netherite {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(285 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(285 95% 60% / .9),
+    0 0 18px hsl(285 95% 50% / .7),
+    inset 0 0 12px hsl(285 95% 55% / .4);
+  animation: hypego-minecraft_netherite 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-minecraft_netherite {
+  from {
+    filter: drop-shadow(0 0 2px hsl(285 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(285 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* Minecraft — Warden */
+.accountAvatar.avatar-frame-minecraft_warden {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(165 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(165 95% 60% / .9),
+    0 0 18px hsl(165 95% 50% / .7),
+    inset 0 0 12px hsl(165 95% 55% / .4);
+  animation: hypego-minecraft_warden 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-minecraft_warden {
+  from {
+    filter: drop-shadow(0 0 2px hsl(165 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(165 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* Minecraft — Ender Dragon */
+.accountAvatar.avatar-frame-minecraft_ender {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(260 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(260 95% 60% / .9),
+    0 0 18px hsl(260 95% 50% / .7),
+    inset 0 0 12px hsl(260 95% 55% / .4);
+  animation: hypego-minecraft_ender 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-minecraft_ender {
+  from {
+    filter: drop-shadow(0 0 2px hsl(260 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(260 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* Minecraft — Wither King */
+.accountAvatar.avatar-frame-minecraft_wither {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(25 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(25 95% 60% / .9),
+    0 0 18px hsl(25 95% 50% / .7),
+    inset 0 0 12px hsl(25 95% 55% / .4);
+  animation: hypego-minecraft_wither 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-minecraft_wither {
+  from {
+    filter: drop-shadow(0 0 2px hsl(25 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(25 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* CS2 — Tactical Elite */
+.accountAvatar.avatar-frame-cs2_tactical {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(35 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(35 95% 60% / .9),
+    0 0 18px hsl(35 95% 50% / .7),
+    inset 0 0 12px hsl(35 95% 55% / .4);
+  animation: hypego-cs2_tactical 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-cs2_tactical {
+  from {
+    filter: drop-shadow(0 0 2px hsl(35 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(35 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* CS2 — Redline */
+.accountAvatar.avatar-frame-cs2_redline {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(0 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(0 95% 60% / .9),
+    0 0 18px hsl(0 95% 50% / .7),
+    inset 0 0 12px hsl(0 95% 55% / .4);
+  animation: hypego-cs2_redline 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-cs2_redline {
+  from {
+    filter: drop-shadow(0 0 2px hsl(0 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(0 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* CS2 — Smoke Breach */
+.accountAvatar.avatar-frame-cs2_smoke {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(190 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(190 95% 60% / .9),
+    0 0 18px hsl(190 95% 50% / .7),
+    inset 0 0 12px hsl(190 95% 55% / .4);
+  animation: hypego-cs2_smoke 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-cs2_smoke {
+  from {
+    filter: drop-shadow(0 0 2px hsl(190 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(190 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+
+/* CS2 — Ace Operator */
+.accountAvatar.avatar-frame-cs2_ace {
+  position: relative;
+  isolation: isolate;
+  outline: 2px solid hsl(50 95% 62%);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 7px hsl(50 95% 60% / .9),
+    0 0 18px hsl(50 95% 50% / .7),
+    inset 0 0 12px hsl(50 95% 55% / .4);
+  animation: hypego-cs2_ace 2.4s ease-in-out infinite alternate;
+}
+@keyframes hypego-cs2_ace {
+  from {
+    filter: drop-shadow(0 0 2px hsl(50 95% 60% / .5));
+    outline-offset: 2px;
+  }
+  to {
+    filter: drop-shadow(0 0 10px hsl(50 95% 60% / .95));
+    outline-offset: 5px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [class*="avatar-frame-"] { animation: none !important; }
+}
+/* HYPEGO — animated armor frame prototype */
+
+.avatar[class*="avatar-frame-"],
+.accountAvatar[class*="avatar-frame-"] {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Metallic outer armor */
+.avatar[class*="avatar-frame-"]::before,
+.accountAvatar[class*="avatar-frame-"]::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  z-index: 3;
+  pointer-events: none;
+  border: 2px solid var(--armor, #a78bfa);
+  border-radius: 15px;
+  box-shadow:
+    0 0 5px var(--armor, #a78bfa),
+    0 0 13px color-mix(in srgb, var(--armor, #a78bfa) 60%, transparent),
+    inset 0 0 7px color-mix(in srgb, var(--armor, #a78bfa) 35%, transparent);
+  animation: armor-energy 2.6s ease-in-out infinite alternate;
+}
+
+/* Avatar image remains visible */
+.avatar[class*="avatar-frame-"] img,
+.accountAvatar[class*="avatar-frame-"] img {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hood silhouette — permanent, with moving edges */
+.avatar-frame-anime_shadow_hood,
+.accountAvatar.avatar-frame-anime_shadow_hood,
+.avatar-frame-crysis_cloak,
+.accountAvatar.avatar-frame-crysis_cloak {
+  --armor: #a855f7;
+}
+
+.avatar-frame-anime_shadow_hood::before,
+.accountAvatar.avatar-frame-anime_shadow_hood::before,
+.avatar-frame-crysis_cloak::before,
+.accountAvatar.avatar-frame-crysis_cloak::before {
+  inset: -9px -7px -4px;
+  border-radius: 48% 48% 24% 24%;
+  border-width: 3px 3px 5px;
+  border-color: #26163e #a855f7 #7c3aed;
+  box-shadow:
+    0 0 8px #a855f7,
+    0 0 18px #7c3aed,
+    inset 0 0 10px #6d28d9;
+  animation: hood-writhe 2.8s ease-in-out infinite alternate;
+}
+
+/* Theme colors */
+.avatar-frame-anime_demon_king,
+.accountAvatar.avatar-frame-anime_demon_king {
+  --armor: #ff334f;
+}
+
+.avatar-frame-anime_kitsune,
+.accountAvatar.avatar-frame-anime_kitsune {
+  --armor: #ff9d42;
+}
+
+.avatar-frame-anime_cyber_ronin,
+.accountAvatar.avatar-frame-anime_cyber_ronin {
+  --armor: #27eaff;
+}
+
+.avatar-frame-mlbb_abyss,
+.accountAvatar.avatar-frame-mlbb_abyss {
+  --armor: #8d4dff;
+}
+
+.avatar-frame-mlbb_dragon,
+.accountAvatar.avatar-frame-mlbb_dragon {
+  --armor: #ff7b32;
+}
+
+.avatar-frame-mlbb_celestial,
+.accountAvatar.avatar-frame-mlbb_celestial {
+  --armor: #ffe6a0;
+}
+
+.avatar-frame-mlbb_shadow_assassin,
+.accountAvatar.avatar-frame-mlbb_shadow_assassin {
+  --armor: #d72cff;
+}
+
+.avatar-frame-crysis_nanosuit,
+.accountAvatar.avatar-frame-crysis_nanosuit,
+.avatar-frame-crysis_armor,
+.accountAvatar.avatar-frame-crysis_armor {
+  --armor: #4ce9ff;
+}
+
+.avatar-frame-metro_ranger,
+.accountAvatar.avatar-frame-metro_ranger {
+  --armor: #c6a875;
+}
+
+.avatar-frame-metro_tunnel,
+.accountAvatar.avatar-frame-metro_tunnel {
+  --armor: #8d9b8a;
+}
+
+.avatar-frame-metro_nosalis,
+.accountAvatar.avatar-frame-metro_nosalis {
+  --armor: #a6ff6b;
+}
+
+.avatar-frame-stalker_exoskeleton,
+.accountAvatar.avatar-frame-stalker_exoskeleton {
+  --armor: #a6b7a4;
+}
+
+.avatar-frame-stalker_zone,
+.accountAvatar.avatar-frame-stalker_zone {
+  --armor: #6dff91;
+}
+
+.avatar-frame-stalker_monolith,
+.accountAvatar.avatar-frame-stalker_monolith {
+  --armor: #e8e5ff;
+}
+
+.avatar-frame-stalker_emission,
+.accountAvatar.avatar-frame-stalker_emission {
+  --armor: #ff5c6c;
+}
+
+.avatar-frame-minecraft_netherite,
+.accountAvatar.avatar-frame-minecraft_netherite {
+  --armor: #c07bff;
+}
+
+.avatar-frame-minecraft_warden,
+.accountAvatar.avatar-frame-minecraft_warden {
+  --armor: #54f6c5;
+}
+
+.avatar-frame-minecraft_ender,
+.accountAvatar.avatar-frame-minecraft_ender {
+  --armor: #b96bff;
+}
+
+.avatar-frame-minecraft_wither,
+.accountAvatar.avatar-frame-minecraft_wither {
+  --armor: #a8a8b7;
+}
+
+.avatar-frame-cs2_tactical,
+.accountAvatar.avatar-frame-cs2_tactical {
+  --armor: #d8bd83;
+}
+
+.avatar-frame-cs2_redline,
+.accountAvatar.avatar-frame-cs2_redline {
+  --armor: #ff344d;
+}
+
+.avatar-frame-cs2_smoke,
+.accountAvatar.avatar-frame-cs2_smoke {
+  --armor: #bdc8d8;
+}
+
+.avatar-frame-cs2_ace,
+.accountAvatar.avatar-frame-cs2_ace {
+  --armor: #55e6ff;
+}
+
+/* Deployable mask: slides over the lower face periodically */
+.avatar-frame-anime_demon_king::after,
+.accountAvatar.avatar-frame-anime_demon_king::after,
+.avatar-frame-anime_cyber_ronin::after,
+.accountAvatar.avatar-frame-anime_cyber_ronin::after,
+.avatar-frame-mlbb_abyss::after,
+.accountAvatar.avatar-frame-mlbb_abyss::after,
+.avatar-frame-mlbb_shadow_assassin::after,
+.accountAvatar.avatar-frame-mlbb_shadow_assassin::after,
+.avatar-frame-crysis_nanosuit::after,
+.accountAvatar.avatar-frame-crysis_nanosuit::after,
+.avatar-frame-metro_ranger::after,
+.accountAvatar.avatar-frame-metro_ranger::after,
+.avatar-frame-stalker_monolith::after,
+.accountAvatar.avatar-frame-stalker_monolith::after,
+.avatar-frame-minecraft_warden::after,
+.accountAvatar.avatar-frame-minecraft_warden::after,
+.avatar-frame-cs2_tactical::after,
+.accountAvatar.avatar-frame-cs2_tactical::after,
+.avatar-frame-cs2_ace::after,
+.accountAvatar.avatar-frame-cs2_ace::after {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  left: 12%;
+  right: 12%;
+  top: 48%;
+  height: 29%;
+  border: 1px solid var(--armor, #a78bfa);
+  border-radius: 5px 5px 40% 40%;
+  background:
+    linear-gradient(145deg, #424957, #11141c 45%, #303847);
+  box-shadow:
+    0 0 7px var(--armor, #a78bfa),
+    inset 0 2px 3px #ffffff45,
+    inset 0 -4px 5px #000000aa;
+  opacity: 0;
+  transform: translateY(-22px) scale(.72);
+  animation: mask-deploy 7s ease-in-out infinite;
+}
+
+/* Hood edges writhe without moving the avatar itself */
+@keyframes hood-writhe {
+  0% {
+    transform: perspective(90px) rotate(-1deg) scaleX(.98);
+    filter: brightness(.9);
+  }
+  50% {
+    transform: perspective(90px) rotate(1deg) scaleX(1.025);
+    filter: brightness(1.2);
+  }
+  100% {
+    transform: perspective(90px) rotate(-.5deg) scaleX(1);
+    filter: brightness(1.05);
+  }
+}
+
+@keyframes armor-energy {
+  from {
+    filter: brightness(.85);
+  }
+  to {
+    filter: brightness(1.35);
+  }
+}
+
+/* Mask comes down, stays briefly, then retracts */
+@keyframes mask-deploy {
+  0%, 35%, 100% {
+    opacity: 0;
+    transform: translateY(-22px) scale(.72);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  63% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: translateY(-18px) scale(.78);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar[class*="avatar-frame-"]::before,
+  .accountAvatar[class*="avatar-frame-"]::before,
+  .avatar[class*="avatar-frame-"]::after,
+  .accountAvatar[class*="avatar-frame-"]::after {
+    animation: none;
+  }
+}
+
+/* =========================================================
+   HYPEGO — SHADOW HOOD V1
+   Real layered avatar frame
+   ========================================================= */
+
+.avatar-frame-anime_shadow_hood,
+.accountAvatar.avatar-frame-anime_shadow_hood {
+  --shadow-purple: #a855f7;
+  --shadow-dark: #12091f;
+  --shadow-metal: #303044;
+  position: relative;
+  isolation: isolate;
+  overflow: visible !important;
+}
+
+/* Avatar itself stays underneath the equipment */
+.avatar-frame-anime_shadow_hood img,
+.accountAvatar.avatar-frame-anime_shadow_hood img {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hood / helmet shell */
+.avatar-frame-anime_shadow_hood::before,
+.accountAvatar.avatar-frame-anime_shadow_hood::before {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+
+  inset: -12px;
+
+  border-radius:
+    48% 48% 38% 38% /
+    43% 43% 52% 52%;
+
+  background:
+    linear-gradient(
+      145deg,
+      #08080d 0%,
+      #24202f 23%,
+      #090912 47%,
+      #30213e 67%,
+      #09080e 100%
+    );
+
+  border: 2px solid #5d3a78;
+
+  box-shadow:
+    0 0 4px #a855f7,
+    0 0 12px #7e22ce,
+    0 0 25px #6d28d955,
+    inset 0 0 9px #c084fc33;
+
+  clip-path: polygon(
+    18% 8%,
+    32% 2%,
+    50% 0%,
+    68% 2%,
+    82% 8%,
+    96% 30%,
+    91% 76%,
+    78% 96%,
+    22% 96%,
+    9% 76%,
+    4% 30%
+  );
+
+  animation: shadow-hood-breathe 3s ease-in-out infinite;
+}
+
+/* Energy tendrils around the hood */
+.avatar-frame-anime_shadow_hood::after,
+.accountAvatar.avatar-frame-anime_shadow_hood::after {
+  content: "";
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+
+  inset: -15px;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      ellipse at 18% 30%,
+      transparent 0 34%,
+      #a855f700 35% 39%,
+      #a855f7aa 40% 41%,
+      transparent 42%
+    ),
+    radial-gradient(
+      ellipse at 82% 67%,
+      transparent 0 35%,
+      #c084fc00 36% 40%,
+      #c084fc99 41% 42%,
+      transparent 43%
+    );
+
+  filter: blur(.4px);
+
+  animation:
+    shadow-energy-left 2.2s ease-in-out infinite alternate,
+    shadow-energy-right 2.8s ease-in-out infinite alternate-reverse;
+}
+
+/* Permanent moving hood */
+@keyframes shadow-hood-breathe {
+  0% {
+    transform: scale(1) rotate(-.4deg);
+    filter: brightness(.88);
+  }
+
+  50% {
+    transform: scale(1.025) rotate(.5deg);
+    filter: brightness(1.15);
+  }
+
+  100% {
+    transform: scale(1) rotate(-.2deg);
+    filter: brightness(.96);
+  }
+}
+
+@keyframes shadow-energy-left {
+  0% {
+    transform: translate(-2px, 1px) rotate(-2deg);
+    opacity: .45;
+  }
+
+  100% {
+    transform: translate(3px, -2px) rotate(3deg);
+    opacity: 1;
+  }
+}
+
+@keyframes shadow-energy-right {
+  0% {
+    transform: translate(2px, -1px) rotate(2deg);
+    opacity: .4;
+  }
+
+  100% {
+    transform: translate(-3px, 2px) rotate(-3deg);
+    opacity: .95;
+  }
+}
+
+/* =========================================================
+   MASK DEPLOYMENT
+   ========================================================= */
+
+.avatar-frame-anime_shadow_hood .shadow-mask {
+  position: absolute;
+  z-index: 20;
+
+  left: 23%;
+  right: 23%;
+  bottom: 13%;
+
+  height: 29%;
+
+  pointer-events: none;
+
+  border: 1px solid #c084fc;
+  border-radius: 42% 42% 48% 48% / 28% 28% 62% 62%;
+
+  background:
+    radial-gradient(
+      ellipse at 50% 18%,
+      #c084fc55 0%,
+      #7e22ce18 30%,
+      transparent 65%
+    ),
+    linear-gradient(
+      180deg,
+      #38313f 0%,
+      #15121c 45%,
+      #08070c 100%
+    );
+
+  box-shadow:
+    0 0 6px #c084fc,
+    0 0 14px #7e22ce,
+    inset 0 2px 3px #ffffff30,
+    inset 0 -7px 10px #000000dd;
+
+  transform:
+    translateY(-130%)
+    scale(.72);
+
+  opacity: 0;
+
+  animation: shadow-mask-deploy 7s ease-in-out infinite;
+}
+
+/* Центральная линия маски */
+.avatar-frame-anime_shadow_hood .shadow-mask::before {
+  content: "";
+  position: absolute;
+
+  left: 50%;
+  top: 8%;
+  bottom: 12%;
+
+  width: 1px;
+
+  background: linear-gradient(
+    180deg,
+    transparent,
+    #c084fcaa 35%,
+    #ffffff55 50%,
+    #7e22ceaa 70%,
+    transparent
+  );
+
+  transform: translateX(-50%);
+}
+
+/* Светящиеся прорези */
+.avatar-frame-anime_shadow_hood .shadow-mask::after {
+  content: "";
+  position: absolute;
+
+  left: 16%;
+  right: 16%;
+  top: 31%;
+
+  height: 5px;
+
+  border-radius: 50%;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      #a855f7 18%,
+      #e9d5ff 50%,
+      #a855f7 82%,
+      transparent 100%
+    );
+
+  box-shadow:
+    0 0 5px #a855f7,
+    0 0 12px #7e22ce;
+
+  opacity: .85;
+}
+
+@keyframes shadow-mask-deploy {
+  0%,
+  38%,
+  100% {
+    opacity: 0;
+    transform:
+      translateY(-130%)
+      scale(.7);
+  }
+
+  43% {
+    opacity: 1;
+    transform:
+      translateY(0)
+      scale(1);
+  }
+
+  64% {
+    opacity: 1;
+    transform:
+      translateY(0)
+      scale(1);
+  }
+
+  70% {
+    opacity: 0;
+    transform:
+      translateY(-110%)
+      scale(.78);
+  }
+}
+
+/* Small avatar correction */
+.accountAvatar.avatar-frame-anime_shadow_hood::before {
+  inset: -7px;
+}
+
+.accountAvatar.avatar-frame-anime_shadow_hood::after {
+  inset: -9px;
+}
+
+/* Respect accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .avatar-frame-anime_shadow_hood::before,
+  .avatar-frame-anime_shadow_hood::after,
+  .accountAvatar.avatar-frame-anime_shadow_hood::before,
+  .accountAvatar.avatar-frame-anime_shadow_hood::after,
+  .shadow-mask {
+    animation: none !important;
+  }
+}
+
+
+
+/* HYPEGO THEMED MASK BATCH V1 */
+
+/* These themes use their own JSX mask instead of the old generic ::after */
+[class~="avatar-frame-anime_demon_king"]::after,
+[class~="avatar-frame-anime_cyber_ronin"]::after,
+[class~="avatar-frame-mlbb_abyss"]::after,
+[class~="avatar-frame-mlbb_shadow_assassin"]::after,
+[class~="avatar-frame-crysis_nanosuit"]::after,
+[class~="avatar-frame-metro_ranger"]::after,
+[class~="avatar-frame-stalker_monolith"]::after,
+[class~="avatar-frame-minecraft_warden"]::after,
+[class~="avatar-frame-cs2_tactical"]::after,
+[class~="avatar-frame-cs2_ace"]::after {
+  content: none !important;
+  animation: none !important;
+  box-shadow: none !important;
+}
+
+.themed-mask {
+  --mask-color: #a78bfa;
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+  left: 20%;
+  right: 20%;
+  top: 49%;
+  height: 29%;
+  opacity: 0;
+  transform: translateY(-125%) scale(.72);
+  border: 1px solid var(--mask-color);
+  border-radius: 18% 18% 42% 42%;
+  background:
+    linear-gradient(155deg, #55505f 0%, #1b1923 42%, #090910 100%);
+  box-shadow:
+    0 0 7px var(--mask-color),
+    0 0 16px color-mix(in srgb, var(--mask-color) 55%, transparent),
+    inset 0 2px 3px #ffffff35,
+    inset 0 -5px 8px #000000dd;
+  animation: themed-mask-deploy 7s ease-in-out infinite;
+}
+
+.themed-mask::before {
+  content: "";
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  top: 29%;
+  height: 5px;
+  border-radius: 50%;
+  background: linear-gradient(
+    90deg, transparent, var(--mask-color), #ffffffcc,
+    var(--mask-color), transparent
+  );
+  box-shadow: 0 0 7px var(--mask-color);
+}
+
+.themed-mask::after {
+  content: "";
+  position: absolute;
+  left: 48%;
+  top: 12%;
+  bottom: 12%;
+  width: 2px;
+  background: linear-gradient(transparent, var(--mask-color), transparent);
+  opacity: .75;
+}
+
+@keyframes themed-mask-deploy {
+  0%, 35%, 100% { opacity: 0; transform: translateY(-125%) scale(.72); }
+  41% { opacity: 1; transform: translateY(0) scale(1); }
+  64% { opacity: 1; transform: translateY(0) scale(1); }
+  71% { opacity: 0; transform: translateY(12%) scale(.94); }
+}
+
+/* Demon King — horned silhouette */
+.themed-mask-anime_demon_king {
+  --mask-color: #ff334f;
+  clip-path: polygon(0 0, 20% 13%, 28% 0, 42% 18%, 58% 18%, 72% 0, 80% 13%, 100% 0, 91% 72%, 70% 100%, 30% 100%, 9% 72%);
+  border-radius: 0;
+}
+
+/* Cyber Ronin — angular samurai plating */
+.themed-mask-anime_cyber_ronin {
+  --mask-color: #27eaff;
+  clip-path: polygon(8% 0, 92% 0, 100% 24%, 82% 72%, 50% 100%, 18% 72%, 0 24%);
+  border-radius: 0;
+}
+
+/* Abyss Predator — jagged demonic jaw */
+.themed-mask-mlbb_abyss {
+  --mask-color: #8d4dff;
+  clip-path: polygon(0 0, 100% 0, 88% 66%, 68% 82%, 58% 68%, 50% 100%, 42% 68%, 32% 82%, 12% 66%);
+  border-radius: 0;
+}
+
+/* Shadow Assassin — narrow stealth faceplate */
+.themed-mask-mlbb_shadow_assassin {
+  --mask-color: #d72cff;
+  left: 24%;
+  right: 24%;
+  clip-path: polygon(0 0, 100% 0, 82% 65%, 50% 100%, 18% 65%);
+  border-radius: 0;
+}
+
+/* Nano Suit — smooth high-tech visor */
+.themed-mask-crysis_nanosuit {
+  --mask-color: #4ce9ff;
+  left: 15%;
+  right: 15%;
+  height: 23%;
+  top: 51%;
+  border-radius: 35% 35% 24% 24%;
+  background: linear-gradient(180deg, #263b47, #08131c 65%, #142a35);
+}
+
+/* Metro Ranger — worn respirator */
+.themed-mask-metro_ranger {
+  --mask-color: #c6a875;
+  border-radius: 24% 24% 32% 32%;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 7px, #a9a08a22 7px 9px),
+    linear-gradient(180deg, #514b3e, #171713 75%);
+}
+.themed-mask-metro_ranger::after {
+  left: 30%;
+  width: 40%;
+  top: 48%;
+  bottom: 12%;
+  border: 1px solid var(--mask-color);
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, #111 0 3px, #aaa 3px 4px);
+}
+
+/* Monolith — sealed facemask */
+.themed-mask-stalker_monolith {
+  --mask-color: #e8e5ff;
+  left: 16%;
+  right: 16%;
+  border-radius: 22% 22% 34% 34%;
+  background: linear-gradient(135deg, #45434e, #0b0b10 55%, #292632);
+}
+.themed-mask-stalker_monolith::before {
+  top: 23%;
+  height: 3px;
+}
+
+/* Warden — broad sculk faceplate */
+.themed-mask-minecraft_warden {
+  --mask-color: #54f6c5;
+  left: 12%;
+  right: 12%;
+  clip-path: polygon(8% 0, 92% 0, 100% 48%, 75% 100%, 25% 100%, 0 48%);
+  border-radius: 0;
+  background: linear-gradient(180deg, #20574d, #071c20 65%, #03090c);
+}
+
+/* Tactical Elite — reinforced ballistic mask */
+.themed-mask-cs2_tactical {
+  --mask-color: #d8bd83;
+  left: 17%;
+  right: 17%;
+  border-radius: 12% 12% 25% 25%;
+  background: linear-gradient(180deg, #555044, #20221e 52%, #0d100e);
+}
+.themed-mask-cs2_tactical::after {
+  left: 25%;
+  width: 50%;
+  top: 48%;
+  bottom: 15%;
+  border: 1px solid #b7aa8b;
+  border-radius: 3px;
+}
+
+/* Ace Operator — cyan-lit combat visor */
+.themed-mask-cs2_ace {
+  --mask-color: #55e6ff;
+  left: 14%;
+  right: 14%;
+  height: 24%;
+  top: 51%;
+  border-radius: 30% 30% 18% 18%;
+  background: linear-gradient(180deg, #273d4a, #09131b 70%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .themed-mask { animation: none !important; opacity: .9; transform: none; }
+}
+
+/* HYPEGO ARMOR DEPTH V2 */
+
+/* Metallic depth and animated specular highlights */
+.themed-mask {
+  isolation: isolate;
+  overflow: hidden;
+  border-width: 2px;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--mask-color) 78%, #ffffff);
+  background:
+    linear-gradient(112deg,
+      transparent 0%,
+      #ffffff05 24%,
+      #ffffff55 30%,
+      transparent 38%),
+    linear-gradient(160deg,
+      #d9e0ed 0%,
+      #535b6d 12%,
+      #171923 34%,
+      #08090e 64%,
+      color-mix(in srgb, var(--mask-color) 40%, #09090f) 100%);
+  box-shadow:
+    0 2px 0 #ffffff35,
+    0 5px 9px #000000bd,
+    0 0 8px var(--mask-color),
+    0 0 20px color-mix(in srgb, var(--mask-color) 50%, transparent),
+    inset 0 2px 3px #ffffff85,
+    inset 0 -5px 7px #000000ed,
+    inset 2px 0 3px #ffffff25,
+    inset -2px 0 3px #000000a0;
+  transform-origin: center 15%;
+}
+
+.themed-mask::before {
+  height: 3px;
+  background:
+    linear-gradient(90deg,
+      transparent,
+      #ffffff,
+      var(--mask-color),
+      #ffffff,
+      transparent);
+  box-shadow:
+    0 0 4px #ffffff,
+    0 0 10px var(--mask-color),
+    0 0 18px var(--mask-color);
+  animation: themed-visor-pulse 2.8s ease-in-out infinite;
+}
+
+.themed-mask::after {
+  width: 3px;
+  background:
+    linear-gradient(180deg,
+      transparent,
+      #ffffff,
+      var(--mask-color),
+      #ffffff,
+      transparent);
+  box-shadow: 0 0 8px var(--mask-color);
+  animation: themed-core-pulse 3.5s ease-in-out infinite;
+}
+
+@keyframes themed-visor-pulse {
+  0%, 100% { opacity: .55; filter: brightness(.8); }
+  50% { opacity: 1; filter: brightness(1.7); }
+}
+
+@keyframes themed-core-pulse {
+  0%, 100% { opacity: .35; }
+  50% { opacity: 1; }
+}
+
+/* Individual movement and armor profiles */
+.themed-mask-anime_demon_king {
+  --mask-color: #ff334f;
+  filter: drop-shadow(0 0 5px #ff183b90);
+  box-shadow: 0 0 15px #ff183b85, inset 0 0 12px #ff183b55;
+}
+
+.themed-mask-anime_cyber_ronin {
+  --mask-color: #27eaff;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 5px, #27eaff12 6px),
+    linear-gradient(150deg, #d7ffff, #283e4b 18%, #080d17 60%, #0b4650);
+  filter: drop-shadow(0 0 5px #27eaff95);
+}
+
+.themed-mask-mlbb_abyss {
+  --mask-color: #8d4dff;
+  background:
+    linear-gradient(135deg, #c7a5ff, #31204b 22%, #08050f 65%, #5015a5);
+  filter: drop-shadow(0 0 7px #8d4dff);
+}
+
+.themed-mask-mlbb_shadow_assassin {
+  --mask-color: #d72cff;
+  background:
+    linear-gradient(120deg, #d8a9ff, #30203c 15%, #09060e 55%, #58107b);
+  box-shadow: 0 0 12px #d72cff90, inset 0 0 9px #d72cff45;
+}
+
+.themed-mask-crysis_nanosuit {
+  --mask-color: #45ffb3;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 9px, #45ffb320 10px 12px),
+    linear-gradient(145deg, #d5fff0, #2c4e48 18%, #070f12 65%, #146b53);
+}
+
+.themed-mask-metro_ranger {
+  --mask-color: #ffb45b;
+  background:
+    linear-gradient(160deg, #d4c5a5, #555044 20%, #191915 56%, #4c3020);
+  border-color: #d0b58a;
+  box-shadow: 0 0 9px #ffb45b65, inset 0 0 10px #000000c9;
+}
+
+.themed-mask-stalker_monolith {
+  --mask-color: #d5ff45;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 7px, #d5ff4512 8px 9px),
+    linear-gradient(145deg, #d9e7b1, #4d5836 20%, #10150c 66%, #344b12);
+  filter: drop-shadow(0 0 6px #baff3570);
+}
+
+.themed-mask-minecraft_warden {
+  --mask-color: #43ffd4;
+  background:
+    linear-gradient(135deg, #b5ffe8, #245e5c 18%, #071718 62%, #075f58);
+  box-shadow: 0 0 12px #43ffd485, inset 0 0 12px #43ffd445;
+}
+
+.themed-mask-cs2_tactical {
+  --mask-color: #ffcf70;
+  background:
+    repeating-linear-gradient(135deg, #ffffff0b 0 3px, transparent 3px 7px),
+    linear-gradient(145deg, #c5c8c9, #4b5158 20%, #15191e 65%, #343a40);
+  border-color: #a9b4bf;
+}
+
+.themed-mask-cs2_ace {
+  --mask-color: #ff414f;
+  background:
+    linear-gradient(135deg, #f0d7d7, #63252d 18%, #15090d 60%, #801321);
+  box-shadow: 0 0 12px #ff414f80, inset 0 0 9px #ff414f35;
+}
+
+/* Masks deploy with a subtle tilt instead of a flat pop */
+.themed-mask-anime_demon_king,
+.themed-mask-mlbb_abyss {
+  animation-name: themed-mask-deploy-dramatic;
+}
+
+.themed-mask-anime_cyber_ronin,
+.themed-mask-crysis_nanosuit,
+.themed-mask-minecraft_warden {
+  animation-name: themed-mask-deploy-tech;
+}
+
+@keyframes themed-mask-deploy-dramatic {
+  0%, 35%, 100% {
+    opacity: 0;
+    transform: translateY(-125%) scale(.72) rotate(-7deg);
+  }
+  41% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0);
+  }
+  64% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0);
+  }
+  71% {
+    opacity: 0;
+    transform: translateY(12%) scale(.94) rotate(3deg);
+  }
+}
+
+@keyframes themed-mask-deploy-tech {
+  0%, 35%, 100% {
+    opacity: 0;
+    transform: translateY(-125%) scale(.72) rotate(4deg);
+  }
+  41% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0);
+  }
+  64% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0);
+  }
+  71% {
+    opacity: 0;
+    transform: translateY(12%) scale(.94) rotate(-2deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .themed-mask,
+  .themed-mask::before,
+  .themed-mask::after {
+    animation: none !important;
+  }
+}
