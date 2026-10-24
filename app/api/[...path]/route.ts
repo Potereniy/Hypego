@@ -272,54 +272,48 @@ if(key==='players'&&method==='GET'){
       u.created_at,
       EXISTS(
         SELECT 1
-        FROM user_roles ur
-        WHERE ur.user_id=u.id AND ur.role_id='chsp'
+        FROM user_roles ch
+        WHERE ch.user_id=u.id AND ch.role_id='chsp'
       ) AS is_chsp,
       COALESCE(
         (
           SELECT json_agg(
-            json_build_object(
-              'id',r.id,
-              'title',r.title,
-              'rank',r.rank
-            )
+            json_build_object('id',r.id,'title',r.title,'rank',r.rank)
             ORDER BY r.rank DESC
           )
           FROM user_roles ur
           JOIN roles r ON r.id=ur.role_id
-          WHERE ur.user_id=u.id
-            AND r.id<>'chsp'
+          WHERE ur.user_id=u.id AND r.id<>'chsp'
         ),
         '[]'
       ) AS roles
     FROM users u
     WHERE u.username ILIKE ${'%'+q+'%'}
       AND (
-        ${role==='' ? true : role==='player'
-          ? false
-          : true}
-        OR ${role==='player'}
-      )
-      AND (
-        ${role==='' ? true : role==='player'
-          ? ``
-          : ``}
+        ${role===''}
+        OR (
+          ${role==='player'}
+          AND NOT EXISTS(
+            SELECT 1 FROM user_roles ur
+            WHERE ur.user_id=u.id
+              AND ur.role_id IN ('owner','deputy','management','curator','tech_admin','support','moderator','trainee')
+          )
+        )
+        OR (
+          ${role!=='' && role!=='player'}
+          AND EXISTS(
+            SELECT 1 FROM user_roles ur
+            WHERE ur.user_id=u.id AND ur.role_id=${role}
+          )
+        )
       )
     ORDER BY u.username
     LIMIT 50
   `;
 
-  let filtered=rows;
-
-  if(role==='player'){
-    filtered=rows.filter((p:any)=>!Array.isArray(p.roles) || !p.roles.some((r:any)=>staffRoles.includes(r.id)));
-  }else if(role){
-    filtered=rows.filter((p:any)=>Array.isArray(p.roles) && p.roles.some((r:any)=>r.id===role));
-  }
-
-  return Response.json({players:filtered});
+  return Response.json({players:rows});
 }
- if(key==='player'&&method==='GET'){
+if(key==='player'&&method==='GET'){
   const username=(req.nextUrl.searchParams.get('username')||'').trim().slice(0,24);
   if(!/^[A-Za-z0-9_]{3,24}$/.test(username))throw new HttpError(400,'Некорректный ник');
   const rows=await db`SELECT id,username,display_name,bio,nickname_color,nickname_effect,avatar_frame,avatar_url,banner_url,vk_url,telegram_username,created_at FROM users WHERE username ILIKE ${username} LIMIT 1`;
