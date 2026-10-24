@@ -467,6 +467,19 @@ if(key==='admin/salary'&&method==='POST'){
 
  if(key==='admin/rules'&&method==='GET'){const rows=await db`SELECT id,title,body,sort_order,updated_at FROM rules ORDER BY sort_order,id`;return Response.json({rules:rows});}
  if(key==='admin/rules'&&method==='PUT'){const actor=await requireUser();if(!await hasPermission(actor.id,'rules.edit')||(!(await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} AND role_id='curator' LIMIT 1`).length && !(await db`SELECT 1 FROM users WHERE id=${actor.id} AND is_project_owner=TRUE LIMIT 1`).length))throw new HttpError(403,'Недостаточно прав для изменения правил');const b=await bodyJson(req),rules=Array.isArray(b.rules)?b.rules:[];if(rules.length>100)throw new HttpError(400,'Слишком много правил');for(let i=0;i<rules.length;i++){const r=rules[i],title=String(r.title||'').trim().slice(0,150),body=String(r.body||'').trim().slice(0,5000);if(!title||!body)continue;if(r.id)await db`UPDATE rules SET title=${title},body=${body},sort_order=${i},updated_by=${actor.id},updated_at=NOW() WHERE id=${r.id}`;else await db`INSERT INTO rules(title,body,sort_order,updated_by) VALUES(${title},${body},${i},${actor.id})`;}await audit(actor.id,'rules.update','rules',undefined,{count:rules.length});return Response.json({ok:true});}
+ if(key==='admin/rules'&&method==='DELETE'){
+   const actor=await requireUser();
+   if(!await hasPermission(actor.id,'rules.edit')||
+      (!(await db`SELECT 1 FROM user_roles WHERE user_id=${actor.id} AND role_id='curator' LIMIT 1`).length &&
+       !(await db`SELECT 1 FROM users WHERE id=${actor.id} AND is_project_owner=TRUE LIMIT 1`).length))
+     throw new HttpError(403,'Недостаточно прав для удаления правил');
+   const b=await bodyJson(req),id=String(b.id||'').trim();
+   if(!id)throw new HttpError(400,'Не указан ID правила');
+   const rows=await db`DELETE FROM rules WHERE id=${id} RETURNING id`;
+   if(!rows.length)throw new HttpError(404,'Правило не найдено');
+   await audit(actor.id,'rules.delete','rule',id);
+   return Response.json({ok:true,id:rows[0].id});
+ }
  if(key==='rules'&&method==='GET'){const rows=await db`SELECT id,title,body,sort_order,updated_at FROM rules ORDER BY sort_order,id`;return Response.json({rules:rows});}
  if(key==='products/seed'&&method==='POST'){
     const actor=await requirePermission('products.manage');

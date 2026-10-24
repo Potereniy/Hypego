@@ -1418,6 +1418,31 @@ function RulesEditor({onNotice}:{onNotice:(s:string)=>void}) {
     setRules(current=>[...current,{title:'',body:''}]);
   }
 
+  async function removeRule(index:number) {
+    const rule=rules[index];
+    if(!rule) return;
+    const title=String(rule.title||'').trim()||`Правило ${index+1}`;
+    if(!window.confirm(`Удалить «${title}»? Это действие нельзя отменить.`)) return;
+
+    if(rule.id) {
+      setSaving(true);
+      try {
+        await api('admin/rules',{
+          method:'DELETE',
+          body:JSON.stringify({id:rule.id})
+        });
+        onNotice('Выбранный пункт правила удалён.');
+      } catch(e:any) {
+        onNotice('Не удалось удалить правило: '+e.message);
+        return;
+      } finally {
+        setSaving(false);
+      }
+    }
+
+    setRules(current=>current.filter((_,i)=>i!==index));
+  }
+
   async function save() {
     const valid=rules.filter(r=>String(r.title||'').trim()&&String(r.body||'').trim());
     if(!valid.length) {
@@ -1458,6 +1483,7 @@ function RulesEditor({onNotice}:{onNotice:(s:string)=>void}) {
         <label>Текст правила
           <textarea value={r.body||''} maxLength={5000} rows={4} onChange={e=>updateRule(i,'body',e.target.value)} placeholder="Опиши правило и возможные последствия..."/>
         </label>
+        <button className="outline" type="button" disabled={loading||saving} onClick={()=>removeRule(i)}>🗑 Удалить пункт</button>
       </div>)}
       <div className="searchLine">
         <button className="outline" type="button" onClick={addRule} disabled={loading||saving}>Добавить правило</button>
